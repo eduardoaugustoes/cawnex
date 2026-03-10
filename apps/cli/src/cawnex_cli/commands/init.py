@@ -327,14 +327,26 @@ def _step_database():
 
 
 async def _init_db():
+    import subprocess as _sp
     from cawnex_core.models.db import create_engine, init_db
     from cawnex_core.models import (  # noqa: F401
         Tenant, LLMConfig, Repository, Task, AgentDefinition,
         Workflow, WorkflowStep, Execution, ExecutionEvent, Artifact,
     )
+    from cawnex_core.models.project import (  # noqa: F401
+        Project, ProjectRepository, Vision, VisionMessage, Milestone,
+    )
     engine = create_engine(cfg.get("database_url"))
     await init_db(engine)
     await engine.dispose()
+
+    # Stamp Alembic so future migrations work
+    project_root = _find_project_root()
+    _sp.run(
+        ["uv", "run", "alembic", "stamp", "head"],
+        cwd=project_root, capture_output=True,
+        env={**__import__("os").environ, "CAWNEX_DATABASE_URL": cfg.get("database_url", "")},
+    )
 
 
 async def _seed_db():
