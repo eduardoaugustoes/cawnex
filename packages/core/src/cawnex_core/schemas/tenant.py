@@ -19,9 +19,19 @@ class LLMConfigResponse(BaseModel):
     mode: BYOLMode
     budget_limit_usd: Optional[float]
     budget_used_usd: float
-    has_api_key: bool  # Never expose the actual key
+    has_api_key: bool = True  # Never expose the actual key
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_orm_model(cls, obj):
+        return cls(
+            provider=obj.provider,
+            mode=obj.mode,
+            budget_limit_usd=obj.budget_limit_usd,
+            budget_used_usd=obj.budget_used_usd,
+            has_api_key=obj.encrypted_api_key is not None,
+        )
 
 
 class TenantCreate(BaseModel):
