@@ -3,6 +3,8 @@
 from enum import StrEnum
 
 
+# === LLM / BYOL ===
+
 class Provider(StrEnum):
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
@@ -14,19 +16,9 @@ class BYOLMode(StrEnum):
     SUBSCRIPTION_RELAY = "subscription_relay"
 
 
-class AgentType(StrEnum):
-    REFINEMENT = "refinement"
-    DEV = "dev"
-    QA = "qa"
-    DOCS = "docs"
-    BACKEND = "backend"
-    FRONTEND = "frontend"
-    MOBILE = "mobile"
-    SECURITY = "security"
-    PLANNING = "planning"
+# === Tasks ===
 
-
-class IssueStatus(StrEnum):
+class TaskStatus(StrEnum):
     PENDING = "pending"
     REFINING = "refining"
     AWAITING_APPROVAL = "awaiting_approval"
@@ -37,6 +29,18 @@ class IssueStatus(StrEnum):
     REJECTED = "rejected"
 
 
+class TaskSource(StrEnum):
+    GITHUB = "github"
+    LINEAR = "linear"
+    JIRA = "jira"
+    API = "api"
+    MANUAL = "manual"
+    SCHEDULE = "schedule"
+    CHAT = "chat"
+
+
+# === Executions ===
+
 class ExecutionStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"
@@ -46,20 +50,50 @@ class ExecutionStatus(StrEnum):
     RETRYING = "retrying"
 
 
+# === Events ===
+
 class EventType(StrEnum):
     PLANNING = "planning"
     TOOL_USE = "tool_use"
     TOOL_RESULT = "tool_result"
     OUTPUT = "output"
     ERROR = "error"
-    PEER_MESSAGE = "peer_message"
+    AGENT_MESSAGE = "agent_message"
     GUARD_WARNING = "guard_warning"
     GUARD_CANCEL = "guard_cancel"
     STATUS_CHANGE = "status_change"
+    APPROVAL_REQUEST = "approval_request"
+    APPROVAL_RESPONSE = "approval_response"
 
 
-class IssueSource(StrEnum):
+# === Artifacts ===
+
+class ArtifactType(StrEnum):
+    PULL_REQUEST = "pull_request"
+    DOCUMENT = "document"
+    REPORT = "report"
+    DATASET = "dataset"
+    EMAIL_DRAFT = "email_draft"
+    CODE = "code"
+    FILE = "file"
+    CUSTOM = "custom"
+
+
+# === Workspaces ===
+
+class WorkspaceType(StrEnum):
+    GIT_WORKTREE = "git_worktree"
+    TEMP_DIR = "temp_dir"
+    CLOUD_STORAGE = "cloud_storage"
+
+
+# === Triggers ===
+
+class TriggerSource(StrEnum):
     GITHUB = "github"
     LINEAR = "linear"
     JIRA = "jira"
+    API = "api"
+    SCHEDULE = "schedule"
+    CHAT = "chat"
     MANUAL = "manual"

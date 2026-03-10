@@ -39,9 +39,8 @@ class Repository(Base, TimestampMixin):
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship(back_populates="repositories")  # noqa: F821
-    issues: Mapped[list["Issue"]] = relationship(  # noqa: F821
-        back_populates="repository", cascade="all, delete-orphan"
-    )
+    # Note: Tasks reference repos via context JSON, not FK
+    # This keeps the Task model domain-agnostic
 
     def __repr__(self) -> str:
         return f"<Repository {self.github_full_name}>"
