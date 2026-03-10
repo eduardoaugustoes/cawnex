@@ -16,6 +16,7 @@ members = [
     "packages/git_ops",
     "apps/api",
     "apps/worker",
+    "apps/cli",
 ]
 
 [tool.ruff]

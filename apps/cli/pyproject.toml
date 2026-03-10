@@ -1,0 +1,33 @@
+[project]
+name = "cawnex-cli"
+version = "0.1.0"
+description = "Cawnex CLI — setup, run, and manage your murder"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.0",
+    "rich>=13.0",
+    "cryptography>=46.0",
+    "anthropic>=0.84",
+    "httpx>=0.28",
+    "pydantic-settings>=2.0",
+    "cawnex-core",
+    "cawnex-providers",
+    "cawnex-git-ops",
+    "cawnex-worker",
+]
+
+[project.scripts]
+cawnex = "cawnex_cli.main:cli"
+
+[tool.uv.sources]
+cawnex-core = { workspace = true }
+cawnex-providers = { workspace = true }
+cawnex-git-ops = { workspace = true }
+cawnex-worker = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cawnex_cli"]
