@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from cawnex_api.config import settings
 from cawnex_api.deps.redis import close_redis
-from cawnex_api.routers import health, tenants, repos, tasks, agents, workflows, webhooks, stream
+from cawnex_api.routers import health, tenants, repos, tasks, agents, workflows, webhooks, stream, projects, vision, milestones
 
 
 @asynccontextmanager
@@ -41,6 +41,9 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router, prefix=prefix)
     app.include_router(agents.router, prefix=prefix)
     app.include_router(workflows.router, prefix=prefix)
+    app.include_router(projects.router, prefix=prefix)
+    app.include_router(vision.router, prefix=prefix)
+    app.include_router(milestones.router, prefix=prefix)
     app.include_router(webhooks.router, prefix=prefix)
     app.include_router(stream.router, prefix=prefix)
 
