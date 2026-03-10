@@ -60,21 +60,56 @@ class KeyReader:
         self._stop = False
         self._thread: threading.Thread | None = None
         self._old_settings = None
+        self._pipe_r = -1
+        self._pipe_w = -1
 
     def start(self):
         if not sys.stdin.isatty():
             return
         import termios, tty
+        self._stop = False
         self._old_settings = termios.tcgetattr(sys.stdin.fileno())
-        tty.setcbreak(sys.stdin.fileno())  # cbreak mode — char-at-a-time, no echo
+        tty.setcbreak(sys.stdin.fileno())
+        # Create a pipe to wake up the blocking select
+        self._pipe_r, self._pipe_w = os.pipe()
         self._thread = threading.Thread(target=self._reader, daemon=True)
         self._thread.start()
 
     def stop(self):
         self._stop = True
+        # Wake the reader thread by writing to the pipe
+        if self._pipe_w >= 0:
+            try:
+                os.write(self._pipe_w, b"\x00")
+                os.close(self._pipe_w)
+                self._pipe_w = -1
+            except OSError:
+                pass
+        # Wait for thread to finish
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=1)
+        self._thread = None
+        # Close read end
+        if self._pipe_r >= 0:
+            try:
+                os.close(self._pipe_r)
+                self._pipe_r = -1
+            except OSError:
+                pass
+        # Restore terminal
         if self._old_settings:
             import termios
-            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self._old_settings)
+            try:
+                termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self._old_settings)
+            except Exception:
+                pass
+            self._old_settings = None
+        # Drain the queue
+        while not self._queue.empty():
+            try:
+                self._queue.get_nowait()
+            except queue.Empty:
+                break
 
     def get_key(self) -> str | None:
         try:
@@ -83,20 +118,36 @@ class KeyReader:
             return None
 
     def _reader(self):
+        import select as sel
+        stdin_fd = sys.stdin.fileno()
         while not self._stop:
             try:
+                # Wait for stdin OR the wake pipe
+                readable, _, _ = sel.select([stdin_fd, self._pipe_r], [], [], 0.2)
+                if not readable:
+                    continue
+                if self._pipe_r in readable:
+                    break  # Stop signal
+                if stdin_fd not in readable:
+                    continue
+
                 ch = sys.stdin.read(1)
                 if not ch:
                     break
                 if ch == "\x1b":
-                    ch2 = sys.stdin.read(1)
-                    if ch2 == "[":
-                        ch3 = sys.stdin.read(1)
-                        if ch3 == "A":
-                            self._queue.put("up")
-                        elif ch3 == "B":
-                            self._queue.put("down")
-                        continue
+                    # Check for arrow sequence
+                    r2, _, _ = sel.select([stdin_fd], [], [], 0.05)
+                    if r2:
+                        ch2 = sys.stdin.read(1)
+                        if ch2 == "[":
+                            r3, _, _ = sel.select([stdin_fd], [], [], 0.05)
+                            if r3:
+                                ch3 = sys.stdin.read(1)
+                                if ch3 == "A":
+                                    self._queue.put("up")
+                                elif ch3 == "B":
+                                    self._queue.put("down")
+                            continue
                     continue
                 self._queue.put(ch)
             except Exception:
