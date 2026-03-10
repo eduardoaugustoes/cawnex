@@ -25,6 +25,7 @@ from cawnex_core.models import (
 )
 from cawnex_git_ops import WorktreeManager, GitHubAPI
 from cawnex_worker.crows.runner import CrowRunner, CrowResult
+from cawnex_worker.crows.subscription_runner import HybridRunner
 
 logger = logging.getLogger("cawnex.murder")
 
@@ -38,6 +39,8 @@ class Murder:
         redis_url: str,
         fernet_key: str,
         github_token: str | None = None,
+        use_subscription: bool = False,
+        claude_cmd: str | None = None,
     ) -> None:
         self.engine = create_async_engine(database_url, pool_size=5)
         self.session_factory = async_sessionmaker(
@@ -46,6 +49,8 @@ class Murder:
         self.redis = Redis.from_url(redis_url, decode_responses=True)
         self.fernet_key = fernet_key.encode() if fernet_key else None
         self.github_token = github_token
+        self.use_subscription = use_subscription
+        self.claude_cmd = claude_cmd
         self._running = False
 
     async def start(self) -> None:
@@ -119,13 +124,15 @@ class Murder:
                 .options(selectinload(Tenant.llm_config))
             )).scalar_one()
 
-            # Get API key
-            api_key = self._decrypt_api_key(tenant.llm_config)
-            if not api_key:
-                logger.error(f"No API key for tenant {tenant.slug}")
-                task.status = TaskStatus.FAILED
-                await db.commit()
-                return
+            # Get API key (not needed for subscription mode)
+            api_key = None
+            if not self.use_subscription:
+                api_key = self._decrypt_api_key(tenant.llm_config)
+                if not api_key:
+                    logger.error(f"No API key for tenant {tenant.slug}")
+                    task.status = TaskStatus.FAILED
+                    await db.commit()
+                    return
 
             # Get workflow steps
             workflow = task.workflow
@@ -152,7 +159,11 @@ class Murder:
                 "task_description": task.description or "",
                 "repository": (task.context or {}).get("repository", ""),
             }
-            runner = CrowRunner(api_key)
+            runner = HybridRunner(
+                api_key=api_key,
+                use_subscription=self.use_subscription,
+                claude_cmd=self.claude_cmd,
+            )
 
             for step in steps:
                 agent: AgentDefinition = step.agent
@@ -359,6 +370,8 @@ async def main():
         redis_url=os.environ.get("CAWNEX_REDIS_URL", "redis://localhost:6380"),
         fernet_key=os.environ.get("CAWNEX_FERNET_KEY", ""),
         github_token=os.environ.get("CAWNEX_GITHUB_TOKEN"),
+        use_subscription=os.environ.get("CAWNEX_USE_SUBSCRIPTION", "").lower() in ("1", "true", "yes"),
+        claude_cmd=os.environ.get("CAWNEX_CLAUDE_CMD"),
     )
 
     try:

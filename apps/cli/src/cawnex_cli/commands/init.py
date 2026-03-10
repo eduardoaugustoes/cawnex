@@ -53,9 +53,9 @@ def init():
     console.print("\n[bold cyan]Step 2/6 — Encryption[/]")
     _step_encryption()
 
-    # Step 3: Anthropic API key
-    console.print("\n[bold cyan]Step 3/6 — Anthropic API Key (BYOL)[/]")
-    _step_anthropic()
+    # Step 3: LLM Provider
+    console.print("\n[bold cyan]Step 3/6 — LLM Provider (BYOL)[/]")
+    _step_llm_provider()
 
     # Step 4: GitHub
     console.print("\n[bold cyan]Step 4/6 — GitHub[/]")
@@ -132,13 +132,85 @@ def _step_encryption():
     console.print("  [dim]Your BYOL API keys are encrypted with this key.[/]")
 
 
-def _step_anthropic():
+def _step_llm_provider():
+    """Choose between API key and subscription mode."""
+    existing_mode = cfg.get("llm_mode")
+    if existing_mode:
+        console.print(f"  Current mode: [cyan]{existing_mode}[/]")
+        if not Confirm.ask("  Reconfigure?", default=False):
+            return
+
+    console.print()
+    console.print("  How do you want to run agents?")
+    console.print()
+    console.print("  [bold cyan][1][/] API Key — paste your sk-ant-... key (pay per token)")
+    console.print("  [bold green][2][/] Claude Max Subscription — agents run via Claude Code CLI (unlimited)")
+    console.print()
+
+    choice = Prompt.ask("  Choice", choices=["1", "2"], default="2")
+
+    if choice == "2":
+        _step_subscription()
+    else:
+        _step_api_key()
+
+
+def _step_subscription():
+    """Configure Claude Max subscription mode."""
+    console.print()
+    console.print("  [bold green]Subscription mode[/] — agents run via Claude Code CLI")
+    console.print("  [dim]No API key needed. Your Max subscription covers all usage.[/]")
+
+    # Check if Claude Code is available
+    console.print("  Checking Claude Code CLI...", end="")
+    result = subprocess.run(
+        ["npx", "@anthropic-ai/claude-code", "--version"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if result.returncode == 0:
+        version = result.stdout.strip()
+        console.print(f" [green]✓ {version}[/]")
+    else:
+        console.print(" [red]✗ Not found[/]")
+        console.print("  [dim]Install with: npm install -g @anthropic-ai/claude-code[/]")
+
+    # Check if logged in
+    console.print("  Checking login status...", end="")
+    result = subprocess.run(
+        ["npx", "@anthropic-ai/claude-code", "--print", "--output-format", "json",
+         "--no-session-persistence", "--allowedTools", "", "-p", "hi"],
+        capture_output=True, text=True, timeout=30,
+    )
+    import json as _json
+    try:
+        out = _json.loads(result.stdout.strip().split("\n")[-1])
+        if "Not logged in" in out.get("result", ""):
+            console.print(" [yellow]⚠ Not logged in[/]")
+            console.print()
+            console.print("  [bold]Run this to log in:[/]")
+            console.print("  [cyan]npx @anthropic-ai/claude-code /login[/]")
+            console.print()
+            if not Confirm.ask("  Continue anyway?", default=True):
+                raise click.Abort()
+        else:
+            console.print(" [green]✓ Logged in[/]")
+    except Exception:
+        console.print(" [yellow]⚠ Could not verify[/]")
+
+    cfg.set_key("llm_mode", "subscription")
+    cfg.set_key("use_subscription", True)
+    console.print("  [green]✓ Subscription mode configured[/]")
+
+
+def _step_api_key():
     """Validate and store Anthropic API key."""
     existing = cfg.get("anthropic_api_key")
     if existing:
         masked = existing[:12] + "..." + existing[-4:]
         console.print(f"  Existing key: [dim]{masked}[/]")
         if not Confirm.ask("  Replace it?", default=False):
+            cfg.set_key("llm_mode", "api_key")
+            cfg.set_key("use_subscription", False)
             return
 
     api_key = Prompt.ask("  Anthropic API key", password=True)
@@ -151,6 +223,8 @@ def _step_anthropic():
     if valid:
         console.print(" [green]✓ Valid[/]")
         cfg.set_key("anthropic_api_key", api_key)
+        cfg.set_key("llm_mode", "api_key")
+        cfg.set_key("use_subscription", False)
 
         # Also encrypt it for DB storage
         fernet = Fernet(cfg.get("fernet_key").encode())
@@ -161,6 +235,8 @@ def _step_anthropic():
         if not Confirm.ask("  Save anyway?", default=False):
             raise click.Abort()
         cfg.set_key("anthropic_api_key", api_key)
+        cfg.set_key("llm_mode", "api_key")
+        cfg.set_key("use_subscription", False)
 
 
 async def _validate_anthropic_key(api_key: str) -> bool:

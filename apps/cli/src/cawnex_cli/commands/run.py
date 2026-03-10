@@ -15,27 +15,24 @@ def run():
     """🚀 Start The Murder — worker that processes tasks."""
     config = cfg.load_config()
 
-    if not config.get("anthropic_api_key"):
-        console.print("[red]No Anthropic API key configured. Run: cawnex setup anthropic[/]")
+    use_subscription = config.get("use_subscription", False)
+    if not use_subscription and not config.get("anthropic_api_key"):
+        console.print("[red]No LLM configured. Run: cawnex init[/]")
         return
 
-    # Set env vars for the worker
-    os.environ["CAWNEX_DATABASE_URL"] = config.get("database_url", "postgresql+asyncpg://cawnex:cawnex@localhost:5433/cawnex")
-    os.environ["CAWNEX_REDIS_URL"] = config.get("redis_url", "redis://localhost:6380")
-    os.environ["CAWNEX_FERNET_KEY"] = config.get("fernet_key", "")
-    os.environ["CAWNEX_GITHUB_TOKEN"] = config.get("github_token", "")
-
     console.print("[bold]🐦‍⬛ Starting The Murder...[/]")
-    console.print("[dim]Listening for tasks on Redis Stream. Ctrl+C to stop.[/]")
+    mode = "subscription" if use_subscription else "api_key"
+    console.print(f"[dim]Mode: {mode} | Listening on Redis Stream. Ctrl+C to stop.[/]")
     console.print()
 
     from cawnex_worker.murder import Murder
 
     murder = Murder(
-        database_url=os.environ["CAWNEX_DATABASE_URL"],
-        redis_url=os.environ["CAWNEX_REDIS_URL"],
-        fernet_key=os.environ["CAWNEX_FERNET_KEY"],
-        github_token=os.environ.get("CAWNEX_GITHUB_TOKEN"),
+        database_url=config.get("database_url", "postgresql+asyncpg://cawnex:cawnex@localhost:5433/cawnex"),
+        redis_url=config.get("redis_url", "redis://localhost:6380"),
+        fernet_key=config.get("fernet_key", ""),
+        github_token=config.get("github_token"),
+        use_subscription=use_subscription,
     )
 
     try:

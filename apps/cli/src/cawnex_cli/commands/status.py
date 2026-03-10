@@ -34,11 +34,15 @@ def status():
     # Config
     config = cfg.load_config()
     table.add_row("Fernet Key", _ok(bool(config.get("fernet_key"))), "")
-    table.add_row(
-        "Anthropic Key",
-        _ok(bool(config.get("anthropic_api_key"))),
-        _mask(config.get("anthropic_api_key", "")),
-    )
+
+    # LLM mode
+    llm_mode = config.get("llm_mode", "not configured")
+    if config.get("use_subscription"):
+        table.add_row("LLM Mode", "[green]✓ OK[/]", "subscription (Claude Max)")
+    elif config.get("anthropic_api_key"):
+        table.add_row("LLM Mode", "[green]✓ OK[/]", f"api_key ({_mask(config['anthropic_api_key'])})")
+    else:
+        table.add_row("LLM Mode", "[red]✗ DOWN[/]", "not configured")
     table.add_row(
         "GitHub Token",
         _ok(bool(config.get("github_token"))),
@@ -51,7 +55,8 @@ def status():
     # Summary
     all_ok = all([
         r.returncode == 0, db_ok, redis_ok,
-        config.get("fernet_key"), config.get("anthropic_api_key"),
+        config.get("fernet_key"),
+        config.get("anthropic_api_key") or config.get("use_subscription"),
     ])
     if all_ok:
         console.print("\n[bold green]✅ All systems operational[/]")
