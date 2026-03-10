@@ -9,6 +9,7 @@ members = [
     "cawnex-core",
     "cawnex-git-ops",
     "cawnex-providers",
+    "cawnex-worker",
 ]
 
 [[package]]
@@ -202,6 +203,27 @@ requires-dist = [
     { name = "anthropic", specifier = ">=0.52.0" },
     { name = "cryptography", specifier = ">=46.0" },
     { name = "pydantic", specifier = ">=2.0" },
+]
+
+[[package]]
+name = "cawnex-worker"
+version = "0.1.0"
+source = { editable = "apps/worker" }
+dependencies = [
+    { name = "anthropic" },
+    { name = "cawnex-core" },
+    { name = "cawnex-git-ops" },
+    { name = "cawnex-providers" },
+    { name = "redis" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anthropic", specifier = ">=0.84" },
+    { name = "cawnex-core", editable = "packages/core" },
+    { name = "cawnex-git-ops", editable = "packages/git_ops" },
+    { name = "cawnex-providers", editable = "packages/providers" },
+    { name = "redis", specifier = ">=5.0" },
 ]
 
 [[package]]

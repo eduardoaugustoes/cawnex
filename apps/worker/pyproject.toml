@@ -1,0 +1,24 @@
+[project]
+name = "cawnex-worker"
+version = "0.1.0"
+description = "Cawnex worker — The Murder (orchestrator) + Crows (agents)"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.84",
+    "redis>=5.0",
+    "cawnex-core",
+    "cawnex-providers",
+    "cawnex-git-ops",
+]
+
+[tool.uv.sources]
+cawnex-core = { workspace = true }
+cawnex-providers = { workspace = true }
+cawnex-git-ops = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cawnex_worker"]
