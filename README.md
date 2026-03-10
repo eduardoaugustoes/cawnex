@@ -68,7 +68,7 @@ Issue created → Agents coordinate → Code shipped → Team notified
 ┌──────────────────────────────────────────────────────┐
 │          🐦‍⬛ THE MURDER (Orchestrator)                │
 │                                                      │
-│  • Receives events via Kafka                         │
+│  • Receives events via Redis Streams                  │
 │  • Analyzes issue type & affected repos              │
 │  • Routes to correct agent(s)                        │
 │  • Monitors streaming for hallucination              │
@@ -131,16 +131,46 @@ Your key. Your budget. Your rules. We handle the orchestration.
 
 | Layer | Technology |
 |-------|-----------|
-| **AI Engine** | BYOL — Claude, GPT-4, Gemini (user's key) |
-| **Backend** | FastAPI + MySQL + Redis |
-| **Frontend** | React + Vite + shadcn/ui |
-| **Message Bus** | Kafka + Redis |
-| **Issue Tracker** | Linear (webhook integration) |
-| **Git** | GitLab / GitHub (worktrees) |
-| **Observability** | Datadog |
-| **Analytics** | ClickHouse |
-| **Infrastructure** | Kubernetes + ArgoCD (GitOps) |
-| **Notifications** | Slack |
+| **AI Engine** | BYOL — Claude SDK (primary), GPT-4, Gemini (user's key) |
+| **Backend** | Python 3.12 + FastAPI + SQLAlchemy (async) |
+| **Database** | PostgreSQL (multi-tenant) |
+| **Cache / Streams** | Redis (Streams for event bus, cache for state) |
+| **Web App** | React + Vite + TypeScript + shadcn/ui |
+| **iOS** | Swift + SwiftUI (full native) |
+| **Android** | Kotlin + Jetpack Compose (full native) |
+| **Issue Tracker** | GitHub Issues (webhook), Linear planned |
+| **Git** | GitHub (worktrees per agent) |
+| **API Contracts** | OpenAPI spec → generated clients (TS, Swift, Kotlin) |
+| **Package Mgmt** | uv (Python), pnpm (Node) |
+| **Infrastructure** | Docker Compose (MVP) → Kubernetes (scale) |
+| **Notifications** | Slack, GitHub, Email |
+
+## 📁 Project Structure
+
+```
+cawnex/
+├── packages/
+│   ├── core/           # SQLAlchemy models, Pydantic schemas, enums, DB session
+│   ├── providers/      # BYOL abstraction (Anthropic, OpenAI, Google)
+│   └── git_ops/        # Worktree, branch, PR management (GitPython + GitHub API)
+├── apps/
+│   ├── api/            # FastAPI — webhooks, REST, SSE streaming
+│   ├── worker/         # The Murder (orchestrator) + Crows (agents)
+│   ├── web/            # React + Vite + shadcn/ui
+│   ├── ios/            # Swift + SwiftUI (full native)
+│   └── android/        # Kotlin + Jetpack Compose (full native)
+├── prompts/            # Agent system prompts (version-controlled)
+├── specs/              # OpenAPI spec (single source of truth for all clients)
+├── scripts/            # Dev tooling, migrations, seed data
+├── tests/              # Integration + E2E tests
+├── docs/
+│   ├── research/       # Competitive analysis, transcript insights
+│   ├── design/         # Architecture, agents, orchestration, BYOL, platform
+│   └── roadmap/        # Phases, MVP scope, Milestone 0
+├── docker-compose.yml  # PostgreSQL + Redis (dev)
+├── pyproject.toml      # uv workspace root
+└── CAWNEX.md           # Agent instructions (dogfooding)
+```
 
 ## 🔄 How It Works
 
@@ -165,7 +195,7 @@ The cycle repeats until the objective is fully achieved — with optional human 
 ```
 1. 📋 Issue created in Linear (with agent label)
         │
-2. ⚡ Webhook → Kafka → Orchestrator (The Murder)
+2. ⚡ Webhook → Redis Stream → Orchestrator (The Murder)
         │
 3. 🔍 Refinement Agent generates:
         • Full user story
@@ -321,11 +351,12 @@ but fragile at scale.   support.                on CLI.                 no big b
 
 ## 🚀 Roadmap
 
-- [ ] **Phase 0** — Single agent, single repo, CLI
-- [ ] **Phase 1** — Full pipeline (Refine → Dev → QA → Docs), dashboard, BYOL multi-provider
-- [ ] **Phase 2** — Multi-repo coordination, synchronized merges, Linear/Jira integration
-- [ ] **Phase 3** — Multi-tenant SaaS, billing, GitHub App, subscription relay
-- [ ] **Phase 4** — Planning Agent, Skills Marketplace, ROI Dashboard
+- [x] **Milestone 0 — "The Egg"** — Monorepo scaffold, DB models, Docker infra, first agent *(in progress)*
+- [ ] **Phase 1 — "First Flight"** — Single agent, single repo, CLI proof (5 real issues → 3 merged PRs)
+- [ ] **Phase 2 — "The Murder"** — Full pipeline (Refine → Dev → QA → Docs), dashboard, BYOL multi-provider
+- [ ] **Phase 3 — "Migration"** — Multi-repo coordination, synchronized merges, GitHub App
+- [ ] **Phase 4 — "The Roost"** — Multi-tenant SaaS, billing, native mobile apps, subscription relay
+- [ ] **Phase 5 — "Evolved"** — Planning Agent, Skills Marketplace, ROI Dashboard
 
 ## 📄 License
 
