@@ -2,10 +2,11 @@
 
 import asyncio
 import json
+import os
+import queue
 import subprocess
 import sys
-import termios
-import tty
+import threading
 import click
 from datetime import datetime, timezone
 from rich.console import Console
@@ -50,29 +51,55 @@ class WatchState:
         self.last_gh_fetch: float = 0
 
 
-def _read_key_nonblocking() -> str | None:
-    """Read a single keypress without blocking."""
-    fd = sys.stdin.fileno()
-    old = termios.tcgetattr(fd)
-    try:
-        tty.setraw(fd)
-        import select as sel
-        if sel.select([sys.stdin], [], [], 0.0)[0]:
-            ch = sys.stdin.read(1)
-            if ch == "\x1b":
-                if sel.select([sys.stdin], [], [], 0.05)[0]:
+class KeyReader:
+    """Background thread that reads keys and puts them in a queue."""
+
+    def __init__(self):
+        self._queue: queue.Queue = queue.Queue()
+        self._stop = False
+        self._thread: threading.Thread | None = None
+        self._old_settings = None
+
+    def start(self):
+        if not sys.stdin.isatty():
+            return
+        import termios, tty
+        self._old_settings = termios.tcgetattr(sys.stdin.fileno())
+        tty.setcbreak(sys.stdin.fileno())  # cbreak mode — char-at-a-time, no echo
+        self._thread = threading.Thread(target=self._reader, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._stop = True
+        if self._old_settings:
+            import termios
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self._old_settings)
+
+    def get_key(self) -> str | None:
+        try:
+            return self._queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    def _reader(self):
+        while not self._stop:
+            try:
+                ch = sys.stdin.read(1)
+                if not ch:
+                    break
+                if ch == "\x1b":
                     ch2 = sys.stdin.read(1)
-                    if ch2 == "[" and sel.select([sys.stdin], [], [], 0.05)[0]:
+                    if ch2 == "[":
                         ch3 = sys.stdin.read(1)
-                        if ch3 == "A": return "up"
-                        if ch3 == "B": return "down"
-                return "esc"
-            return ch
-        return None
-    except Exception:
-        return None
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+                        if ch3 == "A":
+                            self._queue.put("up")
+                        elif ch3 == "B":
+                            self._queue.put("down")
+                        continue
+                    continue
+                self._queue.put(ch)
+            except Exception:
+                break
 
 
 def _fetch_gh_issues(repo: str, label: str | None = None) -> list[dict]:
@@ -106,15 +133,18 @@ def watch(label: str | None):
       R            Refresh issues from GitHub
       q            Quit
     """
+    keys = KeyReader()
+    keys.start()
     try:
-        asyncio.run(_watch_loop(label))
+        asyncio.run(_watch_loop(label, keys))
     except KeyboardInterrupt:
         pass
     finally:
+        keys.stop()
         console.print("\n[dim]Stopped watching.[/]")
 
 
-async def _watch_loop(label: str | None):
+async def _watch_loop(label: str | None, keys: KeyReader):
     import time
     config = cfg.load_config()
     repo = config.get("default_repo", "")
@@ -144,7 +174,7 @@ async def _watch_loop(label: str | None):
     with Live(console=console, refresh_per_second=4, screen=True) as live:
         while True:
             # Handle keyboard
-            key = _read_key_nonblocking()
+            key = keys.get_key()
             if key:
                 if key == "q":
                     break
