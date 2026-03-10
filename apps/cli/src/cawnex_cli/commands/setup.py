@@ -39,10 +39,19 @@ def setup_anthropic():
 
 @setup.command("github")
 def setup_github():
-    """Set GitHub token."""
-    token = Prompt.ask("GitHub PAT (repo scope)", password=True)
-    cfg.set_key("github_token", token)
-    console.print("[green]✓ Saved[/]")
+    """Set GitHub token (auto-detects gh CLI)."""
+    import subprocess
+    result = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True)
+    if result.returncode == 0:
+        token = result.stdout.strip()
+        cfg.set_key("github_token", token)
+        cfg.set_key("github_auth_method", "gh_cli")
+        console.print("[green]✓ Token from gh CLI[/]")
+    else:
+        token = Prompt.ask("GitHub PAT (repo scope)", password=True)
+        cfg.set_key("github_token", token)
+        cfg.set_key("github_auth_method", "pat")
+        console.print("[green]✓ Saved[/]")
 
 
 @setup.command("repo")

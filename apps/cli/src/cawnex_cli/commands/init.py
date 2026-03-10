@@ -255,14 +255,29 @@ async def _validate_anthropic_key(api_key: str) -> bool:
 
 
 def _step_github():
-    """Configure GitHub PAT."""
-    existing = cfg.get("github_token")
-    if existing:
-        masked = existing[:8] + "..." + existing[-4:]
-        console.print(f"  Existing token: [dim]{masked}[/]")
-        if not Confirm.ask("  Replace it?", default=False):
+    """Configure GitHub — detect gh CLI or ask for PAT."""
+    # Try gh CLI first
+    result = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True)
+    if result.returncode == 0:
+        # Extract account info
+        for line in result.stderr.split("\n") + result.stdout.split("\n"):
+            if "account" in line.lower():
+                console.print(f"  ✓ {line.strip()}")
+                break
+        else:
+            console.print("  ✓ gh CLI authenticated")
+
+        # Get token from gh
+        token_result = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True)
+        if token_result.returncode == 0:
+            token = token_result.stdout.strip()
+            cfg.set_key("github_token", token)
+            cfg.set_key("github_auth_method", "gh_cli")
+            console.print("  ✓ Token extracted from gh CLI")
             return
 
+    # Fallback: ask for PAT
+    console.print("  [dim]gh CLI not found or not authenticated[/]")
     token = Prompt.ask("  GitHub Personal Access Token (repo scope)", password=True)
 
     # Quick validation
@@ -274,6 +289,7 @@ def _step_github():
         console.print(" [yellow]⚠ Could not validate (may still work)[/]")
 
     cfg.set_key("github_token", token)
+    cfg.set_key("github_auth_method", "pat")
 
 
 async def _validate_github_token(token: str) -> bool:
