@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+*.egg
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+pgdata/
+
+# Node
+node_modules/
+apps/dashboard/dist/
+apps/web/dist/
+
+# iOS
+apps/ios/build/
+apps/ios/DerivedData/
+*.xcuserdata
+
+# Android
+apps/android/.gradle/
+apps/android/build/
+apps/android/app/build/
+*.apk
+
+# Worktrees (agent nests)
+/tmp/cawnex-worktrees/
+
+# UV
+.uv/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Alembic
+apps/api/alembic/versions/__pycache__/
