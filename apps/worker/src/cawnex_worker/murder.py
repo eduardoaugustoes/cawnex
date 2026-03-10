@@ -23,9 +23,13 @@ from cawnex_core.models import (
     Task, Workflow, WorkflowStep, Execution, ExecutionEvent,
     AgentDefinition, Tenant, LLMConfig, Repository,
 )
-from cawnex_git_ops import WorktreeManager, GitHubAPI
+from cawnex_git_ops import GitHubAPI
 from cawnex_worker.crows.runner import CrowRunner, CrowResult
 from cawnex_worker.crows.subscription_runner import HybridRunner
+from cawnex_worker.git_workflow import (
+    ensure_repo_cloned, create_task_branch, commit_and_push,
+    create_pull_request, update_issue_status, cleanup_nest,
+)
 
 logger = logging.getLogger("cawnex.murder")
 
@@ -105,9 +109,23 @@ class Murder:
         await self.engine.dispose()
 
     async def execute_task(self, task_id: int, tenant_id: int) -> None:
-        """Execute a full workflow pipeline for a task."""
+        """Execute a full workflow pipeline for a task.
+
+        Full lifecycle:
+        1. Load task, tenant, workflow from DB
+        2. Clone/update the target repository
+        3. Create a feature branch (cawnex/issue-{n})
+        4. Run each workflow step (agent) against the workspace
+        5. Commit changes and push the branch
+        6. Create a pull request on GitHub
+        7. Update the GitHub issue with status
+        """
+        workspace = None
+        branch_name = None
+        step_summaries: list[dict] = []
+
         async with self.session_factory() as db:
-            # Load task + tenant + workflow
+            # ── 1. Load task + tenant + workflow ──
             task = (await db.execute(
                 select(Task)
                 .where(Task.id == task_id)
@@ -124,7 +142,7 @@ class Murder:
                 .options(selectinload(Tenant.llm_config))
             )).scalar_one()
 
-            # Get API key (not needed for subscription mode)
+            # Resolve LLM credentials
             api_key = None
             if not self.use_subscription:
                 api_key = self._decrypt_api_key(tenant.llm_config)
@@ -134,7 +152,6 @@ class Murder:
                     await db.commit()
                     return
 
-            # Get workflow steps
             workflow = task.workflow
             if not workflow:
                 logger.warning(f"Task {task_id} has no workflow")
@@ -149,44 +166,90 @@ class Murder:
                 .order_by(WorkflowStep.order)
             )).scalars().all()
 
-            # Update task status
+            repo_full_name = (task.context or {}).get("repository", "")
+            issue_number = (task.context or {}).get("issue_number")
+            github_token = self.github_token
+
+            # ── 2. Clone/update repo ──
             task.status = TaskStatus.IN_PROGRESS
             await db.commit()
 
-            # Execute each step
+            if repo_full_name and github_token:
+                try:
+                    repo_dir = ensure_repo_cloned(repo_full_name, github_token)
+                    workspace, branch_name = create_task_branch(
+                        repo_dir, task_id, issue_number
+                    )
+
+                    # Update issue with "in progress" label
+                    if issue_number:
+                        gh = GitHubAPI(github_token)
+                        await update_issue_status(
+                            gh, repo_full_name, issue_number,
+                            labels=["cawnex:in-progress"],
+                            comment="🐦‍⬛ Cawnex picked this up. The murder is working on it..."
+                        )
+                        await gh.close()
+
+                except Exception as e:
+                    logger.error(f"Git setup failed: {e}", exc_info=True)
+                    task.status = TaskStatus.FAILED
+                    await db.commit()
+                    return
+            else:
+                # No repo — use tempdir
+                import tempfile
+                workspace_path = tempfile.mkdtemp(prefix=f"cawnex-task-{task_id}-")
+                workspace = __import__("pathlib").Path(workspace_path)
+
+            # ── 3. Load vision context for richer prompts ──
+            vision_context = ""
+            if task.project_id:
+                from cawnex_core.models.project import Project, Vision
+                project = (await db.execute(
+                    select(Project)
+                    .where(Project.id == task.project_id)
+                    .options(selectinload(Project.vision))
+                )).scalar_one_or_none()
+                if project and project.vision and project.vision.content:
+                    vision_context = (
+                        f"\n\n## Project Vision\n{project.vision.content[:2000]}"
+                    )
+
+            # ── 4. Execute each workflow step ──
             step_context: dict = {
                 "task_title": task.title,
                 "task_description": task.description or "",
-                "repository": (task.context or {}).get("repository", ""),
+                "repository": repo_full_name,
+                "branch": branch_name or "main",
+                "vision": vision_context,
             }
+
             runner = HybridRunner(
                 api_key=api_key,
                 use_subscription=self.use_subscription,
                 claude_cmd=self.claude_cmd,
             )
 
+            all_succeeded = True
+
             for step in steps:
                 agent: AgentDefinition = step.agent
                 logger.info(f"  🐦 Step {step.order}: {step.name} ({agent.slug})")
 
-                # Check for human approval
+                # Human approval gate
                 if step.requires_approval:
                     task.status = TaskStatus.AWAITING_APPROVAL
                     await db.commit()
-
-                    # Publish event to Redis for SSE streaming
                     await self._publish_event(
                         task_id, EventType.APPROVAL_REQUEST,
                         f"Step '{step.name}' requires approval"
                     )
-
-                    # Wait for approval (poll DB)
                     approved = await self._wait_for_approval(db, task_id, timeout=3600)
                     if not approved:
                         task.status = TaskStatus.REJECTED
                         await db.commit()
                         return
-
                     task.status = TaskStatus.IN_PROGRESS
 
                 # Create execution record
@@ -203,11 +266,8 @@ class Murder:
                 db.add(execution)
                 await db.flush()
 
-                # Build the task brief for this step
+                # Build enriched brief with vision + prior step outputs
                 brief = self._build_brief(step, step_context)
-
-                # Setup workspace
-                workspace = self._get_workspace(agent, task, step_context)
 
                 # Publish start event
                 await self._publish_event(
@@ -216,19 +276,22 @@ class Murder:
                     execution_id=execution.id,
                 )
 
-                # Run the crow
+                # Run the crow with the real workspace
                 result = await runner.run(
-                    system_prompt=agent.system_prompt,
+                    system_prompt=agent.system_prompt + vision_context,
                     task_brief=brief,
                     model=agent.model,
                     tool_packs=agent.tool_packs,
-                    workspace=workspace,
+                    workspace=str(workspace),
                     max_tokens=agent.max_tokens,
                     max_iterations=50,
                 )
 
                 # Record result
-                execution.status = ExecutionStatus.COMPLETED if result.success else ExecutionStatus.FAILED
+                execution.status = (
+                    ExecutionStatus.COMPLETED if result.success
+                    else ExecutionStatus.FAILED
+                )
                 execution.result_summary = result.content[:2000] if result.content else None
                 execution.error_message = result.error
                 execution.tokens_input = result.tokens_input
@@ -236,13 +299,13 @@ class Murder:
                 execution.cost_usd = result.cost_usd
                 execution.completed_at = datetime.now(timezone.utc)
                 execution.duration_seconds = result.duration_seconds
-                execution.output_context = {"content": result.content[:5000]} if result.content else {}
+                execution.output_context = {
+                    "content": result.content[:5000]
+                } if result.content else {}
 
-                # Update task cost
                 task.total_cost_usd += result.cost_usd
                 task.total_tokens += result.tokens_input + result.tokens_output
 
-                # Record event
                 event = ExecutionEvent(
                     execution_id=execution.id,
                     event_type=EventType.OUTPUT if result.success else EventType.ERROR,
@@ -251,21 +314,30 @@ class Murder:
                 db.add(event)
                 await db.commit()
 
-                # Publish completion event
                 await self._publish_event(
-                    task_id,
-                    EventType.STATUS_CHANGE,
+                    task_id, EventType.STATUS_CHANGE,
                     f"Agent '{agent.name}' {'completed' if result.success else 'failed'} "
                     f"({result.duration_seconds:.1f}s, ${result.cost_usd:.4f}, "
                     f"{result.tool_calls} tool calls)",
                     execution_id=execution.id,
                 )
 
+                # Track for PR summary
+                step_summaries.append({
+                    "agent": agent.name,
+                    "step": step.name,
+                    "success": result.success,
+                    "duration": result.duration_seconds,
+                    "tool_calls": result.tool_calls,
+                    "output_preview": result.content[:200] if result.content else "",
+                })
+
                 # Pass output to next step
                 step_context[f"step_{step.name.lower()}_output"] = result.content
 
                 # Handle failure
                 if not result.success:
+                    all_succeeded = False
                     if step.on_fail == "skip":
                         logger.info(f"    ⏭️  Skipping failed step '{step.name}'")
                         continue
@@ -273,19 +345,82 @@ class Murder:
                         logger.info(f"    🔄 Retry not yet implemented, failing")
                         task.status = TaskStatus.FAILED
                         await db.commit()
-                        return
+                        break
                     else:
                         task.status = TaskStatus.FAILED
                         await db.commit()
-                        return
+                        break
 
-            # All steps completed
-            task.status = TaskStatus.COMPLETED
+            # ── 5. Commit, push, create PR ──
+            pr_url = None
+            if all_succeeded and branch_name and repo_full_name and github_token:
+                try:
+                    commit_msg = (
+                        f"feat: {task.title}\n\n"
+                        f"Automated by Cawnex (task #{task_id})"
+                    )
+                    if issue_number:
+                        commit_msg += f"\n\nCloses #{issue_number}"
+
+                    has_changes = commit_and_push(
+                        workspace, branch_name, commit_msg,
+                        github_token, repo_full_name,
+                    )
+
+                    if has_changes:
+                        gh = GitHubAPI(github_token)
+                        pr = await create_pull_request(
+                            gh, repo_full_name, branch_name,
+                            task.title,
+                            task.description,
+                            issue_number,
+                            step_summaries,
+                        )
+                        pr_url = pr.get("html_url")
+
+                        # Update task with PR info
+                        task.context = {
+                            **(task.context or {}),
+                            "pr_number": pr["number"],
+                            "pr_url": pr_url,
+                        }
+
+                        # Update issue
+                        if issue_number:
+                            await update_issue_status(
+                                gh, repo_full_name, issue_number,
+                                labels=["cawnex:pr-created"],
+                                comment=f"🐦‍⬛ PR created: {pr_url}",
+                            )
+
+                        await gh.close()
+                        logger.info(f"  🔀 PR: {pr_url}")
+                    else:
+                        logger.info("  📭 No file changes — skipping PR")
+
+                except Exception as e:
+                    logger.error(f"PR creation failed: {e}", exc_info=True)
+                    # Don't fail the task just because PR creation failed
+                    await self._publish_event(
+                        task_id, EventType.ERROR,
+                        f"PR creation failed: {e}",
+                    )
+
+            # ── 6. Final status ──
+            if all_succeeded:
+                task.status = TaskStatus.COMPLETED
             await db.commit()
+
+            status_emoji = "✅" if all_succeeded else "❌"
             logger.info(
-                f"✅ Task {task_id} completed — "
+                f"{status_emoji} Task {task_id} {'completed' if all_succeeded else 'failed'} — "
                 f"${task.total_cost_usd:.4f}, {task.total_tokens} tokens"
+                f"{f', PR: {pr_url}' if pr_url else ''}"
             )
+
+            # ── 7. Cleanup ──
+            if workspace:
+                cleanup_nest(workspace)
 
     def _decrypt_api_key(self, llm_config: LLMConfig | None) -> str | None:
         if not llm_config or not self.fernet_key:
@@ -318,18 +453,6 @@ class Murder:
                 parts.append("")
 
         return "\n".join(parts)
-
-    def _get_workspace(self, agent: AgentDefinition, task: Task, context: dict) -> str:
-        """Get or create workspace for the agent."""
-        if agent.workspace_type == "git_worktree" and context.get("repository"):
-            # TODO: Use WorktreeManager to create isolated nest
-            # For now, use a temp dir
-            import tempfile
-            ws = tempfile.mkdtemp(prefix=f"crow-{task.id}-{agent.slug}-")
-            return ws
-        else:
-            import tempfile
-            return tempfile.mkdtemp(prefix=f"crow-{task.id}-{agent.slug}-")
 
     async def _publish_event(
         self, task_id: int, event_type: str, content: str, execution_id: int | None = None
