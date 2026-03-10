@@ -3,5 +3,6 @@
 from cawnex_api.deps.db import get_db
 from cawnex_api.deps.redis import get_redis
 from cawnex_api.deps.auth import get_tenant
+from cawnex_api.deps.llm import get_llm
 
-__all__ = ["get_db", "get_redis", "get_tenant"]
+__all__ = ["get_db", "get_redis", "get_tenant", "get_llm"]
