@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import ForeignKey, String, Text, Integer, JSON, Boolean
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, String, Text, Integer, JSON, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from cawnex_core.enums import AssetOrigin
 from cawnex_core.models.base import Base, TimestampMixin
 
 
@@ -56,6 +59,14 @@ class AgentDefinition(Base, TimestampMixin):
     # State
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_template: Mapped[bool] = mapped_column(Boolean, default=False)  # System-provided template
+
+    # Asset origin (for future marketplace)
+    origin: Mapped[str] = mapped_column(
+        String(50), default=AssetOrigin.SYSTEM, nullable=False
+    )
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     def __repr__(self) -> str:
         return f"<AgentDefinition '{self.name}' tools={self.tool_packs}>"

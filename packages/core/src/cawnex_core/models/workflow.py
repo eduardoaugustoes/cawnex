@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import ForeignKey, String, Text, Integer, Boolean, JSON
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, String, Text, Integer, Boolean, JSON, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from cawnex_core.enums import AssetOrigin
 from cawnex_core.models.base import Base, TimestampMixin
 
 
@@ -37,6 +40,14 @@ class Workflow(Base, TimestampMixin):
     # State
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_template: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Asset origin (for future marketplace)
+    origin: Mapped[str] = mapped_column(
+        String(50), default=AssetOrigin.SYSTEM, nullable=False
+    )
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     steps: Mapped[list["WorkflowStep"]] = relationship(

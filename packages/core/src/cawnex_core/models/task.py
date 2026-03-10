@@ -20,6 +20,12 @@ class Task(Base, TimestampMixin):
     tenant_id: Mapped[int] = mapped_column(
         ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
+    project_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
+    )
+    milestone_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("milestones.id", ondelete="SET NULL"), nullable=True
+    )
     workflow_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("workflows.id", ondelete="SET NULL"), nullable=True
     )
@@ -58,6 +64,8 @@ class Task(Base, TimestampMixin):
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship(back_populates="tasks")  # noqa: F821
+    project: Mapped[Optional["Project"]] = relationship(back_populates="tasks")  # noqa: F821
+    milestone: Mapped[Optional["Milestone"]] = relationship(back_populates="tasks")  # noqa: F821
     workflow: Mapped[Optional["Workflow"]] = relationship()  # noqa: F821
     executions: Mapped[list["Execution"]] = relationship(  # noqa: F821
         back_populates="task", cascade="all, delete-orphan"

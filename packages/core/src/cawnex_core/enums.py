@@ -97,3 +97,26 @@ class TriggerSource(StrEnum):
     SCHEDULE = "schedule"
     CHAT = "chat"
     MANUAL = "manual"
+
+
+# === Projects ===
+
+class ProjectStatus(StrEnum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    ARCHIVED = "archived"
+
+
+class MilestoneStatus(StrEnum):
+    PLANNED = "planned"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+
+
+# === Assets (agents, workflows, tools) ===
+
+class AssetOrigin(StrEnum):
+    SYSTEM = "system"
+    MARKETPLACE = "marketplace"
+    CUSTOM = "custom"

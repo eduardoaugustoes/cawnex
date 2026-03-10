@@ -33,6 +33,9 @@ class Tenant(Base, TimestampMixin):
     repositories: Mapped[list["Repository"]] = relationship(  # noqa: F821
         back_populates="tenant", cascade="all, delete-orphan"
     )
+    projects: Mapped[list["Project"]] = relationship(  # noqa: F821
+        back_populates="tenant", cascade="all, delete-orphan"
+    )
     tasks: Mapped[list["Task"]] = relationship(  # noqa: F821
         back_populates="tenant", cascade="all, delete-orphan"
     )
