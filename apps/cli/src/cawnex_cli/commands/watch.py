@@ -36,7 +36,7 @@ STATUS_STYLE = {
     "retrying": ("🔄", "yellow"),
 }
 
-HELP_TEXT = "[dim]↑/↓ select  │  Enter expand  │  r run  │  R refresh  │  q quit[/]"
+HELP_TEXT = "[dim]↑/↓ select  │  Enter expand  │  r run  │  c create  │  R refresh  │  q quit[/]"
 
 
 class WatchState:
@@ -49,6 +49,7 @@ class WatchState:
         self.events: list = []
         self.message: str = ""
         self.last_gh_fetch: float = 0
+        self.action: str | None = None  # "create", "quit" — breaks out of Live
 
 
 class KeyReader:
@@ -171,71 +172,83 @@ async def _watch_loop(label: str | None, keys: KeyReader):
     state.last_gh_fetch = time.monotonic()
     state.message = f"Loaded {len(state.issues)} issues from {repo}"
 
-    with Live(console=console, refresh_per_second=4, screen=True) as live:
-        while True:
-            # Handle keyboard
-            key = keys.get_key()
-            if key:
-                if key == "q":
-                    break
-                await _handle_key(key, state, sf, redis, config, repo, label)
+    running = True
+    while running:
+        state.action = None
 
-            # Auto-refresh GitHub every 30s
-            if time.monotonic() - state.last_gh_fetch > 30:
-                state.issues = _fetch_gh_issues(repo, label)
-                state.last_gh_fetch = time.monotonic()
+        with Live(console=console, refresh_per_second=4, screen=True) as live:
+            while True:
+                # Handle keyboard
+                key = keys.get_key()
+                if key:
+                    if key == "q":
+                        state.action = "quit"
+                        break
+                    if key == "c":
+                        state.action = "create"
+                        break
+                    await _handle_key(key, state, sf, redis, config, repo, label)
 
-            # Fetch task/execution data from DB for all issues
-            async with sf() as session:
-                tenant = (await session.execute(
-                    select(Tenant).where(Tenant.slug == "cawnex-dogfood")
-                )).scalar_one_or_none()
+                # Auto-refresh GitHub every 30s
+                if time.monotonic() - state.last_gh_fetch > 30:
+                    state.issues = _fetch_gh_issues(repo, label)
+                    state.last_gh_fetch = time.monotonic()
 
-                if tenant:
-                    # Get all tasks mapped by source_ref (issue number)
-                    tasks = (await session.execute(
-                        select(Task).where(Task.tenant_id == tenant.id, Task.source == "github")
-                    )).scalars().all()
+                # Fetch task/execution data from DB for all issues
+                async with sf() as session:
+                    tenant = (await session.execute(
+                        select(Tenant).where(Tenant.slug == "cawnex-dogfood")
+                    )).scalar_one_or_none()
 
-                    state.task_map = {}
-                    for t in tasks:
-                        state.task_map[t.source_ref] = {
-                            "id": t.id, "status": t.status,
-                            "cost": t.total_cost_usd, "tokens": t.total_tokens,
-                        }
+                    if tenant:
+                        tasks = (await session.execute(
+                            select(Task).where(Task.tenant_id == tenant.id, Task.source == "github")
+                        )).scalars().all()
 
-                    # If expanded, get executions + events
-                    state.executions = []
-                    state.events = []
-                    if state.expanded_issue is not None:
-                        ref = str(state.expanded_issue)
-                        task_data = state.task_map.get(ref)
-                        if task_data:
-                            execs = (await session.execute(
-                                select(Execution)
-                                .where(Execution.task_id == task_data["id"])
-                                .order_by(Execution.created_at.desc())
-                            )).scalars().all()
-                            state.executions = execs
+                        state.task_map = {}
+                        for t in tasks:
+                            state.task_map[t.source_ref] = {
+                                "id": t.id, "status": t.status,
+                                "cost": t.total_cost_usd, "tokens": t.total_tokens,
+                            }
 
-                            if execs:
-                                exec_ids = [e.id for e in execs]
-                                events = (await session.execute(
-                                    select(ExecutionEvent)
-                                    .where(ExecutionEvent.execution_id.in_(exec_ids))
-                                    .order_by(ExecutionEvent.created_at.desc())
-                                    .limit(20)
+                        state.executions = []
+                        state.events = []
+                        if state.expanded_issue is not None:
+                            ref = str(state.expanded_issue)
+                            task_data = state.task_map.get(ref)
+                            if task_data:
+                                execs = (await session.execute(
+                                    select(Execution)
+                                    .where(Execution.task_id == task_data["id"])
+                                    .order_by(Execution.created_at.desc())
                                 )).scalars().all()
-                                state.events = events
+                                state.executions = execs
 
-            # Clamp selection
-            if state.selected_idx >= len(state.issues):
-                state.selected_idx = max(0, len(state.issues) - 1)
+                                if execs:
+                                    exec_ids = [e.id for e in execs]
+                                    events = (await session.execute(
+                                        select(ExecutionEvent)
+                                        .where(ExecutionEvent.execution_id.in_(exec_ids))
+                                        .order_by(ExecutionEvent.created_at.desc())
+                                        .limit(20)
+                                    )).scalars().all()
+                                    state.events = events
 
-            # Build and render
-            layout = _build_layout(state, repo)
-            live.update(layout)
-            await asyncio.sleep(0.25)
+                if state.selected_idx >= len(state.issues):
+                    state.selected_idx = max(0, len(state.issues) - 1)
+
+                layout = _build_layout(state, repo)
+                live.update(layout)
+                await asyncio.sleep(0.25)
+
+        # Handle actions that need the terminal
+        if state.action == "quit":
+            running = False
+        elif state.action == "create":
+            keys.stop()
+            await _create_issue_interactive(state, repo, label)
+            keys.start()
 
     await redis.aclose()
     await engine.dispose()
@@ -286,8 +299,9 @@ async def _handle_key(key, state, sf, redis, config, repo, label):
                 else:
                     state.message = f"✗ Failed to create task for #{num}"
     elif key == "R":
+        import time as _t
         state.issues = _fetch_gh_issues(repo, label)
-        state.last_gh_fetch = time.monotonic()
+        state.last_gh_fetch = _t.monotonic()
         state.message = f"Refreshed — {len(state.issues)} issues"
 
 
@@ -334,6 +348,59 @@ async def _create_task_from_issue(issue: dict, config: dict, sf):
     await redis.xadd("cawnex:tasks", {"task_id": str(task_id), "tenant_id": str(tenant.id)})
     await redis.aclose()
     return task_id
+
+
+async def _create_issue_interactive(state, repo, label):
+    """Temporarily exit Live mode to prompt for issue creation."""
+    import time as _t
+    from rich.prompt import Prompt
+
+    console.print()
+    console.print(Panel("[bold]Create a new GitHub issue[/]", border_style="cyan"))
+    console.print()
+
+    title = Prompt.ask("  [cyan]Title[/]")
+    if not title.strip():
+        console.print("  [dim]Cancelled[/]")
+        return
+
+    console.print("  [dim]Body (press Enter twice to finish, or leave empty):[/]")
+    body_lines = []
+    while True:
+        line = input("  ")
+        if line == "" and (not body_lines or body_lines[-1] == ""):
+            break
+        body_lines.append(line)
+    body = "\n".join(body_lines).strip()
+
+    # Labels
+    add_cawnex_label = Prompt.ask("  Add 'cawnex' label?", choices=["y", "n"], default="y")
+
+    console.print(f"\n  Creating issue on {repo}...", end="")
+
+    cmd = ["gh", "issue", "create", "--repo", repo, "--title", title]
+    if body:
+        cmd.extend(["--body", body])
+    if add_cawnex_label == "y":
+        cmd.extend(["--label", "cawnex"])
+
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+
+    if result.returncode == 0:
+        url = result.stdout.strip()
+        console.print(f" [green]✓[/]")
+        console.print(f"  [dim]{url}[/]")
+        state.message = f"✓ Created: {title[:40]}"
+    else:
+        console.print(f" [red]✗ {result.stderr.strip()[:60]}[/]")
+        state.message = "✗ Failed to create issue"
+
+    # Refresh issues
+    state.issues = _fetch_gh_issues(repo, label)
+    state.last_gh_fetch = _t.monotonic()
+
+    console.print("\n  [dim]Returning to dashboard...[/]")
+    await asyncio.sleep(1)
 
 
 def _build_layout(state, repo):
