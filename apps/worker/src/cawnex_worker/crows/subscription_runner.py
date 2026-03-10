@@ -88,7 +88,6 @@ class SubscriptionRunner:
             "--no-session-persistence",
             "--model", model,
             "--allowedTools", ",".join(allowed_tools),
-            "--dangerously-skip-permissions",  # We manage our own sandboxing
             "-p", full_prompt,
         ]
 

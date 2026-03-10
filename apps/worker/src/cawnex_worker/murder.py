@@ -475,7 +475,7 @@ class Murder:
         while time.monotonic() - start < timeout:
             await asyncio.sleep(5)
             result = await db.execute(select(Task.status).where(Task.id == task_id))
-            await db.expire_all()
+            db.expire_all()
             status = result.scalar()
             if status == TaskStatus.APPROVED:
                 return True
