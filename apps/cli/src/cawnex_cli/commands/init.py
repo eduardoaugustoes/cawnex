@@ -373,15 +373,18 @@ async def _seed_db():
         session.add(tenant)
         await session.flush()
 
-        # LLM config with real key if available
+        # LLM config — respects the mode chosen in step 3
         fernet_key = cfg.get("fernet_key", "").encode()
+        llm_mode = cfg.get("llm_mode", "subscription")
         api_key = cfg.get("anthropic_api_key", "placeholder")
         fernet = Fernet(fernet_key) if fernet_key else Fernet(Fernet.generate_key())
         encrypted = fernet.encrypt(api_key.encode())
 
+        db_mode = BYOLMode.SUBSCRIPTION_RELAY if llm_mode == "subscription" else BYOLMode.API_KEY
+
         llm = LLMConfig(
             tenant_id=tenant.id, provider=Provider.ANTHROPIC,
-            mode=BYOLMode.API_KEY, encrypted_api_key=encrypted,
+            mode=db_mode, encrypted_api_key=encrypted,
         )
         session.add(llm)
 

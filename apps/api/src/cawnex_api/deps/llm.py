@@ -1,4 +1,7 @@
-"""LLM provider dependency — resolves tenant's BYOL config to a provider instance."""
+"""LLM provider dependency — resolves tenant's BYOL config to a provider instance.
+
+Supports both API key mode and subscription mode (Claude Max via CLI).
+"""
 
 from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,21 +18,21 @@ async def get_llm(
     tenant: Tenant = Depends(get_tenant),
     db: AsyncSession = Depends(get_db),
 ) -> LLMProvider:
-    """Resolve the tenant's BYOL LLM provider."""
+    """Resolve the tenant's BYOL LLM provider — works for both API key and subscription."""
     if not tenant.llm_config:
         raise HTTPException(
             400,
-            "No LLM configuration found. Please set up your API key first.",
+            "No LLM configuration found. Run: cawnex init",
         )
 
-    if not settings.fernet_key:
-        raise HTTPException(500, "Server encryption key not configured")
+    mode = tenant.llm_config.mode  # "api_key" or "subscription_relay"
 
     try:
-        return ProviderRegistry.get_from_encrypted(
+        return ProviderRegistry.get_for_tenant(
+            mode=mode,
             provider=tenant.llm_config.provider,
-            encrypted_key=tenant.llm_config.encrypted_api_key,
-            fernet_key=settings.fernet_key.encode(),
+            encrypted_key=tenant.llm_config.encrypted_api_key if mode == "api_key" else None,
+            fernet_key=settings.fernet_key.encode() if settings.fernet_key else None,
         )
     except Exception as e:
         raise HTTPException(500, f"Failed to initialize LLM provider: {e}")
