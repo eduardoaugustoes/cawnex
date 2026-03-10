@@ -45,7 +45,7 @@ class Artifact(Base, TimestampMixin):
     # PR: {pr_number, repo, branch, diff_stats}
     # Document: {format, word_count, sections}
     # Dataset: {format, rows, columns}
-    metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    extra: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
 
     # Relationships
     task: Mapped["Task"] = relationship(back_populates="artifacts")  # noqa: F821

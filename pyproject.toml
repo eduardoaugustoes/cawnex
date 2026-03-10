@@ -5,6 +5,9 @@ description = "Coordinated intelligence. Multi-agent orchestration platform."
 requires-python = ">=3.12"
 readme = "README.md"
 license = {text = "MIT"}
+dependencies = [
+    "alembic>=1.18.4",
+]
 
 [tool.uv.workspace]
 members = [
