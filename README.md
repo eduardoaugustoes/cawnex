@@ -33,6 +33,7 @@ Issue created → Agents coordinate → Code shipped → Team notified
 ## ✨ Features
 
 - 🐦 **7 Specialized Agents** — Each agent has one mission. Specialization over generalization.
+- 🔑 **BYOL (Bring Your Own LLM)** — Use your own API key or Claude Max subscription. No token limits. No artificial constraints.
 - 🔄 **End-to-End Autonomous** — From issue to merge, zero human intervention required.
 - 🌐 **Cross-Repo Coordinated** — Changes across multiple services stay consistent. Synchronized PRs.
 - 📡 **Real-Time Streaming** — Watch every agent action live via SSE. No waiting for results.
@@ -40,6 +41,7 @@ Issue created → Agents coordinate → Code shipped → Team notified
 - 🔁 **Smart Retry** — Failures are isolated. A frontend error doesn't block the backend.
 - 🛡️ **Hallucination Detection** — Orchestrator monitors agent output and cancels if it drifts.
 - 📊 **Cost Tracking** — Tokens, duration, cost per execution — all monitored automatically.
+- 🤖 **Multi-LLM Support** — Anthropic, OpenAI, Google. Use different models per agent type.
 
 ## 🐦 The 7 Agents
 
@@ -101,11 +103,35 @@ Issue created → Agents coordinate → Code shipped → Team notified
               Slack notification 🔔
 ```
 
+### BYOL — Bring Your Own LLM
+
+```
+┌─────────────────────────────────────────┐
+│  🔑 Connect your AI                     │
+│                                          │
+│  [Anthropic API Key]  ← recommended     │
+│  [OpenAI API Key]                        │
+│  [Google AI API Key]                     │
+│                                          │
+│  ── or ──                                │
+│                                          │
+│  [Claude Max Subscription]               │
+│  Unlimited executions via Claude Code    │
+└─────────────────────────────────────────┘
+```
+
+Your key. Your budget. Your rules. We handle the orchestration.
+
+| BYOL Mode | How it works | Best for |
+|-----------|-------------|----------|
+| **API Key** | Direct SDK calls, precise token tracking | Low-medium volume |
+| **Subscription** | Claude Code subprocess, unlimited | High volume / power users |
+
 ### Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| **AI Engine** | Claude Agent SDK (Anthropic) |
+| **AI Engine** | BYOL — Claude, GPT-4, Gemini (user's key) |
 | **Backend** | FastAPI + MySQL + Redis |
 | **Frontend** | React + Vite + shadcn/ui |
 | **Message Bus** | Kafka + Redis |
@@ -282,11 +308,24 @@ but fragile at scale.   support.                on CLI.                 no big b
 
 > *The most important lesson: start simple. The subprocess with regex worked in production for months before the migration to SDK.*
 
+## 💰 Pricing
+
+| Tier | Price | Includes |
+|------|-------|---------|
+| **Free** | $0/mo | 20 executions, 1 repo, 2 agents |
+| **Pro** | $29/mo | Unlimited executions, 10 repos, 4 agents |
+| **Team** | $99/mo | Unlimited repos, 7 agents, multi-repo sync, 5 seats |
+| **Enterprise** | Custom | SSO, audit logs, SLA, on-prem |
+
+*All tiers require BYOL. We charge for orchestration, not tokens.*
+
 ## 🚀 Roadmap
 
-- [ ] **Planning Agent** — Breaks epics into smaller issues with estimates and mapped dependencies
-- [ ] **ROI Dashboard** — Return metrics per agent: time saved, cost per execution, code quality
-- [ ] **Skills Marketplace** — Shareable skills between organizations — leverage community knowledge
+- [ ] **Phase 0** — Single agent, single repo, CLI
+- [ ] **Phase 1** — Full pipeline (Refine → Dev → QA → Docs), dashboard, BYOL multi-provider
+- [ ] **Phase 2** — Multi-repo coordination, synchronized merges, Linear/Jira integration
+- [ ] **Phase 3** — Multi-tenant SaaS, billing, GitHub App, subscription relay
+- [ ] **Phase 4** — Planning Agent, Skills Marketplace, ROI Dashboard
 
 ## 📄 License
 

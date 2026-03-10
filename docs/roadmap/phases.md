@@ -12,6 +12,7 @@ Get ONE agent executing ONE issue on ONE repo end-to-end.
 - [ ] Monorepo structure (`apps/api`, `apps/dashboard`, `apps/worker`)
 - [ ] PostgreSQL schema (organizations, repos, issues, executions, events)
 - [ ] Redis Streams setup (event bus)
+- [ ] BYOL setup: API key input → encrypted storage → provider abstraction layer
 - [ ] GitHub webhook receiver
 - [ ] Single Dev Crow: takes issue → creates worktree → writes code → opens PR
 - [ ] Basic execution tracking (start/complete/fail)
@@ -23,6 +24,7 @@ Get ONE agent executing ONE issue on ONE repo end-to-end.
 - No QA/Docs agents
 - No multi-tenant
 - No routing (manual assignment)
+- No subscription relay (API key only)
 
 ### Success Criteria
 Run `cawnex run https://github.com/org/repo/issues/1` and get a PR opened automatically.
@@ -54,6 +56,11 @@ Complete autonomous pipeline: Refine → Develop → Review → Merge.
 
 ### Success Criteria
 Create a GitHub issue with label `cawnex` → Refinement generates story → Human approves → Dev implements → QA reviews → Auto-merge → Docs updated. Full cycle, single repo.
+
+### BYOL Milestone
+- Support Anthropic + OpenAI API keys
+- Model selection per agent type
+- Optional budget cap with notifications
 
 ---
 
@@ -105,8 +112,13 @@ Ship Cawnex as a product that other teams can use.
 - [ ] Landing page on cawnex.ai
 - [ ] Documentation site
 
+### BYOL Milestone
+- Claude Max subscription relay (subprocess mode)
+- Google Gemini support
+- Custom/local LLM support (Ollama, vLLM) for enterprise
+
 ### Success Criteria
-External team installs Cawnex GitHub App → connects repos → creates issue → gets automated PR. We can bill them.
+External team installs Cawnex GitHub App → connects repos → enters API key → creates issue → gets automated PR. We can bill them.
 
 ---
 

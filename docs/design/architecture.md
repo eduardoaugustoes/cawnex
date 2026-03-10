@@ -9,10 +9,11 @@
 1. **Start simple, evolve fast** — Subprocess with regex worked for months. We follow the same principle.
 2. **Specialize everything** — Dedicated agents beat generic ones by an order of magnitude.
 3. **Orchestration is the product** — Anyone can spawn an agent. The value is in coordinating them.
-4. **Issue-tracker agnostic** — Support Linear, GitHub Issues, Jira, GitLab Issues from day one.
-5. **Git-native** — Everything goes through git. No magic. Worktrees for isolation.
-6. **Observable by default** — Every action is streamed. Every cost is tracked.
-7. **Human-in-the-loop, not human-in-the-way** — One approval point, not many.
+4. **BYOL (Bring Your Own LLM)** — We never pay for tokens. Users bring their own API key or subscription. See [byol.md](./byol.md).
+5. **Issue-tracker agnostic** — Support Linear, GitHub Issues, Jira, GitLab Issues from day one.
+6. **Git-native** — Everything goes through git. No magic. Worktrees for isolation.
+7. **Observable by default** — Every action is streamed. Every cost is tracked.
+8. **Human-in-the-loop, not human-in-the-way** — One approval point, not many.
 
 ---
 
