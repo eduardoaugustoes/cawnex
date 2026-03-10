@@ -31,10 +31,17 @@ def setup_anthropic():
 
         fk = cfg.get("fernet_key")
         if fk:
-            encrypted = Fernet(fk.encode()).encrypt(api_key.encode()).decode()
-            cfg.set_key("anthropic_api_key_encrypted", encrypted)
+            encrypted_bytes = Fernet(fk.encode()).encrypt(api_key.encode())
+            cfg.set_key("anthropic_api_key_encrypted", encrypted_bytes.decode())
 
-        console.print("[green]✓ Saved[/]")
+            # Sync to database
+            try:
+                asyncio.run(_sync_llm_config_to_db(encrypted_bytes))
+                console.print("[green]✓ Saved (config + database)[/]")
+            except Exception as e:
+                console.print(f"[green]✓ Saved to config[/] [yellow]⚠ DB sync failed: {e}[/]")
+        else:
+            console.print("[green]✓ Saved[/]")
 
 
 @setup.command("github")
@@ -74,6 +81,28 @@ def setup_show():
 
     if not config:
         console.print("[dim]  No configuration found. Run: cawnex init[/]")
+
+
+async def _sync_llm_config_to_db(encrypted_key: bytes):
+    """Write the encrypted API key to the tenant's llm_configs row."""
+    from sqlalchemy import select
+    from cawnex_core.models import LLMConfig
+    from cawnex_core.models.db import create_engine, create_session_factory
+
+    db_url = cfg.get("database_url", "postgresql+asyncpg://cawnex:cawnex@localhost:5433/cawnex")
+    engine = create_engine(db_url)
+    sf = create_session_factory(engine)
+
+    async with sf() as session:
+        result = await session.execute(select(LLMConfig))
+        llm_config = result.scalar_one_or_none()
+        if llm_config:
+            llm_config.encrypted_api_key = encrypted_key
+            await session.commit()
+        else:
+            raise RuntimeError("No LLM config found in DB. Run seed first.")
+
+    await engine.dispose()
 
 
 async def _validate(api_key: str) -> bool:
