@@ -10,6 +10,7 @@ from cawnex_cli.commands.agents import agents
 from cawnex_cli.commands.run import run
 from cawnex_cli.commands.roost import roost
 from cawnex_cli.commands.issue import issue
+from cawnex_cli.commands.watch import watch
 
 console = Console()
 
@@ -41,6 +42,7 @@ cli.add_command(agents)
 cli.add_command(run)
 cli.add_command(roost)
 cli.add_command(issue)
+cli.add_command(watch)
 
 
 if __name__ == "__main__":
