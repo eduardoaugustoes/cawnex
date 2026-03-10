@@ -12,6 +12,7 @@ from cawnex_cli.commands.roost import roost
 from cawnex_cli.commands.issue import issue
 from cawnex_cli.commands.watch import watch
 from cawnex_cli.commands.issues import issues
+from cawnex_cli.commands.project import project
 
 console = Console()
 
@@ -45,6 +46,7 @@ cli.add_command(roost)
 cli.add_command(issue)
 cli.add_command(watch)
 cli.add_command(issues)
+cli.add_command(project)
 
 
 if __name__ == "__main__":
