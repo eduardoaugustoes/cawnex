@@ -337,16 +337,17 @@ class Murder:
 
                 # Handle failure
                 if not result.success:
-                    all_succeeded = False
                     if step.on_fail == "skip":
                         logger.info(f"    ⏭️  Skipping failed step '{step.name}'")
                         continue
                     elif step.on_fail == "retry":
                         logger.info(f"    🔄 Retry not yet implemented, failing")
+                        all_succeeded = False
                         task.status = TaskStatus.FAILED
                         await db.commit()
                         break
                     else:
+                        all_succeeded = False
                         task.status = TaskStatus.FAILED
                         await db.commit()
                         break
