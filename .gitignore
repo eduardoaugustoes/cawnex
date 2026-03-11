@@ -27,10 +27,20 @@ node_modules/
 apps/dashboard/dist/
 apps/web/dist/
 
-# iOS
+# iOS / Xcode
 apps/ios/build/
 apps/ios/DerivedData/
 *.xcuserdata
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+Pods/
+*.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 # Android
 apps/android/.gradle/
