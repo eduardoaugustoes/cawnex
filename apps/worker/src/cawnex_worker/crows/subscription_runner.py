@@ -89,6 +89,7 @@ class SubscriptionRunner:
             "--no-session-persistence",
             "--model", model,
             "--allowedTools", ",".join(allowed_tools),
+            "--dangerously-skip-permissions",
             "-p", full_prompt,
         ]
 
