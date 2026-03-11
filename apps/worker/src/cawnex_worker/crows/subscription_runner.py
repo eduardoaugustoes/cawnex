@@ -84,6 +84,7 @@ class SubscriptionRunner:
         # Build command
         cmd = [self.CLAUDE_CMD] + self.CLAUDE_ARGS + [
             "--print",
+            "--verbose",
             "--output-format", "stream-json",
             "--no-session-persistence",
             "--model", model,
