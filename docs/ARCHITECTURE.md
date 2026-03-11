@@ -1,6 +1,6 @@
 # Cawnex — Technical Architecture
 
-> AWS serverless, multi-tenant, .pen-native
+> AWS serverless, multi-tenant, blackboard-driven orchestration
 
 ---
 
@@ -11,7 +11,6 @@
 | **Compute (API)** | AWS Lambda + API Gateway v2 | Pay-per-request, scale to zero |
 | **Compute (Workers)** | AWS Lambda (initially), ECS Fargate (when needed) | Start simple, graduate to Fargate for >15min tasks |
 | **Database** | DynamoDB (single-table) | Serverless, multi-tenant isolation via partition keys, pay-per-request |
-| **Queue** | SQS + DLQ | Task queue, replaces Redis Streams |
 | **Storage** | S3 | .pen files, artifacts, worktree snapshots. S3-compatible abstraction (R2/Tigris swappable) |
 | **Auth** | Cognito | Apple Sign In + email/password, JWT, built-in user management |
 | **CDN** | CloudFront | HTTPS termination, API caching where appropriate |
@@ -35,12 +34,7 @@
                            │ HTTPS
                            ▼
 ┌──────────────────────────────────────────────────────────┐
-│                CloudFront (CDN + HTTPS)                    │
-└──────────────────────────┬─────────────────────────────────┘
-                           │
-                           ▼
-┌──────────────────────────────────────────────────────────┐
-│              API Gateway v2 (HTTP API)                     │
+│          CloudFront → API Gateway v2 (HTTP API)           │
 │                                                            │
 │  /projects  /milestones  /tasks  /executions  /vision      │
 │  /agents    /workflows   /repos  /auth       /pens         │
@@ -53,36 +47,199 @@
 │  ┌─────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐     │
 │  │ API     │ │ Vision   │ │ Pen API  │ │ Webhook  │     │
 │  │ Handler │ │ Chat     │ │ Handler  │ │ Handler  │     │
-│  └────┬────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘     │
-│       │           │            │             │            │
-│       ▼           ▼            ▼             ▼            │
-│  ┌─────────────────────────────────────────────────┐     │
-│  │              Shared Python Packages              │     │
-│  │  core (models, schemas) │ providers (BYOL)      │     │
-│  │  git_ops (GitHub API)   │ pen (file operations)  │     │
-│  └─────────────────────────────────────────────────┘     │
+│  └─────────┘ └──────────┘ └──────────┘ └──────────┘     │
 └──────────────────────────┬─────────────────────────────────┘
                            │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-     ┌──────────┐  ┌──────────┐  ┌──────────┐
-     │ DynamoDB │  │    S3    │  │   SQS    │
-     │ (data)   │  │ (files)  │  │ (queue)  │
-     └──────────┘  └──────────┘  └────┬─────┘
-                                      │
-                                      ▼
-                              ┌──────────────┐
-                              │   Worker     │
-                              │   Lambda     │
-                              │              │
-                              │  Murder      │
-                              │  (orchestr.) │
-                              │      │       │
-                              │  ┌───┴────┐  │
-                              │  │ Crows  │  │
-                              │  └────────┘  │
-                              └──────────────┘
+              ┌────────────┴────────────┐
+              ▼                         ▼
+     ┌──────────────┐           ┌──────────┐
+     │   DynamoDB   │           │    S3    │
+     │  (data +     │           │ (files)  │
+     │  blackboard) │           └──────────┘
+     └──────┬───────┘
+            │ DynamoDB Streams
+            ▼
+     ┌──────────────┐
+     │   Murder     │ ◄── Judge + Dispatcher (never a worker)
+     │   Lambda     │
+     │              │
+     │  Reads blackboard state
+     │  Decides next action
+     │  Assigns crows
+     │  Approves / rejects
+     └──────┬───────┘
+            │ Invokes
+            ▼
+     ┌──────────────┐
+     │ Crow Lambdas │ ◄── Workers (Planner, Implementer, Reviewer, etc.)
+     │              │
+     │  Reads task from blackboard
+     │  Executes (LLM + tools)
+     │  Writes results to blackboard
+     └──────────────┘
 ```
+
+---
+
+## Blackboard Pattern — Orchestration
+
+The **blackboard** is a shared DynamoDB state that all agents (Murder + Crows) read and write to. It replaces message queues (SQS/Redis/Kafka) as the coordination mechanism.
+
+### How It Works
+
+1. **Trigger**: GitHub webhook / API call creates an Execution in DynamoDB
+2. **Murder wakes up** (via DynamoDB Streams) → reads the blackboard → decides what to do
+3. Murder writes a **CrowTask** to the blackboard → assigns a crow
+4. **Crow Lambda fires** (via DynamoDB Streams on the new task) → reads its assignment → executes → writes a **CrowReport** back to the blackboard
+5. **Murder wakes up again** (stream event from the report) → reads the report → decides next action
+6. Repeat until all work is done
+7. Murder writes final **approval or rejection** to the blackboard
+
+### Murder — The Judge
+
+Murder is **never a worker**. It never writes code, creates plans, or produces artifacts. It only:
+
+- **Reads** the blackboard (execution state, crow reports, context)
+- **Decides** what needs to happen next:
+  - "This issue needs a plan" → assigns **Planner Crow**
+  - "Plan looks good, time to implement" → assigns **Implementer Crow**
+  - "Code is done, needs review" → assigns **Reviewer Crow**
+  - "Needs documentation" → assigns **Documentation Crow**
+  - "This output is bad" → **rejects** with specific feedback, reassigns the same or different crow
+  - "Everything looks good" → **approves**, triggers PR merge
+- **Writes** decisions (go / no-go / rerun with instructions) to the blackboard
+
+Murder is a lightweight Lambda — mostly reads state, calls an LLM for judgment, writes a decision. Fast and cheap.
+
+### Crows — The Workers
+
+Each crow is a **specialist** that receives a task and produces a result:
+
+| Crow | Role | Input | Output |
+|------|------|-------|--------|
+| **Planner** | Breaks issue into implementation plan | Issue + vision + context | Structured plan (steps, files, approach) |
+| **Implementer** | Writes code | Plan + repo context | Code changes, commits |
+| **Reviewer** | Reviews code for quality/correctness | Code diff + acceptance criteria | Review verdict + feedback |
+| **Documenter** | Writes/updates docs | Code changes + project context | Documentation changes |
+| **Fixer** | Addresses review feedback | Review comments + code | Fixed code |
+
+Crows don't know about each other. They read their task from the blackboard, execute, and write results back. Murder coordinates everything.
+
+### Execution Lifecycle
+
+```
+GitHub Issue
+    │
+    ▼
+┌─────────────────────────────────────────────┐
+│ Execution created (status: pending)          │
+│ DynamoDB Stream fires → Murder Lambda        │
+└──────────────────────┬──────────────────────┘
+                       ▼
+              Murder: "Needs a plan"
+              → writes CrowTask (planner)
+                       │
+                       ▼ (Stream fires → Crow Lambda)
+              Planner Crow executes
+              → writes CrowReport (plan)
+                       │
+                       ▼ (Stream fires → Murder Lambda)
+              Murder: reads plan
+              → GO: "Plan approved, implement it"
+              → writes CrowTask (implementer)
+                  ── or ──
+              → NO-GO: "Plan is weak, redo with notes"
+              → writes CrowTask (planner, with feedback)
+                       │
+                       ▼ (Stream fires → Crow Lambda)
+              Implementer Crow executes
+              → writes CrowReport (code changes)
+                       │
+                       ▼ (Stream fires → Murder Lambda)
+              Murder: "Code done, needs review"
+              → writes CrowTask (reviewer)
+                       │
+                       ▼ ...
+              Review → Murder approves or sends to Fixer
+                       │
+                       ▼
+              Murder: "All good"
+              → writes final approval
+              → triggers PR merge
+              → Execution status: completed
+```
+
+### CrowTask — What Murder Assigns
+
+```json
+{
+  "execution_id": "exec_abc123",
+  "step": 2,
+  "crow": "implementer",
+  "action": "implement",
+  "task_description": "Implement the auth flow as described in the plan",
+  "acceptance_criteria": [
+    "Apple Sign In integration works",
+    "JWT tokens returned on success",
+    "Error handling for denied/cancelled"
+  ],
+  "context": {
+    "vision": "Project vision summary...",
+    "milestone": "Milestone 1: Auth + Onboarding",
+    "previous_reports": [ /* Planner's report */ ],
+    "murder_notes": "Follow the plan exactly. Use Cognito SDK, not raw HTTP."
+  },
+  "repo": {
+    "url": "github.com/user/repo",
+    "branch": "cawnex/exec_abc123",
+    "base_branch": "main"
+  },
+  "constraints": {
+    "max_tokens": 100000,
+    "timeout_seconds": 600,
+    "budget_usd": 2.00
+  }
+}
+```
+
+### CrowReport — What Crows Return
+
+```json
+{
+  "execution_id": "exec_abc123",
+  "step": 2,
+  "crow": "implementer",
+  "outcome": "completed",
+  "summary": "Implemented Apple Sign In with Cognito integration",
+  "criteria_results": [
+    { "criterion": "Apple Sign In integration works", "pass": true, "detail": "Using ASAuthorizationController" },
+    { "criterion": "JWT tokens returned on success", "pass": true, "detail": "Access + refresh tokens from Cognito" },
+    { "criterion": "Error handling for denied/cancelled", "pass": true, "detail": "Handles .cancelled, .failed, .notHandled" }
+  ],
+  "artifacts": {
+    "branch": "cawnex/exec_abc123",
+    "files_changed": ["Sources/Auth/AppleSignIn.swift", "Sources/Auth/CognitoClient.swift"],
+    "commit_sha": "a1b2c3d"
+  },
+  "cost": {
+    "tokens_in": 12500,
+    "tokens_out": 8300,
+    "usd": 0.42
+  },
+  "context_for_next": "Auth flow complete. CognitoClient exposes `signIn()` and `refreshToken()` methods."
+}
+```
+
+### Why Blackboard, Not Message Queues
+
+| Concern | Blackboard (DynamoDB) | Message Queue (SQS/Kafka) |
+|---------|----------------------|--------------------------|
+| **State** | Single source of truth — everyone reads/writes same place | State split between queue + DB, must sync |
+| **Visibility** | Full execution history queryable at any time | Messages consumed and gone |
+| **Coordination** | DynamoDB Streams trigger next step automatically | Need separate routing logic |
+| **Debugging** | Read the blackboard to see exactly what happened | Need to reconstruct from logs |
+| **Cost** | DynamoDB Streams: free with the table | SQS: cheap but another service to manage |
+| **Simplicity** | One data store for everything | Two systems (queue + state store) |
 
 ---
 
@@ -94,9 +251,9 @@ Every piece of data is scoped to a tenant:
 |-------|-----------------|
 | **DynamoDB** | Partition key prefix: `T#<tenant_id>` |
 | **S3** | Key prefix: `tenants/<tenant_id>/` |
-| **SQS** | Message attribute: `tenant_id` (single queue, filtered) |
 | **Cognito** | Custom attribute: `custom:tenant_id` |
 | **API** | JWT contains `tenant_id`, enforced on every request |
+| **Blackboard** | Execution records include `tenant_id`, crows only see their tenant's data |
 
 ---
 
@@ -104,20 +261,29 @@ Every piece of data is scoped to a tenant:
 
 ### Table: `cawnex-{stage}`
 
-| PK | SK | Entity | Example |
-|----|-----|--------|---------|
+| PK | SK | Entity | Description |
+|----|-----|--------|-------------|
 | `T#<tid>` | `PROJECT#<pid>` | Project | Vision, name, status |
 | `T#<tid>` | `PROJECT#<pid>#MILESTONE#<mid>` | Milestone | Description, order, progress |
 | `T#<tid>` | `PROJECT#<pid>#TASK#<taskid>` | Task | Status, description, milestone ref |
-| `T#<tid>` | `PROJECT#<pid>#EXECUTION#<eid>` | Execution | Status, crow, cost, duration |
-| `T#<tid>` | `PROJECT#<pid>#EXECUTION#<eid>#EVENT#<ts>` | Event | Stream line (tool_use, output, etc.) |
 | `T#<tid>` | `PROJECT#<pid>#REPO#<rid>` | Repository | GitHub URL, default branch |
 | `T#<tid>` | `PROJECT#<pid>#WORKFLOW#<wid>` | Workflow | Pipeline steps |
+| `T#<tid>` | `PROJECT#<pid>#VISION_MSG#<ts>` | Vision Message | Chat history with Vision AI |
 | `T#<tid>` | `AGENT#<aid>` | Agent Definition | Crow config (prompt, model, tools) |
 | `T#<tid>` | `LLMCONFIG` | LLM Config | Encrypted API keys, model preferences |
 | `T#<tid>` | `PROFILE` | Tenant Profile | Name, plan, billing |
 | `T#<tid>` | `PEN#<penid>` | Pen File Metadata | S3 key, name, project ref |
-| `T#<tid>` | `PROJECT#<pid>#VISION_MSG#<ts>` | Vision Message | Chat history with Vision AI |
+
+#### Blackboard Records (Execution State)
+
+| PK | SK | Entity | Description |
+|----|-----|--------|-------------|
+| `T#<tid>#EXEC#<eid>` | `META` | Execution | Status, issue ref, timestamps, final verdict |
+| `T#<tid>#EXEC#<eid>` | `PLAN` | Plan | Planner's structured plan, Murder's approval/rejection |
+| `T#<tid>#EXEC#<eid>` | `STEP#<seq>#TASK` | CrowTask | What Murder assigned to the crow |
+| `T#<tid>#EXEC#<eid>` | `STEP#<seq>#REPORT` | CrowReport | What the crow produced |
+| `T#<tid>#EXEC#<eid>` | `STEP#<seq>#DECISION` | Murder Decision | Go / no-go / rerun + feedback |
+| `T#<tid>#EXEC#<eid>` | `EVENT#<ts>` | Event | Fine-grained stream (tool calls, output, errors) |
 
 ### GSI1 — Query by status across projects
 | GSI1PK | GSI1SK | Use case |
@@ -149,27 +315,6 @@ cawnex-artifacts-{stage}-{account}/
 │           └── <execution_id>/       # Build artifacts, logs
 └── tmp/                               # Ephemeral (7-day lifecycle)
 ```
-
----
-
-## SQS — Task Queue
-
-**Queue:** `cawnex-tasks-{stage}`
-
-Message format:
-```json
-{
-  "tenant_id": "t_abc123",
-  "project_id": "p_xyz",
-  "task_id": "task_001",
-  "workflow_id": "wf_code_shipping",
-  "priority": "normal"
-}
-```
-
-**DLQ:** `cawnex-tasks-dlq-{stage}` (3 retries, 14-day retention)
-
-Visibility timeout: 30 minutes (Murder runs can be long)
 
 ---
 
@@ -228,14 +373,6 @@ iOS App → Apple Sign In → Cognito User Pool → JWT (access + refresh)
 
 **Node types:** `frame`, `group`, `rectangle`, `ellipse`, `line`, `polygon`, `path`, `text`, `icon_font`, `ref`, `note`, `prompt`, `context`
 
-**Key concepts:**
-- `frame` = container with flexbox layout (vertical/horizontal/none)
-- `$--varname` = design token variable reference
-- `ref` = component instance (references a `reusable: true` component)
-- `descendants` = property overrides on component instances
-- `slot` = placeholder for children in container components
-- `themes` = multi-axis theming (light/dark, compact/regular, etc.)
-
 ### .pen → SwiftUI Rendering
 
 The iOS app renders .pen files natively as SwiftUI views:
@@ -255,7 +392,13 @@ The iOS app renders .pen files natively as SwiftUI views:
 | Variables (`$--name`) | `@Environment` theme resolution |
 | Themes (light/dark) | `@Environment(\.colorScheme)` |
 
-Full property mapping documented in `docs/pen-swiftui-mapping.md`.
+---
+
+## Real-Time Updates (iOS)
+
+DynamoDB Streams → Murder/Crow writes to blackboard → Stream triggers a **Notifier Lambda** → pushes to **API Gateway WebSocket** → iOS app receives live execution updates.
+
+No polling. The blackboard drives everything, including the UI.
 
 ---
 
@@ -264,41 +407,22 @@ Full property mapping documented in `docs/pen-swiftui-mapping.md`.
 ### Initially: Lambda
 
 ```
-SQS → Lambda (Murder) → Crow (Anthropic SDK) → GitHub API → PR
+DynamoDB Stream → Murder Lambda → writes CrowTask → Stream → Crow Lambda → writes CrowReport → Stream → Murder Lambda → ...
 ```
 
-Lambda limit: 15 minutes. Sufficient for simple tasks. Worker Lambda has higher memory (1-2 GB).
+Lambda limit: 15 minutes. Sufficient for most tasks. Worker Lambda: 1-2 GB memory.
 
 ### Later: ECS Fargate
 
-When tasks exceed 15 minutes or need persistent state:
+When tasks exceed 15 minutes:
 
 ```
-SQS → Fargate Task (Murder) → Crow (long-running) → GitHub API → PR
+Murder detects long task → starts Fargate Task instead of Lambda
+Fargate Crow executes → writes report to DynamoDB blackboard
+Murder picks up via Stream as usual
 ```
 
-Fargate: 1 vCPU, 2 GB RAM, SPOT in dev, on-demand in prod.
-
-### Murder Pipeline
-
-```
-Task received
-    ↓
-Load workflow (e.g., Refine → Implement → Review → Document)
-    ↓
-For each step:
-    ├── Select Crow (from agent config)
-    ├── Create Nest (git worktree)
-    ├── Inject context (vision, milestone, previous step output)
-    ├── Execute Crow (Anthropic SDK + tools)
-    ├── Stream events → DynamoDB + SSE
-    ├── Handle errors (retry / skip / fail based on on_fail config)
-    └── Pass output to next step
-    ↓
-Open PR (if implementation step succeeded)
-    ↓
-Record execution (cost, duration, outcome)
-```
+Fargate: 1 vCPU, 2 GB RAM, SPOT in dev, on-demand in prod. Same blackboard protocol — only the compute changes.
 
 ### Crow Runtime
 
@@ -307,7 +431,6 @@ Each Crow uses the Anthropic Python SDK with typed tools:
 ```python
 client = anthropic.AsyncAnthropic(api_key=user_api_key)
 
-# Tools: filesystem (read/write/list), shell (run commands), git (commit/branch/PR)
 response = await client.messages.create(
     model=agent_config.model,
     system=agent_config.system_prompt,
@@ -326,14 +449,14 @@ response = await client.messages.create(
 ## Build Order (Increments)
 
 ### Increment 0 — AWS Foundation
-- CDK stack: DynamoDB + S3 + Cognito + Lambda + API GW
+- CDK stack: DynamoDB (with Streams enabled) + S3 + Cognito + Lambda + API GW
 - Deploy empty API (health check endpoint)
 - CI/CD: GitHub Actions → `cdk deploy`
 
 ### Increment 1 — Pen API
 - Lambda functions for .pen CRUD
 - S3 storage with tenant-scoped prefixes
-- DynamoDB metadata (PK: `T#<tid>`, SK: `PEN#<penid>`)
+- DynamoDB metadata
 
 ### Increment 2 — iOS App (parallel)
 - Xcode project setup
@@ -351,21 +474,21 @@ response = await client.messages.create(
 - AI-generated milestones and tasks
 - Approval flow (approve/reject/edit)
 
-### Increment 5 — Execution Engine
-- SQS integration
-- Murder orchestrator (Lambda)
-- Single Crow (Dev Crow) with Anthropic SDK
-- Event streaming (SSE via Lambda streaming response)
+### Increment 5 — Blackboard + Murder
+- DynamoDB Streams integration
+- Murder Lambda (judge + dispatcher)
+- Planner Crow (first crow)
+- Blackboard records (CrowTask / CrowReport / Decision)
 
-### Increment 6 — Full Pipeline
-- Refine → Implement → Review → Document
-- Multiple Crows
-- GitHub PR integration
-- Cost tracking
+### Increment 6 — Full Crow Pipeline
+- Implementer, Reviewer, Documenter, Fixer crows
+- End-to-end: issue → plan → implement → review → docs → PR
+- Cost tracking per execution
 
 ### Increment 7 — Production
 - Custom domains (cawnex.ai API)
 - Push notifications (APNs)
+- WebSocket real-time updates
 - Billing integration
 - Landing page
 
@@ -390,10 +513,9 @@ At low scale (dogfooding):
 
 | Service | Estimated Monthly |
 |---------|------------------|
-| Lambda (API + Worker) | ~$1-5 (pay per request) |
-| DynamoDB | ~$1-5 (on-demand) |
+| Lambda (API + Murder + Crows) | ~$1-5 (pay per request) |
+| DynamoDB (+ Streams) | ~$1-5 (on-demand, streams free) |
 | S3 | ~$0.50 (storage + requests) |
-| SQS | ~$0 (free tier) |
 | Cognito | ~$0 (free tier up to 50k MAU) |
 | CloudFront | ~$1-2 |
 | **Total** | **~$5-15/mo** |
