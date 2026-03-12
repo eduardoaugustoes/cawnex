@@ -34,9 +34,3 @@ final class AppStore {
         ]
     }
 }
-
-struct User: Identifiable, Equatable {
-    let id: String
-    let name: String
-    let email: String
-}

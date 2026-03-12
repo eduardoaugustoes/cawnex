@@ -5,6 +5,10 @@ struct MainTabView: View {
     @State private var selectedTab: CawnexTab = .projects
     @State private var tabRouter = TabRouter()
 
+    private var services: ServiceFactory {
+        ServiceFactory(store: store)
+    }
+
     var body: some View {
         ZStack {
             CawnexColors.background
@@ -20,7 +24,6 @@ struct MainTabView: View {
                 CawnexTabBar(selectedTab: $selectedTab)
             }
         }
-        .environment(tabRouter)
     }
 
     @ViewBuilder
@@ -45,7 +48,7 @@ struct MainTabView: View {
             DashboardScreen(
                 userName: store.currentUser?.name ?? "",
                 viewModel: DashboardViewModel(
-                    projectService: InMemoryProjectService(store: store)
+                    projectService: services.makeProjectService()
                 ),
                 onBellTap: {},
                 onAddTap: {},
@@ -65,6 +68,8 @@ struct MainTabView: View {
         @Bindable var router = tabRouter
         return NavigationStack(path: $router.murderPath) {
             tabPlaceholder("Murders")
+                .toolbarBackground(CawnexColors.background, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 
@@ -72,6 +77,8 @@ struct MainTabView: View {
         @Bindable var router = tabRouter
         return NavigationStack(path: $router.skillPath) {
             tabPlaceholder("Skills")
+                .toolbarBackground(CawnexColors.background, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 
@@ -79,6 +86,8 @@ struct MainTabView: View {
         @Bindable var router = tabRouter
         return NavigationStack(path: $router.settingsPath) {
             tabPlaceholder("Settings")
+                .toolbarBackground(CawnexColors.background, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 
@@ -91,8 +100,11 @@ struct MainTabView: View {
             ProjectHubScreen(
                 projectId: projectId,
                 viewModel: ProjectHubViewModel(
-                    projectHubService: InMemoryProjectHubService(store: store)
-                )
+                    projectHubService: services.makeProjectHubService()
+                ),
+                onBack: { tabRouter.popToRoot(tab: .projects) },
+                onDocumentTap: { type in tabRouter.pushDocument(projectId, type: type) },
+                onBacklogTap: { tabRouter.pushBacklog(projectId) }
             )
         case .document(let projectId, let type):
             routePlaceholder("Document: \(type.rawValue)", id: projectId)
@@ -100,8 +112,10 @@ struct MainTabView: View {
             BacklogScreen(
                 projectId: projectId,
                 viewModel: BacklogViewModel(
-                    backlogService: InMemoryBacklogService(store: store)
-                )
+                    backlogService: services.makeBacklogService()
+                ),
+                onBack: { tabRouter.projectPath.removeLast() },
+                onGoalTap: { goalId in tabRouter.pushGoal(projectId, goalId: goalId) }
             )
         case .milestone(_, let milestoneId):
             routePlaceholder("Milestone", id: milestoneId)

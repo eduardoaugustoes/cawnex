@@ -17,8 +17,6 @@ final class AppRouter {
     }
 
     func signedIn() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            currentRoute = .main
-        }
+        currentRoute = .main
     }
 }

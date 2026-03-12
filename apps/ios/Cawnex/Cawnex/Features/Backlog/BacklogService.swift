@@ -1,13 +1,17 @@
 import Foundation
 
 protocol BacklogService {
-    func listMilestones(projectId: String) async -> [Milestone]
+    func listMilestones(projectId: String) async throws -> [Milestone]
 }
 
-struct InMemoryBacklogService: BacklogService {
+final class InMemoryBacklogService: BacklogService {
     let store: AppStore
 
-    func listMilestones(projectId: String) async -> [Milestone] {
+    init(store: AppStore) {
+        self.store = store
+    }
+
+    func listMilestones(projectId: String) async throws -> [Milestone] {
         guard let project = store.projects.first(where: { $0.id == projectId }) else {
             return []
         }

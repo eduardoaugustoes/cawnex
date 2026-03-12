@@ -1,13 +1,17 @@
-import SwiftUI
+import Foundation
 
 protocol ProjectHubService {
-    func getProjectHub(_ projectId: String) async -> ProjectHubDetail?
+    func getProjectHub(_ projectId: String) async throws -> ProjectHubDetail?
 }
 
-struct InMemoryProjectHubService: ProjectHubService {
+final class InMemoryProjectHubService: ProjectHubService {
     let store: AppStore
 
-    func getProjectHub(_ projectId: String) async -> ProjectHubDetail? {
+    init(store: AppStore) {
+        self.store = store
+    }
+
+    func getProjectHub(_ projectId: String) async throws -> ProjectHubDetail? {
         guard let project = store.projects.first(where: { $0.id == projectId }) else {
             return nil
         }
@@ -40,20 +44,8 @@ struct InMemoryProjectHubService: ProjectHubService {
                 mvisTotal: 18
             ),
             murders: [
-                MurderSummary(
-                    id: "m1",
-                    name: "Dev Murder",
-                    crowCount: 4,
-                    isActive: true,
-                    dotColor: Color(hex: 0x22C55E)
-                ),
-                MurderSummary(
-                    id: "m2",
-                    name: "Editorial Murder",
-                    crowCount: 2,
-                    isActive: false,
-                    dotColor: Color(hex: 0x3B82F6)
-                ),
+                MurderSummary(id: "m1", name: "Dev Murder", crowCount: 4, isActive: true),
+                MurderSummary(id: "m2", name: "Editorial Murder", crowCount: 2, isActive: false),
             ]
         )
     }

@@ -61,7 +61,7 @@ struct DashboardScreen: View {
     private var projectsSectionHeader: some View {
         HStack {
             Text("Your Projects")
-                .font(.custom("Inter", size: 16).weight(.semibold))
+                .font(CawnexTypography.sectionTitle)
                 .foregroundStyle(CawnexColors.cardForeground)
 
             Spacer()

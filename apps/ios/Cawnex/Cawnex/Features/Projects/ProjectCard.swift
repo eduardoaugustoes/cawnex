@@ -30,7 +30,7 @@ struct ProjectCard: View {
                     .frame(width: 8, height: 8)
 
                 Text(project.name)
-                    .font(.custom("Inter", size: 16).weight(.semibold))
+                    .font(CawnexTypography.sectionTitle)
                     .foregroundStyle(CawnexColors.cardForeground)
             }
 
@@ -65,7 +65,7 @@ struct ProjectCard: View {
 
     private var summary: some View {
         Text(project.tasks.summary)
-            .font(.custom("Inter", size: 11))
+            .font(CawnexTypography.label)
             .foregroundStyle(CawnexColors.mutedForeground)
     }
 

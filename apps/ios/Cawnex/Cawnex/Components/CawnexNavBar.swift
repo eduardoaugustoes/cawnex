@@ -15,14 +15,14 @@ struct CawnexNavBar<Trailing: View>: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(backColor)
                         Text(title)
-                            .font(.custom("Inter", size: 17).weight(.bold))
+                            .font(CawnexTypography.heading3)
                             .foregroundStyle(CawnexColors.cardForeground)
                     }
                 }
                 .buttonStyle(.plain)
             } else {
                 Text(title)
-                    .font(.custom("Inter", size: 17).weight(.bold))
+                    .font(CawnexTypography.heading3)
                     .foregroundStyle(CawnexColors.cardForeground)
             }
 
@@ -71,7 +71,7 @@ struct NavBarActionButton: View {
                 Image(systemName: icon)
                     .font(.system(size: 12, weight: .semibold))
                 Text(label)
-                    .font(.custom("Inter", size: 13).weight(.semibold))
+                    .font(CawnexTypography.captionBold)
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 14)

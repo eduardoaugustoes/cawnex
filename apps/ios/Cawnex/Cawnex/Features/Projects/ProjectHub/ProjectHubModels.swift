@@ -1,4 +1,4 @@
-import SwiftUI
+import Foundation
 
 struct ProjectStats: Equatable {
     let progress: Int
@@ -29,15 +29,6 @@ struct ProjectDocument: Identifiable, Equatable {
         }
     }
 
-    var icon: String {
-        switch type {
-        case .vision: "eye"
-        case .architecture: "layers"
-        case .glossary: "book-open"
-        case .design: "palette"
-        }
-    }
-
     var sfIcon: String {
         switch type {
         case .vision: "eye"
@@ -45,37 +36,6 @@ struct ProjectDocument: Identifiable, Equatable {
         case .glossary: "book"
         case .design: "paintpalette"
         }
-    }
-
-    var accentColor: Color {
-        switch type {
-        case .vision: Color(hex: 0x7C3AED)
-        case .architecture: Color(hex: 0x3B82F6)
-        case .glossary: Color(hex: 0x22C55E)
-        case .design: Color(hex: 0xF97316)
-        }
-    }
-
-    var chipColor: Color {
-        switch status {
-        case .draft: Color(hex: 0xF59E0B)
-        case .notStarted: CawnexColors.mutedForeground
-        case .inProgress: Color(hex: 0x3B82F6)
-        case .complete: Color(hex: 0x22C55E)
-        }
-    }
-
-    var chipBackground: Color {
-        switch status {
-        case .draft: Color(hex: 0xF59E0B).opacity(0.13)
-        case .notStarted: CawnexColors.muted
-        case .inProgress: Color(hex: 0x3B82F6).opacity(0.13)
-        case .complete: Color(hex: 0x22C55E).opacity(0.13)
-        }
-    }
-
-    var hasBorderAccent: Bool {
-        status == .draft || status == .inProgress || status == .complete
     }
 }
 
@@ -91,7 +51,6 @@ struct MurderSummary: Identifiable, Equatable {
     let name: String
     let crowCount: Int
     let isActive: Bool
-    let dotColor: Color
 }
 
 struct ProjectHubDetail: Equatable {

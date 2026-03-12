@@ -1,39 +1,8 @@
 import SwiftUI
 
-enum CawnexTab: String, CaseIterable, Equatable {
-    case projects
-    case murders
-    case skills
-    case settings
-
-    var label: String {
-        rawValue.uppercased()
-    }
-
-    var icon: String {
-        switch self {
-        case .projects: "folder"
-        case .murders: "crow-icon"
-        case .skills: "sparkles"
-        case .settings: "gearshape"
-        }
-    }
-
-    var isCustomIcon: Bool {
-        self == .murders
-    }
-
-    var index: Int {
-        CawnexTab.allCases.firstIndex(of: self) ?? 0
-    }
-}
-
 struct CawnexTabBar: View {
     @Binding var selectedTab: CawnexTab
     @Namespace private var pillNamespace
-
-    // Spring: snappy with slight overshoot for playful feel
-    private let tabSpring = Animation.spring(response: 0.35, dampingFraction: 0.7, blendDuration: 0)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -79,9 +48,7 @@ struct CawnexTabBar: View {
         let isSelected = selectedTab == tab
 
         return Button {
-            withAnimation(tabSpring) {
-                selectedTab = tab
-            }
+            selectedTab = tab
         } label: {
             VStack(spacing: 4) {
                 Group {
@@ -109,6 +76,7 @@ struct CawnexTabBar: View {
                             .matchedGeometryEffect(id: "pill", in: pillNamespace)
                     }
                 }
+                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: selectedTab)
             )
         }
         .buttonStyle(.plain)

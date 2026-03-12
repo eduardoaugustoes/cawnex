@@ -4,7 +4,10 @@ struct ContentView: View {
     @State private var router = AppRouter()
 
     var body: some View {
-        Group {
+        ZStack {
+            CawnexColors.background
+                .ignoresSafeArea()
+
             switch router.currentRoute {
             case .splash:
                 SplashScreen(onFinished: router.splashFinished)
@@ -17,7 +20,7 @@ struct ContentView: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: router.currentRoute)
+        .animation(router.currentRoute == .main ? nil : .easeInOut(duration: 0.3), value: router.currentRoute)
     }
 }
 

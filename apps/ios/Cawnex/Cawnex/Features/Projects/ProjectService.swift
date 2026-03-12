@@ -1,23 +1,27 @@
 import Foundation
 
 protocol ProjectService {
-    func listProjects() async -> [Project]
-    func getProject(_ id: String) async -> Project?
-    func createProject(name: String, description: String) async -> Project
+    func listProjects() async throws -> [Project]
+    func getProject(_ id: String) async throws -> Project?
+    func createProject(name: String, description: String) async throws -> Project
 }
 
-struct InMemoryProjectService: ProjectService {
+final class InMemoryProjectService: ProjectService {
     let store: AppStore
 
-    func listProjects() async -> [Project] {
+    init(store: AppStore) {
+        self.store = store
+    }
+
+    func listProjects() async throws -> [Project] {
         store.projects
     }
 
-    func getProject(_ id: String) async -> Project? {
+    func getProject(_ id: String) async throws -> Project? {
         store.projects.first { $0.id == id }
     }
 
-    func createProject(name: String, description: String) async -> Project {
+    func createProject(name: String, description: String) async throws -> Project {
         let project = Project(
             id: UUID().uuidString,
             name: name,

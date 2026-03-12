@@ -25,6 +25,7 @@ enum CawnexColors {
     static let warning = Color(hex: 0xF59E0B)
     static let destructive = Color(hex: 0xEF4444)
     static let info = Color(hex: 0x3B82F6)
+    static let accent = Color(hex: 0xF97316)
 
     // MARK: - Borders
 

@@ -5,6 +5,7 @@ struct PipelineBar: View {
     let active: Int
     let refined: Int
     let draft: Int
+    var baseColor: Color = CawnexColors.primary
 
     private var total: Int { done + active + refined + draft }
 
@@ -19,28 +20,28 @@ struct PipelineBar: View {
             HStack(spacing: 0) {
                 if done > 0 {
                     RoundedCornerSegment(corners: [.topLeft, .bottomLeft], radius: 3)
-                        .fill(CawnexColors.primary)
+                        .fill(baseColor)
                         .frame(width: doneWidth)
                 }
                 if active > 0 {
                     Rectangle()
-                        .fill(CawnexColors.primary.opacity(0.6))
+                        .fill(baseColor.opacity(0.6))
                         .frame(width: activeWidth)
                 }
                 if refined > 0 {
                     Rectangle()
-                        .fill(CawnexColors.primary.opacity(0.33))
+                        .fill(baseColor.opacity(0.33))
                         .frame(width: refinedWidth)
                 }
                 if draft > 0 {
                     RoundedCornerSegment(corners: [.topRight, .bottomRight], radius: 3)
-                        .fill(CawnexColors.primary.opacity(0.13))
+                        .fill(baseColor.opacity(0.13))
                         .frame(width: max(draftWidth, 0))
                 }
             }
         }
         .frame(height: 6)
-        .background(CawnexColors.primary.opacity(0.08))
+        .background(baseColor.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 3))
     }
 
@@ -67,7 +68,11 @@ private struct RoundedCornerSegment: Shape {
 #Preview {
     ZStack {
         CawnexColors.background.ignoresSafeArea()
-        PipelineBar(done: 5, active: 3, refined: 4, draft: 6)
-            .padding()
+        VStack(spacing: 16) {
+            PipelineBar(done: 5, active: 3, refined: 4, draft: 6)
+                .padding()
+            PipelineBar(done: 5, active: 3, refined: 4, draft: 6, baseColor: CawnexColors.success)
+                .padding()
+        }
     }
 }

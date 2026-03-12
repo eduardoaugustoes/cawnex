@@ -1,20 +1,30 @@
 import Foundation
 
 @Observable
-class BacklogViewModel {
+final class BacklogViewModel {
     private let backlogService: any BacklogService
-    var milestones: [Milestone] = []
+    var state: ViewState<[Milestone]> = .idle
     var expandedMilestones: Set<String> = []
+
+    var milestones: [Milestone] {
+        if case .loaded(let m) = state { return m }
+        return []
+    }
 
     init(backlogService: any BacklogService) {
         self.backlogService = backlogService
     }
 
     func load(projectId: String) async {
-        milestones = await backlogService.listMilestones(projectId: projectId)
-        // Auto-expand in-progress milestones
-        for milestone in milestones where milestone.status == .inProgress {
-            expandedMilestones.insert(milestone.id)
+        state = .loading
+        do {
+            let loaded = try await backlogService.listMilestones(projectId: projectId)
+            state = .loaded(loaded)
+            for milestone in loaded where milestone.status == .inProgress {
+                expandedMilestones.insert(milestone.id)
+            }
+        } catch {
+            state = .error(error.localizedDescription)
         }
     }
 
