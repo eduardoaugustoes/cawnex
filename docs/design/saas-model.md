@@ -4,34 +4,36 @@
 
 ## Product Definition
 
-**Cawnex** is an agent orchestration platform that turns GitHub issues into shipped, tested, documented code — using the user's own LLM.
+**Cawnex** is an agent orchestration platform that turns GitHub issues into shipped, tested, documented code.
 
-**We sell**: Orchestration (routing, coordination, guards, retry, sync merge)
-**User provides**: LLM (API key or subscription), Git repos, Issues
+**We sell**: Orchestration + execution platform. Users purchase prepaid credits that cover AI, repository, workflow, and infrastructure costs.
+**User provides**: Git repos, project vision
 
 ---
 
 ## Pricing
 
-### Tiers
+### Prepaid Credits Model
 
-| Tier | Price | Target | Includes |
-|------|-------|--------|----------|
-| **Free** | $0/mo | Indie devs, evaluation | 20 executions/mo, 1 repo, 2 agents (Dev + QA), community support |
-| **Pro** | $29/mo | Solo devs, small teams | Unlimited executions, 10 repos, 4 agents, priority queue, email support |
-| **Team** | $99/mo | Startups, dev teams | Unlimited repos, 7 agents, multi-repo coordination, sync merge, 5 seats, Slack/Discord notifications |
-| **Enterprise** | Custom | Companies | SSO, audit logs, SLA, dedicated support, custom agents, on-prem option |
+Cawnex uses a **prepaid credits model** instead of subscription tiers. Users purchase credits and spend them as projects execute.
 
-### Why These Prices
-- **$29 Pro**: Lower than Lovable ($50), Cursor ($20 + limits). Competitive entry point.
-- **$99 Team**: The multi-repo coordination is the killer feature. No one else offers this.
-- **Free tier**: Essential for adoption. 20 executions = enough to get hooked.
+**What the credit covers (bundled, not itemized to user):**
+- AI model usage (tokens, runtime)
+- Repository infrastructure (storage, CI/CD)
+- Workflow orchestration (Murder coordination, blackboard)
+- Compute infrastructure (Lambda, Fargate)
 
-### Add-ons (Future)
-- Additional seats: $15/seat/mo
-- Priority compute: $20/mo (faster execution queue)
-- Custom agent templates: $10/agent/mo
-- White-label: Enterprise only
+**What the user sees:**
+- Credits purchased and remaining balance
+- Credits spent per project
+- Human equivalent saved (from benchmark database)
+- ROI multiplier (spent vs saved)
+
+This model:
+- Eliminates tier anxiety ("Am I on the right plan?")
+- Aligns cost with actual usage
+- Makes ROI immediately visible
+- Scales naturally with project complexity
 
 ---
 
@@ -41,10 +43,11 @@
 
 | Metric | Value |
 |--------|-------|
-| LLM cost per execution | $0 (BYOL) |
-| Compute cost per execution | ~$0.02-0.05 (sandboxed container) |
-| Infrastructure per org | ~$2-5/mo (DB rows, Redis, storage) |
-| **Gross margin** | **~95%** |
+| AI cost per task | ~$0.10-2.00 (varies by model and complexity) |
+| Infrastructure cost per task | ~$0.02-0.05 |
+| Platform price per task | Credit-based (includes margin) |
+| Human equivalent per task | ~$175-600 (from benchmark DB at $50/hr mid-level) |
+| **Effective ROI for user** | **~50-100x** |
 
 ### Growth Projections (Conservative)
 
@@ -101,15 +104,16 @@
 - We're NOT a code completion tool (Copilot, Cursor)
 - We're NOT a single-agent builder (Lovable, Bolt)
 - We're NOT an IDE (Cursor, Windsurf)
+- We're NOT a BYOL platform — we handle AI costs internally for a simpler user experience
 
 ### What We ARE
 - **The orchestration layer** between your issues and your shipped code
 - Multi-agent, multi-repo, synchronized deployment
-- BYOL — no token limits, no artificial constraints
+- Credits-based — no token limits, no artificial constraints
 
 ### Taglines
-- "Your issues. Your AI. Our orchestration."
-- "Bring your own brain. We handle the rest."
+- "Your issues. Our platform. Shipped code."
+- "From vision to production. Autonomously."
 - "From issue to production. Autonomously."
 
 ### vs. Competitors
@@ -121,9 +125,9 @@
 | Issue → PR | ❌ | ❌ | ❌ | ✅ | ✅ |
 | QA review | ❌ | ❌ | ❌ | ❌ | ✅ Automated |
 | Auto docs | ❌ | ❌ | ❌ | ❌ | ✅ |
-| BYOL | Partial | ✅ | ❌ | ❌ | ✅ |
+| BYOL | Partial | ✅ | ❌ | ❌ | ❌ (bundled) |
 | Free tier | ❌ | Limited | Limited | ❌ | ✅ 20 exec |
-| Price | $10-19 | $20-40 | $20-50 | $500 | **$0-99** |
+| Price | $10-19 | $20-40 | $20-50 | $500 | **Prepaid credits** |
 
 ---
 
@@ -135,6 +139,8 @@
 - User retention (D7, D30)
 - Free → Pro conversion rate (target: 8-12%)
 - Pro → Team upgrade rate (target: 15-20%)
+- Average ROI multiplier per project (target: >50x)
+- Human equivalent hours saved per month
 
 ### Business
 - MRR / ARR

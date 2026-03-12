@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct CawnexApp: App {
+    @State private var store = AppStore()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(store)
+                .onAppear { store.seedData() }
         }
     }
 }

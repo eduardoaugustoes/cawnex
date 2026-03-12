@@ -1,21 +1,23 @@
-//
-//  ContentView.swift
-//  Cawnex
-//
-//  Created by Eduardo Augusto Benigno da Silva on 11/03/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @State private var router = AppRouter()
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            switch router.currentRoute {
+            case .splash:
+                SplashScreen(onFinished: router.splashFinished)
+                    .transition(.opacity)
+            case .signIn:
+                SignInScreen(onSignIn: router.signedIn)
+                    .transition(.opacity)
+            case .main:
+                MainTabView()
+                    .transition(.opacity)
+            }
         }
-        .padding()
+        .animation(.easeInOut(duration: 0.3), value: router.currentRoute)
     }
 }
 

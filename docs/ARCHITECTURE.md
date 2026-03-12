@@ -36,8 +36,8 @@
 ┌──────────────────────────────────────────────────────────┐
 │          CloudFront → API Gateway v2 (HTTP API)           │
 │                                                            │
-│  /projects  /milestones  /tasks  /executions  /vision      │
-│  /agents    /workflows   /repos  /auth       /pens         │
+│  /projects  /milestones  /goals  /mvis  /tasks  /executions │
+│  /vision  /agents  /murders  /workflows  /repos  /auth  /pens │
 └──────────────────────────┬─────────────────────────────────┘
                            │
                            ▼
@@ -97,23 +97,35 @@ The **blackboard** is a shared DynamoDB state that all agents (Murder + Crows) r
 
 ### Murder — The Judge
 
+A **Murder** is a specialized orchestrator tuned for a domain. Different Murder types have different crow compositions and different judgment patterns:
+
+| Murder Type | Crow Set |
+|-------------|----------|
+| **Dev** | Planner, Implementer, Reviewer, Fixer, Documenter |
+| **Editorial** | Researcher, Outliner, Writer, Editor, Proofreader |
+| **Social** | Content Creator, Visual Designer, Scheduler, Analyst |
+| **Infra** | IaC Writer, Security Auditor, Cost Optimizer, Deployer |
+
 Murder is **never a worker**. It never writes code, creates plans, or produces artifacts. It only:
 
 - **Reads** the blackboard (execution state, crow reports, context)
-- **Decides** what needs to happen next:
-  - "This issue needs a plan" → assigns **Planner Crow**
-  - "Plan looks good, time to implement" → assigns **Implementer Crow**
-  - "Code is done, needs review" → assigns **Reviewer Crow**
-  - "Needs documentation" → assigns **Documentation Crow**
-  - "This output is bad" → **rejects** with specific feedback, reassigns the same or different crow
-  - "Everything looks good" → **approves**, triggers PR merge
-- **Writes** decisions (go / no-go / rerun with instructions) to the blackboard
+- **Decides** dynamically which crow(s) to activate next — there is no fixed pipeline. Murder can run multiple crows simultaneously (e.g., Implementer + Documenter in parallel).
+- **Writes** decisions (go / no-go / rerun with instructions / MVI_READY) to the blackboard
+
+Murder operates at two scopes:
+
+- **Within an MVI (crow coordination)**: coordinates the crow cycle for each individual PR, deploying whichever crows its judgment determines are needed. Murder reads the MVI Blackboard, assigns CrowTasks, evaluates CrowReports, and decides go/no-go/rerun.
+- **At the Goal level (MVI coordination)**: when an MVI completes, Murder checks the Goal-level blackboard to determine whether completed MVIs affect in-progress MVIs. It arbitrates cross-MVI dependencies — if context from MVI 1.1 needs to be injected into MVI 1.2, Murder handles that injection at this level before activating MVI 1.2's crow cycle.
+
+Murder never unilaterally merges an MVI. It only declares readiness and waits for human approval.
 
 Murder is a lightweight Lambda — mostly reads state, calls an LLM for judgment, writes a decision. Fast and cheap.
 
 ### Crows — The Workers
 
-Each crow is a **specialist** that receives a task and produces a result:
+Each crow is a **specialist** that receives a task and produces a result. The crow set below is the **Dev Murder** configuration — other Murder types have different crow compositions.
+
+#### Dev Murder — Crow Set
 
 | Crow | Role | Input | Output |
 |------|------|-------|--------|
@@ -125,48 +137,74 @@ Each crow is a **specialist** that receives a task and produces a result:
 
 Crows don't know about each other. They read their task from the blackboard, execute, and write results back. Murder coordinates everything.
 
+#### Crow Behavior States
+
+Crows don't follow fixed pipeline steps. Each crow operates in a behavioral state that is tracked on the blackboard:
+
+| State | Description |
+|-------|-------------|
+| **scouting** | Exploring context, reading codebase, gathering information |
+| **planning** | Breaking down the approach, structuring work |
+| **building** | Writing code, content, or other artifacts |
+| **hunting** | Looking for bugs, running tests, validating output |
+| **reviewing** | Checking work quality against acceptance criteria |
+| **documenting** | Writing or updating documentation |
+| **landed** | Work complete, waiting for Murder's next decision |
+
 ### Execution Lifecycle
 
+Murder does not follow a fixed pipeline. It reads the blackboard and decides dynamically at every step.
+
 ```
-GitHub Issue
+Trigger (GitHub Issue / API call)
     │
     ▼
 ┌─────────────────────────────────────────────┐
 │ Execution created (status: pending)          │
 │ DynamoDB Stream fires → Murder Lambda        │
 └──────────────────────┬──────────────────────┘
+                       │
+    ┌──────────────────▼──────────────────────┐
+    │              Murder reads blackboard      │
+    │              → decides which crow(s)      │
+    │                to activate                │
+    │              → can activate multiple      │
+    │                crows in parallel          │
+    └──────────────────┬──────────────────────┘
+                       │ writes CrowTask(s) to blackboard
                        ▼
-              Murder: "Needs a plan"
-              → writes CrowTask (planner)
+    ┌──────────────────────────────────────────┐
+    │  Crow Lambda(s) fire (Stream event)       │
+    │  Each crow:                               │
+    │    → reads its task                       │
+    │    → executes (LLM + tools)               │
+    │    → transitions through behavior states  │
+    │      (scouting → building → landed, etc.) │
+    │    → writes CrowReport to blackboard      │
+    └──────────────────┬───────────────────────┘
+                       │ Stream event → Murder Lambda
+                       ▼
+    ┌──────────────────────────────────────────┐
+    │  Murder reads reports                     │
+    │  → GO: activate next crow(s)              │
+    │  → NO-GO: rerun same crow with feedback   │
+    │  → DONE: write final approval             │
+    └──────────────────┬───────────────────────┘
                        │
-                       ▼ (Stream fires → Crow Lambda)
-              Planner Crow executes
-              → writes CrowReport (plan)
-                       │
-                       ▼ (Stream fires → Murder Lambda)
-              Murder: reads plan
-              → GO: "Plan approved, implement it"
-              → writes CrowTask (implementer)
-                  ── or ──
-              → NO-GO: "Plan is weak, redo with notes"
-              → writes CrowTask (planner, with feedback)
-                       │
-                       ▼ (Stream fires → Crow Lambda)
-              Implementer Crow executes
-              → writes CrowReport (code changes)
-                       │
-                       ▼ (Stream fires → Murder Lambda)
-              Murder: "Code done, needs review"
-              → writes CrowTask (reviewer)
-                       │
-                       ▼ ...
-              Review → Murder approves or sends to Fixer
+              repeat until done
                        │
                        ▼
               Murder: "All good"
               → writes final approval
-              → triggers PR merge
+              → triggers PR merge (Task level)
               → Execution status: completed
+                       │
+                       ▼ (when all Tasks in MVI are completed)
+              Murder: checks MVI merge_readiness
+              → all PRs approved?
+              → YES: writes MVI_READY to blackboard
+              → Founder approves merge set
+              → MVI status: completed
 ```
 
 ### CrowTask — What Murder Assigns
@@ -176,6 +214,7 @@ GitHub Issue
   "execution_id": "exec_abc123",
   "step": 2,
   "crow": "implementer",
+  "behavior": "building",
   "action": "implement",
   "task_description": "Implement the auth flow as described in the plan",
   "acceptance_criteria": [
@@ -209,6 +248,7 @@ GitHub Issue
   "execution_id": "exec_abc123",
   "step": 2,
   "crow": "implementer",
+  "behavior": "landed",
   "outcome": "completed",
   "summary": "Implemented Apple Sign In with Cognito integration",
   "criteria_results": [
@@ -240,6 +280,56 @@ GitHub Issue
 | **Debugging** | Read the blackboard to see exactly what happened | Need to reconstruct from logs |
 | **Cost** | DynamoDB Streams: free with the table | SQS: cheap but another service to manage |
 | **Simplicity** | One data store for everything | Two systems (queue + state store) |
+| **Scoping** | Natural isolation via partition keys — each MVI's data lives in its own key space | Requires explicit topic/queue-per-scope routing configuration |
+
+---
+
+## Blackboard Scoping
+
+The blackboard is not a single flat namespace. It is scoped at four levels, forming a hierarchy that mirrors the data hierarchy:
+
+```
+Project Blackboard     (read-only aggregation — what the iOS dashboard shows)
+  └── Milestone Blackboard  (progress tracking — % complete across goals)
+       └── Goal Blackboard  (coordination checkpoint — cross-MVI dependencies)
+            └── MVI Blackboard  (ACTIVE WORKSPACE — where crows read/write)
+                 └── Task records  (individual crow assignments + reports)
+```
+
+### MVI Blackboard — Active Workspace
+
+This is where Murder and crows coordinate during execution. All crow activity is scoped to a single MVI's blackboard. Crows only ever read and write their own MVI's data — they never see another MVI's records.
+
+The MVI Blackboard contains:
+
+| Record type | Description |
+|-------------|-------------|
+| **CrowTasks** | Murder's assignments to individual crows |
+| **CrowReports** | What each crow produced (artifacts, verdicts, context) |
+| **Murder Decisions** | Go / no-go / rerun with feedback |
+| **Events** | Fine-grained stream: tool calls, LLM output, errors |
+| **Merge readiness** | Computed from Task and PR states — all PRs approved? |
+
+### Goal Blackboard — Coordination Checkpoint
+
+When an MVI completes, Murder evaluates the Goal-level blackboard before activating the next MVI:
+
+- Do the completed MVIs affect any in-progress or pending MVIs?
+- Are there cross-MVI dependencies that need resolving?
+- Does context from MVI 1.1 (e.g., a new API contract) need to be injected into MVI 1.2's CrowTask?
+
+Murder arbitrates at this level when MVIs within the same Goal produce conflicting outcomes or shared context that downstream MVIs must consume.
+
+### Milestone and Project Blackboards — Read-Only Aggregations
+
+No crow writes directly to these levels. They are computed roll-ups that aggregate MVI blackboard states:
+
+| Level | What it aggregates |
+|-------|-------------------|
+| **Milestone** | Progress % across Goals and MVIs, cost totals, active crow counts |
+| **Project** | Milestone completion, overall merge readiness, total execution costs |
+
+The iOS app's Project Home screen reads the project-level aggregation to display progress, active crows, and pending approvals.
 
 ---
 
@@ -257,6 +347,33 @@ Every piece of data is scoped to a tenant:
 
 ---
 
+## Data Hierarchy
+
+```
+Project
+  └── Milestone  (3-6 month business achievement — changes competitive position)
+       └── Goal   (2-6 week decomposition of the milestone)
+            └── MVI  (2-5 day minimum deliverable — THIS is the merge set)
+                 └── Task  (≤8h human equiv atomic unit → PR, auto-split if larger)
+```
+
+The **MVI is the merge set**. All PRs from Tasks within an MVI are merged together as a coherent increment. An MVI delivers visible value on its own.
+
+### Concrete Example
+
+```
+Project: Cawnex iOS App
+
+└── Milestone: Auth + Onboarding
+     └── Goal: Functional Apple Sign In
+          └── MVI: Complete login flow with session persistence
+               ├── Task: Implement ASAuthorizationController
+               ├── Task: Integrate Cognito with Apple token
+               └── Task: Persist refresh token in Keychain
+```
+
+---
+
 ## DynamoDB — Single Table Design
 
 ### Table: `cawnex-{stage}`
@@ -265,20 +382,37 @@ Every piece of data is scoped to a tenant:
 |----|-----|--------|-------------|
 | `T#<tid>` | `PROJECT#<pid>` | Project | Vision, name, status |
 | `T#<tid>` | `PROJECT#<pid>#MILESTONE#<mid>` | Milestone | Description, order, progress |
-| `T#<tid>` | `PROJECT#<pid>#TASK#<taskid>` | Task | Status, description, milestone ref |
+| `T#<tid>` | `PROJECT#<pid>#MILESTONE#<mid>#GOAL#<gid>` | Goal | Description, milestone ref, target impact |
+| `T#<tid>` | `PROJECT#<pid>#MILESTONE#<mid>#GOAL#<gid>#MVI#<mvid>` | MVI | Value, increment, verification, merge readiness |
+| `T#<tid>` | `PROJECT#<pid>#MILESTONE#<mid>#GOAL#<gid>#MVI#<mvid>#TASK#<taskid>` | Task | Status, description, PR ref, `human_hours_estimate` (from benchmark DB) |
 | `T#<tid>` | `PROJECT#<pid>#REPO#<rid>` | Repository | GitHub URL, default branch |
-| `T#<tid>` | `PROJECT#<pid>#WORKFLOW#<wid>` | Workflow | Pipeline steps |
+| `T#<tid>` | `PROJECT#<pid>#WORKFLOW#<wid>` | Workflow | Murder configuration (type, crow set, judgment preferences) |
 | `T#<tid>` | `PROJECT#<pid>#VISION_MSG#<ts>` | Vision Message | Chat history with Vision AI |
-| `T#<tid>` | `AGENT#<aid>` | Agent Definition | Crow config (prompt, model, tools) |
+| `T#<tid>` | `MURDER#<mid>` | Murder | Name, type, crow configuration, status |
+| `T#<tid>` | `AGENT#<aid>` | Agent Definition | Crow config (prompt, model, tools, parent murder ref) |
 | `T#<tid>` | `LLMCONFIG` | LLM Config | Encrypted API keys, model preferences |
 | `T#<tid>` | `PROFILE` | Tenant Profile | Name, plan, billing |
 | `T#<tid>` | `PEN#<penid>` | Pen File Metadata | S3 key, name, project ref |
 
+#### MVI — Record Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `value` | string | Expected business value statement |
+| `increment` | string | What will be implemented in this MVI |
+| `verification` | string[] | Verifiable success criteria |
+| `status` | enum | `draft` \| `active` \| `completed` |
+| `merge_readiness` | computed | Are all Task PRs ready to merge? |
+| `requirement_type` | enum | `functional` \| `operational` \| `efficiency` |
+| `value_score` | number | Fibonacci — relative business impact |
+
 #### Blackboard Records (Execution State)
+
+Each Execution belongs to an MVI. The partition key `T#<tid>#EXEC#<eid>` carries implicit MVI context via the `META` record, which stores the `mvi_id` field. To query all blackboard records for a specific MVI, filter executions by `mvi_id` using GSI1 (`T#<tid>#MVI#<mvid>#EXEC`). Crows receive their `execution_id` from Murder and only ever access the partition belonging to their assigned execution — they never query across MVI boundaries.
 
 | PK | SK | Entity | Description |
 |----|-----|--------|-------------|
-| `T#<tid>#EXEC#<eid>` | `META` | Execution | Status, issue ref, timestamps, final verdict |
+| `T#<tid>#EXEC#<eid>` | `META` | Execution | Status, `mvi_id`, issue ref, timestamps, final verdict |
 | `T#<tid>#EXEC#<eid>` | `PLAN` | Plan | Planner's structured plan, Murder's approval/rejection |
 | `T#<tid>#EXEC#<eid>` | `STEP#<seq>#TASK` | CrowTask | What Murder assigned to the crow |
 | `T#<tid>#EXEC#<eid>` | `STEP#<seq>#REPORT` | CrowReport | What the crow produced |
@@ -291,6 +425,9 @@ Every piece of data is scoped to a tenant:
 | `T#<tid>#STATUS#pending_approval` | `<created_at>` | Approval queue |
 | `T#<tid>#STATUS#running` | `<started_at>` | Active executions |
 | `T#<tid>#STATUS#completed` | `<completed_at>` | Recent completed |
+| `T#<tid>#MVI_STATUS#active` | `<created_at>` | Active MVIs in tenant |
+| `T#<tid>#MVI_STATUS#completed` | `<completed_at>` | MVIs ready for merge review |
+| `T#<tid>#PROJECT#<pid>#MVI_STATUS#active` | `<created_at>` | Active MVIs by project |
 
 ### GSI2 — Admin / cross-tenant
 | GSI2PK | GSI2SK | Use case |
@@ -466,7 +603,7 @@ response = await client.messages.create(
 
 ### Increment 3 — Observability
 - Status endpoint (environment, services, queue depth)
-- Project + Milestone + Task CRUD
+- Project + Milestone + Goal + MVI + Task CRUD (full hierarchy)
 - Dashboard data endpoints
 
 ### Increment 4 — Vision AI
@@ -480,9 +617,9 @@ response = await client.messages.create(
 - Planner Crow (first crow)
 - Blackboard records (CrowTask / CrowReport / Decision)
 
-### Increment 6 — Full Crow Pipeline
+### Increment 6 — Full Dev Murder
 - Implementer, Reviewer, Documenter, Fixer crows
-- End-to-end: issue → plan → implement → review → docs → PR
+- End-to-end execution: Murder reads blackboard, dispatches crows dynamically
 - Cost tracking per execution
 
 ### Increment 7 — Production
@@ -521,3 +658,46 @@ At low scale (dogfooding):
 | **Total** | **~$5-15/mo** |
 
 Scales linearly with usage. No idle costs.
+
+---
+
+## Task Estimation & ROI Model
+
+### Task Estimation Rule
+
+Every task must be estimable at **≤ 8 hours of human equivalent work**. If an agent generates a task estimated at > 8 hours, it **must auto-split** into smaller tasks until each is within the limit.
+
+Human time estimates come from a **benchmark database** — not AI guessing. The database maps task types, complexity, and tech stack to historical human effort data. This ensures consistent, trustworthy estimates across all projects.
+
+### Cost Model — What Users See vs Internal
+
+| Layer | Visible to User | Internal to Cawnex |
+|-------|----------------|-------------------|
+| **Platform cost** | Credits spent | AI + repository + workflow + infrastructure costs + margin |
+| **Human equivalent** | "~$14k saved" | Calculated from benchmark DB: `Σ(task_hours × dev_rate)` |
+| **ROI multiplier** | "78x" | `human_equivalent / platform_cost` |
+| **Dev rate** | Configurable ($35-$75/hr) | Used for human equiv calculation only |
+
+### ROI Display Tiers
+
+Cost is **never shown alone**. Every cost display includes the human equivalent for context.
+
+| Level | What's shown |
+|-------|-------------|
+| **Dashboard** | Spent vs Saved stacked bar per project |
+| **Project Hub** | ROI stat + "AI spend · human saved" footer |
+| **Goal Detail** | Per-MVI: ROI multiplier, AI cost vs human equiv |
+| **MVI Task Review** | Per-task: human hours, human cost, ROI multiplier |
+| **Credits & Billing** | ROI summary card, total multiplier, total human equiv, execution time comparison |
+
+### Pricing Flows Bottom-Up
+
+```
+Task (≤8h human equiv from benchmark DB)
+  → MVI (sum of task estimates)
+    → Goal (sum of MVI estimates)
+      → Milestone (sum of goal estimates)
+        → Project (sum of milestone estimates)
+```
+
+Platform cost is tracked from actual usage. Human equivalent is calculated from the benchmark database. The ratio between them is the ROI multiplier.

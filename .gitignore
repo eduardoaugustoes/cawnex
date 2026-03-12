@@ -27,20 +27,36 @@ node_modules/
 apps/dashboard/dist/
 apps/web/dist/
 
-# iOS / Xcode
-apps/ios/build/
-apps/ios/DerivedData/
-*.xcuserdata
+# iOS / Xcode — Build artifacts
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM/
+*.xcarchive
+*.hmap
+*.moved-aside
+
+# iOS / Xcode — User-specific (never share)
+xcuserdata/
 *.xcuserstate
 *.xccheckout
 *.xcscmblueprint
-*.moved-aside
-*.hmap
-*.ipa
-*.dSYM.zip
-*.dSYM
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# iOS / Swift Package Manager
+.swiftpm/xcode/
+*.xcworkspace/xcshareddata/swiftpm/
+
+# iOS / CocoaPods
 Pods/
-*.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+# iOS / Fastlane
+fastlane/report.html
+fastlane/test_output/
 
 # Android
 apps/android/.gradle/
