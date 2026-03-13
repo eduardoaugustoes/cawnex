@@ -5,6 +5,10 @@ struct MainTabView: View {
     @State private var selectedTab: CawnexTab = .projects
     @State private var tabRouter = TabRouter()
     @State private var isCreatingProject: Bool = false
+    @State private var isCreatingMurder: Bool = false
+    @State private var isCreatingSkill: Bool = false
+    @State private var isShowingNotifications: Bool = false
+    @State private var isShowingCredits: Bool = false
 
     private var services: ServiceFactory {
         ServiceFactory(store: store)
@@ -53,7 +57,7 @@ struct MainTabView: View {
                 viewModel: DashboardViewModel(
                     projectService: services.makeProjectService()
                 ),
-                onBellTap: {},
+                onBellTap: { isShowingNotifications = true },
                 onAddTap: { isCreatingProject = true },
                 onProjectTap: { project in
                     tabRouter.pushProject(project.id)
@@ -75,6 +79,16 @@ struct MainTabView: View {
                 }
             )
         }
+        .sheet(isPresented: $isShowingNotifications) {
+            NavigationStack {
+                NotificationsScreen(
+                    viewModel: NotificationViewModel(
+                        notificationService: services.makeNotificationService()
+                    ),
+                    onBack: { isShowingNotifications = false }
+                )
+            }
+        }
     }
 
     // MARK: - Other Tabs (placeholder stacks)
@@ -85,7 +99,15 @@ struct MainTabView: View {
             MurdersScreen(
                 viewModel: MurdersViewModel(
                     murdersService: services.makeMurdersService()
-                )
+                ),
+                onNewMurder: { isCreatingMurder = true }
+            )
+        }
+        .sheet(isPresented: $isCreatingMurder) {
+            CreateMurderScreen(
+                viewModel: CreateMurderViewModel(),
+                onCancel: { isCreatingMurder = false },
+                onSave: { _ in isCreatingMurder = false }
             )
         }
     }
@@ -96,7 +118,15 @@ struct MainTabView: View {
             SkillsScreen(
                 viewModel: SkillsViewModel(
                     skillsService: services.makeSkillsService()
-                )
+                ),
+                onNewSkill: { isCreatingSkill = true }
+            )
+        }
+        .sheet(isPresented: $isCreatingSkill) {
+            CreateSkillScreen(
+                viewModel: CreateSkillViewModel(),
+                onCancel: { isCreatingSkill = false },
+                onSave: { _ in isCreatingSkill = false }
             )
         }
     }
@@ -104,7 +134,17 @@ struct MainTabView: View {
     private var settingsTab: some View {
         @Bindable var router = tabRouter
         return NavigationStack(path: $router.settingsPath) {
-            SettingsScreen()
+            SettingsScreen(
+                onCreditsTap: { isShowingCredits = true }
+            )
+            .navigationDestination(isPresented: $isShowingCredits) {
+                CreditsScreen(
+                    viewModel: CreditsViewModel(
+                        creditsService: services.makeCreditsService()
+                    ),
+                    onBack: { isShowingCredits = false }
+                )
+            }
         }
     }
 
@@ -134,8 +174,16 @@ struct MainTabView: View {
                 onBack: { tabRouter.projectPath.removeLast() },
                 onGoalTap: { goalId in tabRouter.pushGoal(projectId, goalId: goalId) }
             )
-        case .milestone(_, let milestoneId):
-            routePlaceholder("Milestone", id: milestoneId)
+        case .milestone(let projectId, let milestoneId):
+            MilestoneDetailScreen(
+                projectId: projectId,
+                milestoneId: milestoneId,
+                viewModel: MilestoneDetailViewModel(
+                    milestoneService: services.makeMilestoneService()
+                ),
+                onBack: { tabRouter.projectPath.removeLast() },
+                onGoalTap: { goalId in tabRouter.pushGoal(projectId, goalId: goalId) }
+            )
         case .goal(let projectId, let goalId):
             GoalDetailScreen(
                 projectId: projectId,
@@ -191,28 +239,6 @@ struct MainTabView: View {
         )
     }
 
-    private func routePlaceholder(_ title: String, id: String) -> some View {
-        VStack {
-            CawnexNavBar(title: title, onBack: {
-                tabRouter.projectPath.removeLast()
-            })
-            .padding(.horizontal, CawnexSpacing.xl)
-            .padding(.top, CawnexSpacing.sm)
-
-            Spacer()
-            VStack(spacing: CawnexSpacing.md) {
-                Text(title)
-                    .font(CawnexTypography.heading2)
-                    .foregroundStyle(CawnexColors.cardForeground)
-                Text(id)
-                    .font(CawnexTypography.mono)
-                    .foregroundStyle(CawnexColors.mutedForeground)
-            }
-            Spacer()
-        }
-        .background(CawnexColors.background)
-        .navigationBarHidden(true)
-    }
 }
 
 #Preview {

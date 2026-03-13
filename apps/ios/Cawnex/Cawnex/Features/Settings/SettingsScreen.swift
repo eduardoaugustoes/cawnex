@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsScreen: View {
     @Environment(AppStore.self) private var store
+    var onCreditsTap: () -> Void = {}
 
     var body: some View {
         ScrollView {
@@ -88,7 +89,10 @@ struct SettingsScreen: View {
                 divider
                 settingsRow(icon: "bell.fill", label: "Notifications")
                 divider
-                creditsRow
+                Button(action: onCreditsTap) {
+                    creditsRow
+                }
+                .buttonStyle(.plain)
                 divider
                 settingsRow(icon: "arrow.triangle.branch", label: "Webhooks")
                 divider
