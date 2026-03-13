@@ -96,21 +96,19 @@ jobs:
             --function-name cawnex-poc6-worker-dev \
             --region ${{ env.AWS_REGION }}
 
-      # Step 3: Inject secrets
+      # Step 3: Inject secrets (token injected separately via VPS)
       - name: Inject secrets
         run: |
-          # Try OAuth refresh for $0 subscription token; fall back to API key
-          ACCESS_TOKEN=$(curl -sf -X POST https://console.anthropic.com/v1/oauth/token \
-            -H "Content-Type: application/json" \
-            -d "{\"grant_type\":\"refresh_token\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"refresh_token\":\"${{ secrets.ANTHROPIC_REFRESH_TOKEN }}\"}" \
-            2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])" 2>/dev/null || true)
+          # Preserve existing ANTHROPIC_AUTH_TOKEN if set (injected by VPS token refresher)
+          EXISTING_TOKEN=$(aws lambda get-function-configuration \
+            --function-name cawnex-poc6-worker-dev \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Environment.Variables.ANTHROPIC_AUTH_TOKEN' \
+            --output text 2>/dev/null || echo "")
 
-          if [ -n "$ACCESS_TOKEN" ]; then
-            echo "OAuth token refreshed (${#ACCESS_TOKEN} chars, \$0 cost)"
-            AUTH_VAR="ANTHROPIC_AUTH_TOKEN=${ACCESS_TOKEN}"
-          else
-            echo "::warning::OAuth refresh failed, using API key fallback"
-            AUTH_VAR="ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}"
+          if [ "$EXISTING_TOKEN" = "None" ] || [ -z "$EXISTING_TOKEN" ]; then
+            echo "::warning::No ANTHROPIC_AUTH_TOKEN found. Inject via VPS token refresher."
+            EXISTING_TOKEN="PLACEHOLDER_INJECT_VIA_VPS"
           fi
 
           aws lambda update-function-configuration \
@@ -118,7 +116,7 @@ jobs:
             --environment "Variables={
               BLACKBOARD_TABLE=cawnex-poc5-blackboard-dev,
               ANTHROPIC_MODEL=claude-sonnet-4-20250514,
-              ${AUTH_VAR},
+              ANTHROPIC_AUTH_TOKEN=${EXISTING_TOKEN},
               GITHUB_TOKEN=${{ secrets.GH_PAT }},
               EFS_MOUNT=/mnt/repos,
               STAGE=dev

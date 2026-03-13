@@ -53,21 +53,16 @@ def log_event(execution_id: str, event: str, **kwargs):
 # ─────────────────────────────────────────────
 
 def _get_claude_client() -> anthropic.Anthropic:
-    """Get Anthropic client with OAuth or API key."""
+    """Get Anthropic client with OAuth token."""
     token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
     if not token:
-        token = os.environ.get("ANTHROPIC_API_KEY", "")
+        raise RuntimeError("No auth: set ANTHROPIC_AUTH_TOKEN")
 
-    if not token:
-        raise RuntimeError("No auth: set ANTHROPIC_AUTH_TOKEN or ANTHROPIC_API_KEY")
-
-    if token.startswith("sk-ant-oat"):
-        return anthropic.Anthropic(
-            api_key=None,
-            auth_token=token,
-            default_headers={"anthropic-beta": "oauth-2025-04-20"},
-        )
-    return anthropic.Anthropic(api_key=token)
+    return anthropic.Anthropic(
+        api_key=None,
+        auth_token=token,
+        default_headers={"anthropic-beta": "oauth-2025-04-20"},
+    )
 
 
 # ─────────────────────────────────────────────

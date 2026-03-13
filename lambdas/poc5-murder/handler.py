@@ -5,15 +5,13 @@ Murder is triggered by DynamoDB Streams when a REPORT is written.
 It reads the blackboard, judges via Claude, writes the next TASK or final RESULT.
 Each invocation is <5s. Never blocks. Never calls crows directly.
 
-Authentication: Uses Claude OAuth (subscription, $0 cost).
-Stores ANTHROPIC_REFRESH_TOKEN as env var, refreshes access token on each cold start.
+Authentication: Uses Claude OAuth token (ANTHROPIC_AUTH_TOKEN env var, injected by VPS refresher).
 """
 
 import json
 import logging
 import os
 import time
-import urllib.request
 
 import anthropic
 import boto3
@@ -26,71 +24,21 @@ ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
 TABLE_NAME = os.environ.get("BLACKBOARD_TABLE", "")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
-# OAuth config
-OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
-OAUTH_TOKEN_URL = "https://console.anthropic.com/v1/oauth/token"
-ANTHROPIC_REFRESH_TOKEN = os.environ.get("ANTHROPIC_REFRESH_TOKEN", "")
 ANTHROPIC_AUTH_TOKEN = os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")  # fallback
 
 dynamodb = boto3.resource("dynamodb")
 
-# Token cache (survives across warm invocations)
-_cached_access_token = None
-_cached_token_expires = 0
-
-
-def _get_access_token() -> str:
-    """Get a valid access token, refreshing if needed. Falls back to API key."""
-    global _cached_access_token, _cached_token_expires
-
-    # If we have a valid cached token, use it
-    if _cached_access_token and time.time() < _cached_token_expires - 300:
-        return _cached_access_token
-
-    # If we have a refresh token, use OAuth
-    if ANTHROPIC_REFRESH_TOKEN:
-        try:
-            body = json.dumps({
-                "grant_type": "refresh_token",
-                "client_id": OAUTH_CLIENT_ID,
-                "refresh_token": ANTHROPIC_REFRESH_TOKEN,
-            }).encode()
-            req = urllib.request.Request(
-                OAUTH_TOKEN_URL, data=body, method="POST",
-                headers={"Content-Type": "application/json"},
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read().decode())
-            _cached_access_token = data["access_token"]
-            _cached_token_expires = time.time() + data.get("expires_in", 28800)
-            logger.info("OAuth token refreshed, expires in %ds", data.get("expires_in", 0))
-            return _cached_access_token
-        except Exception as e:
-            logger.error("OAuth refresh failed: %s", e)
-
-    # Use OAuth auth token
-    if ANTHROPIC_AUTH_TOKEN:
-        return ANTHROPIC_AUTH_TOKEN
-
-    # Fallback to API key
-    if ANTHROPIC_API_KEY:
-        return ANTHROPIC_API_KEY
-
-    raise RuntimeError("No authentication available: set ANTHROPIC_AUTH_TOKEN, ANTHROPIC_REFRESH_TOKEN, or ANTHROPIC_API_KEY")
-
 
 def _get_claude_client() -> anthropic.Anthropic:
-    """Get an Anthropic client with a valid token."""
-    token = _get_access_token()
-    # OAuth tokens (sk-ant-oat01-*) need Bearer auth + beta header
-    if token.startswith("sk-ant-oat"):
-        return anthropic.Anthropic(
-            api_key=None,
-            auth_token=token,
-            default_headers={"anthropic-beta": "oauth-2025-04-20"},
-        )
-    return anthropic.Anthropic(api_key=token)
+    """Get Anthropic client with OAuth token."""
+    if not ANTHROPIC_AUTH_TOKEN:
+        raise RuntimeError("No auth: set ANTHROPIC_AUTH_TOKEN")
+
+    return anthropic.Anthropic(
+        api_key=None,
+        auth_token=ANTHROPIC_AUTH_TOKEN,
+        default_headers={"anthropic-beta": "oauth-2025-04-20"},
+    )
 
 
 # ─────────────────────────────────────────────
