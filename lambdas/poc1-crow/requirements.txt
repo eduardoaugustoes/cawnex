@@ -1,0 +1,6 @@
+# POC 1 — MCP Crow stub
+# No external dependencies for the stub.
+# Real implementation will add:
+# httpx       — GitHub API calls
+# anthropic   — LLM calls
+# boto3       — S3 session state (already in Lambda runtime)
