@@ -5,6 +5,12 @@
 ## Core Philosophy
 
 ```
+Dynasty  → org/tenant (all projects)
+Court    → Monarch + Council (project decisions)
+Murder   → execution orchestrator
+Crows    → specialist workers
+
+Within each Court:
 Crows    → intelligence (know HOW to do)
 Council  → judgment (know WHAT matters)
 Monarch  → direction (knows WHERE to go)
@@ -23,12 +29,36 @@ The Monarch has authority but follows human direction. The human sets the course
 │                      HUMAN                           │
 │              (founder / product owner)               │
 │                                                      │
-│  Steers via directives:                              │
+│  Manages Dynasty, steers projects via directives:   │
 │    "MVP mode, ship onboarding in 2 weeks"            │
 │    "Pivot to B2B, pause consumer features"           │
 │    "Focus on security before launch"                 │
 └────────────────────────┬────────────────────────────┘
-                         │ directive
+                         │ manages
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│                     DYNASTY                          │
+│                 (org/tenant level)                   │
+│                                                      │
+│  Contains multiple Courts (projects):                │
+│    • Court: Cawnex (directive: "Build Sprint 1")    │
+│    • Court: Mobile App (directive: "Ship MVP")      │
+│    • Court: Analytics (directive: "Add reports")    │
+│                                                      │
+│  Sets org-wide policies:                             │
+│    • Tech stack standards (TypeScript, CDK)         │
+│    • Security requirements (OWASP, auth patterns)   │
+│    • Code quality rules (testing, reviews)          │
+└────────────────────────┬────────────────────────────┘
+                         │ each project has a
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│                      COURT                           │
+│              (project-level decisions)               │
+│                                                      │
+│  Monarch + Council for one specific project         │
+└────────────────────────┬────────────────────────────┘
+                         │ directive per project
                          ▼
 ┌─────────────────────────────────────────────────────┐
 │                     MONARCH                          │
@@ -109,6 +139,46 @@ The Monarch has authority but follows human direction. The human sets the course
 │    - Is stateless (context comes from Murder)        │
 └─────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Dynasty Structure
+
+A Dynasty represents one organization/tenant and contains multiple Courts (projects):
+
+```
+Dynasty: "Acme Corp"
+├── Court: "Cawnex"
+│     ├── Monarch (directive: "Build Sprint 1: foundation + context")
+│     ├── Council (Security, Quality, Market, Performance, Maturity, Clarity)
+│     ├── Murder → dispatching Wave 2 tasks
+│     └── Crows → implementing, reviewing, testing
+│
+├── Court: "Calhou" 
+│     ├── Monarch (directive: "MVP quoting calculator")
+│     ├── Council (same advisors, different project context)
+│     ├── Murder → executing Wave 1
+│     └── Crows → building calculator features
+│
+└── Court: "Mobile App"
+      ├── Monarch (directive: "Ship onboarding flow")
+      ├── Council
+      └── Murder → idle, waiting for wave approval
+```
+
+**Dynasty-level inheritance:**
+
+```
+Dynasty policy: "TypeScript, vitest, CDK, OWASP top 10, DRY principles"
+     ↓ inherited by all Courts
+Court/Cawnex:   "Build orchestration platform" + dynasty policies
+Court/Calhou:   "Build quoting calculator" + dynasty policies  
+```
+
+Each Court operates independently but shares dynasty standards. The human can:
+- Set dynasty-wide policies (affect all projects)
+- Steer individual Monarchs with project-specific directives
+- Move resources between Courts as priorities shift
 
 ---
 
@@ -346,15 +416,15 @@ Inspired by Claude Code's CLAUDE.md pattern, applied to multi-tenant SaaS:
 ```
 S3 or DynamoDB:
 
-  /org/{org_id}/
-      CLAUDE.md                     ← org-wide standards
+  /dynasty/{org_id}/
+      CLAUDE.md                     ← dynasty-wide standards
       
-  /org/{org_id}/project/{id}/
+  /dynasty/{org_id}/court/{project_id}/
       CLAUDE.md                     ← project context + architecture
       VISION.md                     ← project vision
       ROADMAP.md                    ← milestones + timeline
       
-  /org/{org_id}/project/{id}/agents/
+  /dynasty/{org_id}/court/{project_id}/agents/
       monarch.md                    ← monarch directive + personality
       council/
           security.md               ← security advisor prompt
@@ -370,11 +440,11 @@ When dispatching a crow, the system prompt is assembled in layers:
 
 ```python
 system = [
-    load("org/{org}/CLAUDE.md"),                    # org standards
-    load("project/{proj}/CLAUDE.md"),               # project context
-    load("project/{proj}/agents/crows/{crow}.md"),  # crow specialization
+    load("dynasty/{org}/CLAUDE.md"),                        # dynasty standards
+    load("dynasty/{org}/court/{proj}/CLAUDE.md"),           # project context
+    load("dynasty/{org}/court/{proj}/agents/crows/{crow}.md"),  # crow specialization
 ]
-# + Prompt Caching on org + project layers (90% discount)
+# + Prompt Caching on dynasty + court layers (90% discount)
 ```
 
 ---
@@ -386,25 +456,25 @@ system = [
 ```
 PK                          SK                      Data
 ─────────────────────────── ─────────────────────── ────────────
-ORG#org1                    META                    name, plan, settings
-ORG#org1                    PROJECT#proj1           name, phase, directive
-PROJECT#proj1               VISION                  brief, personas, flows
-PROJECT#proj1               MILESTONE#m1            name, goals, wave
-PROJECT#proj1               TASK#t001               title, milestone, status, wave
-PROJECT#proj1               TASK#t002               ...
-EXEC#exec1                  META                    repo, issue, branch
+DYNASTY#org1                META                    name, plan, settings
+DYNASTY#org1                COURT#proj1             name, phase, monarch_directive
+COURT#proj1                 VISION                  brief, personas, flows
+COURT#proj1                 MILESTONE#m1            name, goals, wave
+COURT#proj1                 TASK#t001               title, milestone, status, wave
+COURT#proj1                 TASK#t002               ...
+EXEC#exec1                  META                    court, repo, issue, branch
 EXEC#exec1                  STEP#01#TASK            crow, instructions, context
 EXEC#exec1                  STEP#01#REPORT          outcome, artifacts, cost
 EXEC#exec1                  COUNCIL#vote            advisor_votes, monarch_decision
-WAVE#w1                     META                    project, phase, status
+WAVE#w1                     META                    court, phase, status
 WAVE#w1                     TASK#t001               ref to task
 WAVE#w1                     TASK#t002               ref to task
 ```
 
 ### GSIs
 
-- **GSI1**: `org_id + project_id` → list projects per org
-- **GSI2**: `project_id + wave_id` → list tasks per wave
+- **GSI1**: `dynasty_id + court_id` → list courts per dynasty
+- **GSI2**: `court_id + wave_id` → list tasks per wave  
 - **GSI3**: `status + created_at` → find pending/active work
 
 ---
