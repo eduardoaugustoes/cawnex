@@ -112,14 +112,16 @@ export class Poc6WorkerStack extends cdk.Stack {
       associatePublicIpAddress: true,
     });
 
-    // Enable IP forwarding via user data
+    // Enable IP forwarding + NAT (auto-detect interface name)
     natEc2.addUserData(
       "yum install iptables-services -y",
       "systemctl enable iptables",
       "systemctl start iptables",
-      "echo 1 > /proc/sys/net/ipv4/ip_forward",
-      "echo 'net.ipv4.ip_forward = 1' >> /etc/sysctl.conf",
-      "iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE",
+      "echo 'net.ipv4.ip_forward = 1' > /etc/sysctl.d/custom-ip-forwarding.conf",
+      "sysctl -p /etc/sysctl.d/custom-ip-forwarding.conf",
+      "IFACE=$(ip route show default | awk '{print $5}')",
+      "iptables -t nat -A POSTROUTING -o $IFACE -j MASQUERADE",
+      "iptables -F FORWARD",
       "service iptables save"
     );
 
