@@ -3,15 +3,23 @@
 POC 5 -- Local Crow Worker
 
 Polls DynamoDB blackboard for pending TASK records.
-Executes them locally using Claude Code CLI (subscription, $0 cost).
+Executes them locally using Claude Code CLI or Anthropic SDK.
 Writes REPORT back to blackboard, triggering Murder via Stream.
 
+Authentication: Uses Claude OAuth (subscription, $0 cost).
+Set ANTHROPIC_REFRESH_TOKEN env var to use OAuth.
+Falls back to ANTHROPIC_API_KEY if no refresh token.
+
 Usage:
-    python scripts/local-worker.py --table cawnex-blackboard-dev --region us-east-1
+    # OAuth mode ($0 cost via subscription):
+    ANTHROPIC_REFRESH_TOKEN=sk-ant-ort01-... python scripts/local-worker.py --table cawnex-poc5-blackboard-dev --region us-east-1
+
+    # API key fallback:
+    ANTHROPIC_API_KEY=sk-ant-... python scripts/local-worker.py --table cawnex-poc5-blackboard-dev --region us-east-1 --sdk
 
 Requirements:
     - AWS credentials configured (aws configure)
-    - Claude Code CLI installed (npx @anthropic-ai/claude-code)
+    - Claude Code CLI installed (npx @anthropic-ai/claude-code) for --cli mode
     - GitHub token in GITHUB_TOKEN env var
 """
 
@@ -22,6 +30,7 @@ import os
 import subprocess
 import sys
 import time
+import urllib.request
 
 import anthropic
 import boto3
@@ -35,6 +44,61 @@ logging.basicConfig(
 logger = logging.getLogger("worker")
 
 POLL_INTERVAL = 5  # seconds
+
+# OAuth config
+OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+OAUTH_TOKEN_URL = "https://console.anthropic.com/v1/oauth/token"
+
+_cached_access_token = None
+_cached_token_expires = 0
+
+
+def get_access_token() -> str:
+    """Get a valid access token via OAuth refresh, or fall back to API key."""
+    global _cached_access_token, _cached_token_expires
+
+    # Return cached token if still valid (5 min buffer)
+    if _cached_access_token and time.time() < _cached_token_expires - 300:
+        return _cached_access_token
+
+    refresh_token = os.environ.get("ANTHROPIC_REFRESH_TOKEN", "")
+    if refresh_token:
+        try:
+            body = json.dumps({
+                "grant_type": "refresh_token",
+                "client_id": OAUTH_CLIENT_ID,
+                "refresh_token": refresh_token,
+            }).encode()
+            req = urllib.request.Request(
+                OAUTH_TOKEN_URL, data=body, method="POST",
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode())
+            _cached_access_token = data["access_token"]
+            _cached_token_expires = time.time() + data.get("expires_in", 28800)
+            # Update refresh token if rotated
+            new_refresh = data.get("refresh_token")
+            if new_refresh and new_refresh != refresh_token:
+                os.environ["ANTHROPIC_REFRESH_TOKEN"] = new_refresh
+                logger.info("Refresh token rotated")
+            logger.info(
+                "OAuth token refreshed, expires in %ds ($0 cost)",
+                data.get("expires_in", 0),
+            )
+            return _cached_access_token
+        except Exception as e:
+            logger.error("OAuth refresh failed: %s", e)
+
+    # Fallback to API key
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if api_key:
+        logger.warning("Using API key fallback (costs money)")
+        return api_key
+
+    raise RuntimeError(
+        "No authentication: set ANTHROPIC_REFRESH_TOKEN or ANTHROPIC_API_KEY"
+    )
 
 
 def find_pending_tasks(table) -> list:
@@ -179,8 +243,8 @@ def execute_with_cli(prompt: str, repo: str, branch: str) -> dict:
 
 
 def execute_with_sdk(prompt: str, repo: str, branch: str) -> dict:
-    """Run task using Anthropic SDK with tool use for file operations."""
-    client = anthropic.Anthropic()
+    """Run task using Anthropic SDK with OAuth token ($0 via subscription)."""
+    client = anthropic.Anthropic(api_key=get_access_token())
 
     # Use Claude to generate the work, then apply via GitHub API
     github_token = os.environ.get("GITHUB_TOKEN", "")

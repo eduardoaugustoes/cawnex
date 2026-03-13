@@ -1,9 +1,12 @@
 """
-POC 5 — Murder as Stream-Triggered State Machine
+POC 5 -- Murder as Stream-Triggered State Machine
 
 Murder is triggered by DynamoDB Streams when a REPORT is written.
 It reads the blackboard, judges via Claude, writes the next TASK or final RESULT.
 Each invocation is <5s. Never blocks. Never calls crows directly.
+
+Authentication: Uses Claude OAuth (subscription, $0 cost).
+Stores ANTHROPIC_REFRESH_TOKEN as env var, refreshes access token on each cold start.
 """
 
 import json
@@ -19,13 +22,62 @@ from boto3.dynamodb.conditions import Key as DKey
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
 TABLE_NAME = os.environ.get("BLACKBOARD_TABLE", "")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
+# OAuth config
+OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+OAUTH_TOKEN_URL = "https://console.anthropic.com/v1/oauth/token"
+ANTHROPIC_REFRESH_TOKEN = os.environ.get("ANTHROPIC_REFRESH_TOKEN", "")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")  # fallback
+
 dynamodb = boto3.resource("dynamodb")
-claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+# Token cache (survives across warm invocations)
+_cached_access_token = None
+_cached_token_expires = 0
+
+
+def _get_access_token() -> str:
+    """Get a valid access token, refreshing if needed. Falls back to API key."""
+    global _cached_access_token, _cached_token_expires
+
+    # If we have a valid cached token, use it
+    if _cached_access_token and time.time() < _cached_token_expires - 300:
+        return _cached_access_token
+
+    # If we have a refresh token, use OAuth
+    if ANTHROPIC_REFRESH_TOKEN:
+        try:
+            body = json.dumps({
+                "grant_type": "refresh_token",
+                "client_id": OAUTH_CLIENT_ID,
+                "refresh_token": ANTHROPIC_REFRESH_TOKEN,
+            }).encode()
+            req = urllib.request.Request(
+                OAUTH_TOKEN_URL, data=body, method="POST",
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+            _cached_access_token = data["access_token"]
+            _cached_token_expires = time.time() + data.get("expires_in", 28800)
+            logger.info("OAuth token refreshed, expires in %ds", data.get("expires_in", 0))
+            return _cached_access_token
+        except Exception as e:
+            logger.error("OAuth refresh failed: %s", e)
+
+    # Fallback to API key
+    if ANTHROPIC_API_KEY:
+        return ANTHROPIC_API_KEY
+
+    raise RuntimeError("No authentication available: set ANTHROPIC_REFRESH_TOKEN or ANTHROPIC_API_KEY")
+
+
+def _get_claude_client() -> anthropic.Anthropic:
+    """Get an Anthropic client with a valid token."""
+    return anthropic.Anthropic(api_key=_get_access_token())
 
 
 # ─────────────────────────────────────────────
@@ -35,7 +87,8 @@ claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 def claude_judge(system_prompt: str, user_message: str) -> str:
     """Quick Claude call for Murder's judgment. Should be <3s."""
-    response = claude_client.messages.create(
+    client = _get_claude_client()
+    response = client.messages.create(
         model=ANTHROPIC_MODEL,
         max_tokens=2048,
         system=system_prompt,
