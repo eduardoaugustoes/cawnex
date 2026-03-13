@@ -77,7 +77,11 @@ def _get_access_token() -> str:
 
 def _get_claude_client() -> anthropic.Anthropic:
     """Get an Anthropic client with a valid token."""
-    return anthropic.Anthropic(api_key=_get_access_token())
+    token = _get_access_token()
+    # OAuth tokens (sk-ant-oat01-*) use Bearer auth, API keys use x-api-key
+    if token.startswith("sk-ant-oat"):
+        return anthropic.Anthropic(auth_token=token)
+    return anthropic.Anthropic(api_key=token)
 
 
 # ─────────────────────────────────────────────

@@ -244,7 +244,12 @@ def execute_with_cli(prompt: str, repo: str, branch: str) -> dict:
 
 def execute_with_sdk(prompt: str, repo: str, branch: str) -> dict:
     """Run task using Anthropic SDK with OAuth token ($0 via subscription)."""
-    client = anthropic.Anthropic(api_key=get_access_token())
+    token = get_access_token()
+    # OAuth tokens (sk-ant-oat01-*) use Bearer auth, API keys use x-api-key
+    if token.startswith("sk-ant-oat"):
+        client = anthropic.Anthropic(auth_token=token)
+    else:
+        client = anthropic.Anthropic(api_key=token)
 
     # Use Claude to generate the work, then apply via GitHub API
     github_token = os.environ.get("GITHUB_TOKEN", "")
