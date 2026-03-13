@@ -5,6 +5,8 @@ struct MilestoneCard: View {
     let isExpanded: Bool
     let onToggle: () -> Void
     let onGoalTap: (Goal) -> Void
+    var onEdit: () -> Void = {}
+    var onStatusChange: (MilestoneStatus) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: CawnexSpacing.md) {
@@ -36,27 +38,20 @@ struct MilestoneCard: View {
                         .foregroundStyle(CawnexColors.cardForeground)
                 }
                 Spacer()
-                milestoneTrailing
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(CawnexColors.mutedForeground)
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                StatusChip(
+                    milestoneStatus: milestone.status,
+                    onTransition: onStatusChange
+                )
             }
         }
         .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private var milestoneTrailing: some View {
-        if milestone.status == .inProgress {
-            Text("\(milestone.progress)%")
-                .font(CawnexTypography.captionBold)
-                .foregroundStyle(CawnexColors.primary)
-        } else {
-            Text(milestone.status.rawValue)
-                .font(CawnexTypography.tinyMedium)
-                .foregroundStyle(CawnexColors.mutedForeground)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(CawnexColors.muted)
-                .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
-        }
     }
 
     private var tasksSection: some View {

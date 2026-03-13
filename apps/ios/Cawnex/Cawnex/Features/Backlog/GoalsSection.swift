@@ -24,7 +24,7 @@ struct GoalsSection: View {
             HStack {
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(dotColor(for: goal.status))
+                        .fill(goal.status.color)
                         .frame(width: 8, height: 8)
                     Text(goal.name)
                         .font(CawnexTypography.captionMedium)
@@ -41,13 +41,5 @@ struct GoalsSection: View {
             .padding(.vertical, 6)
         }
         .buttonStyle(.plain)
-    }
-
-    private func dotColor(for status: GoalStatus) -> Color {
-        switch status {
-        case .active: CawnexColors.success
-        case .planned: CawnexColors.mutedForeground
-        case .complete: CawnexColors.primary
-        }
     }
 }

@@ -41,6 +41,15 @@ final class TabRouter {
         projectPath.append(ProjectRoute.pr(projectId: projectId, prId: prId))
     }
 
+    func isNavigatedDeep(tab: CawnexTab) -> Bool {
+        switch tab {
+        case .projects: !projectPath.isEmpty
+        case .murders: !murderPath.isEmpty
+        case .skills: !skillPath.isEmpty
+        case .settings: !settingsPath.isEmpty
+        }
+    }
+
     func popToRoot(tab: CawnexTab) {
         switch tab {
         case .projects: projectPath = NavigationPath()

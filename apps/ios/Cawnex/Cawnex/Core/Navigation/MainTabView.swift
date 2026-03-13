@@ -20,9 +20,11 @@ struct MainTabView: View {
                     .frame(maxHeight: .infinity)
             }
 
-            VStack {
-                Spacer()
-                CawnexTabBar(selectedTab: $selectedTab)
+            if !tabRouter.isNavigatedDeep(tab: selectedTab) {
+                VStack {
+                    Spacer()
+                    CawnexTabBar(selectedTab: $selectedTab)
+                }
             }
         }
     }
@@ -80,27 +82,29 @@ struct MainTabView: View {
     private var murdersTab: some View {
         @Bindable var router = tabRouter
         return NavigationStack(path: $router.murderPath) {
-            tabPlaceholder("Murders")
-                .toolbarBackground(CawnexColors.background, for: .navigationBar)
-                .toolbarBackground(.visible, for: .navigationBar)
+            MurdersScreen(
+                viewModel: MurdersViewModel(
+                    murdersService: services.makeMurdersService()
+                )
+            )
         }
     }
 
     private var skillsTab: some View {
         @Bindable var router = tabRouter
         return NavigationStack(path: $router.skillPath) {
-            tabPlaceholder("Skills")
-                .toolbarBackground(CawnexColors.background, for: .navigationBar)
-                .toolbarBackground(.visible, for: .navigationBar)
+            SkillsScreen(
+                viewModel: SkillsViewModel(
+                    skillsService: services.makeSkillsService()
+                )
+            )
         }
     }
 
     private var settingsTab: some View {
         @Bindable var router = tabRouter
         return NavigationStack(path: $router.settingsPath) {
-            tabPlaceholder("Settings")
-                .toolbarBackground(CawnexColors.background, for: .navigationBar)
-                .toolbarBackground(.visible, for: .navigationBar)
+            SettingsScreen()
         }
     }
 
@@ -127,19 +131,52 @@ struct MainTabView: View {
                 viewModel: BacklogViewModel(
                     backlogService: services.makeBacklogService()
                 ),
+                backlogService: services.makeBacklogService(),
                 onBack: { tabRouter.projectPath.removeLast() },
                 onGoalTap: { goalId in tabRouter.pushGoal(projectId, goalId: goalId) }
             )
         case .milestone(_, let milestoneId):
             routePlaceholder("Milestone", id: milestoneId)
-        case .goal(_, let goalId):
-            routePlaceholder("Goal", id: goalId)
-        case .mvi(_, let mviId):
-            routePlaceholder("MVI", id: mviId)
-        case .task(_, let taskId):
-            routePlaceholder("Task", id: taskId)
-        case .pr(_, let prId):
-            routePlaceholder("PR Review", id: prId)
+        case .goal(let projectId, let goalId):
+            GoalDetailScreen(
+                projectId: projectId,
+                goalId: goalId,
+                viewModel: GoalDetailViewModel(
+                    goalService: services.makeGoalService()
+                ),
+                onBack: { tabRouter.projectPath.removeLast() },
+                onMVITap: { mviId in tabRouter.pushMVI(projectId, mviId: mviId) }
+            )
+        case .mvi(let projectId, let mviId):
+            MVIDetailScreen(
+                projectId: projectId,
+                mviId: mviId,
+                viewModel: MVIDetailViewModel(
+                    mviService: services.makeMVIService()
+                ),
+                onBack: { tabRouter.projectPath.removeLast() },
+                onTaskTap: { taskId in tabRouter.pushTask(projectId, taskId: taskId) },
+                onPRTap: { prId in tabRouter.pushPR(projectId, prId: prId) }
+            )
+        case .task(let projectId, let taskId):
+            TaskDetailScreen(
+                projectId: projectId,
+                taskId: taskId,
+                viewModel: TaskDetailViewModel(
+                    taskService: services.makeTaskService()
+                ),
+                onBack: { tabRouter.projectPath.removeLast() },
+                onPRTap: { prId in tabRouter.pushPR(projectId, prId: prId) }
+            )
+        case .pr(let projectId, let prId):
+            PRReviewScreen(
+                projectId: projectId,
+                prId: prId,
+                viewModel: PRReviewViewModel(
+                    prService: services.makePRService()
+                ),
+                onBack: { tabRouter.projectPath.removeLast() }
+            )
         }
     }
 

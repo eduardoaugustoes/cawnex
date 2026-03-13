@@ -26,7 +26,7 @@ final class InMemoryProjectService: ProjectService {
             id: UUID().uuidString,
             name: name,
             description: description,
-            isActive: true,
+            status: .active,
             tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
             creditsSpent: 0,
             humanEquivSaved: 0

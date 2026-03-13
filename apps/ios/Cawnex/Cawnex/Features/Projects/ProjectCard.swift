@@ -25,16 +25,14 @@ struct ProjectCard: View {
     private var topRow: some View {
         HStack(spacing: CawnexSpacing.sm) {
             HStack(spacing: CawnexSpacing.sm) {
-                Circle()
-                    .fill(project.isActive ? CawnexColors.success : CawnexColors.mutedForeground)
-                    .frame(width: 8, height: 8)
-
                 Text(project.name)
                     .font(CawnexTypography.sectionTitle)
                     .foregroundStyle(CawnexColors.cardForeground)
             }
 
             Spacer()
+
+            StatusChip(projectStatus: project.status)
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .medium))

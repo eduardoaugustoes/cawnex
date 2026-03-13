@@ -18,4 +18,28 @@ struct ServiceFactory {
     func makeDocumentService() -> any DocumentService {
         InMemoryDocumentService()
     }
+
+    func makeGoalService() -> any GoalService {
+        InMemoryGoalService(store: store)
+    }
+
+    func makeMVIService() -> any MVIService {
+        InMemoryMVIService(store: store)
+    }
+
+    func makeTaskService() -> any TaskService {
+        InMemoryTaskService(store: store)
+    }
+
+    func makePRService() -> any PRService {
+        InMemoryPRService(store: store)
+    }
+
+    func makeMurdersService() -> any MurdersService {
+        InMemoryMurdersService(store: store)
+    }
+
+    func makeSkillsService() -> any SkillsService {
+        InMemorySkillsService(store: store)
+    }
 }
