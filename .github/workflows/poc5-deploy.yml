@@ -1,0 +1,128 @@
+name: "POC 5 — Async Blackboard Loop"
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Deploy or destroy the stack"
+        required: true
+        type: choice
+        options:
+          - deploy
+          - destroy
+      stage:
+        description: "Target stage"
+        required: true
+        type: choice
+        options:
+          - dev
+        default: dev
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  poc5:
+    name: "${{ inputs.action }} POC 5 (${{ inputs.stage }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install CDK dependencies
+        working-directory: infra
+        run: npm ci
+
+      - name: CDK Synth (validate)
+        working-directory: infra
+        run: npx cdk synth CawnexPoc5-${{ inputs.stage }} --context stage=${{ inputs.stage }} --context stack=poc5
+
+      - name: CDK Diff (preview changes)
+        if: inputs.action == 'deploy'
+        working-directory: infra
+        run: npx cdk diff CawnexPoc5-${{ inputs.stage }} --context stage=${{ inputs.stage }} --context stack=poc5 || true
+
+      - name: CDK Deploy
+        if: inputs.action == 'deploy'
+        working-directory: infra
+        run: |
+          npx cdk deploy CawnexPoc5-${{ inputs.stage }} \
+            --context stage=${{ inputs.stage }} \
+            --context stack=poc5 \
+            --require-approval never \
+            --outputs-file ../poc5-outputs.json
+
+      - name: Set Lambda Secrets
+        if: inputs.action == 'deploy'
+        run: |
+          BLACKBOARD=$(cat poc5-outputs.json | python3 -c "import sys,json; d=json.load(sys.stdin); k=list(d.keys())[0]; print(d[k]['BlackboardTable'])")
+
+          # Murder Lambda — needs Anthropic key for judgment + GitHub token for PRs
+          aws lambda update-function-configuration \
+            --function-name cawnex-poc5-murder-${{ inputs.stage }} \
+            --environment "Variables={STAGE=${{ inputs.stage }},BLACKBOARD_TABLE=${BLACKBOARD},ANTHROPIC_MODEL=claude-sonnet-4-20250514,ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},GITHUB_TOKEN=${{ secrets.GH_PAT }}}" \
+            --no-cli-pager
+
+          # API Lambda — needs GitHub token to create branches + fetch issues
+          aws lambda update-function-configuration \
+            --function-name cawnex-poc5-api-${{ inputs.stage }} \
+            --environment "Variables={STAGE=${{ inputs.stage }},BLACKBOARD_TABLE=${BLACKBOARD},GITHUB_TOKEN=${{ secrets.GH_PAT }}}" \
+            --no-cli-pager
+
+      - name: Show Outputs
+        if: inputs.action == 'deploy'
+        run: |
+          echo "## POC 5 Deployment Outputs" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat poc5-outputs.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Usage" >> $GITHUB_STEP_SUMMARY
+          API=$(cat poc5-outputs.json | python3 -c "import sys,json; d=json.load(sys.stdin); k=list(d.keys())[0]; print(d[k]['ApiEndpoint'])")
+          TABLE=$(cat poc5-outputs.json | python3 -c "import sys,json; d=json.load(sys.stdin); k=list(d.keys())[0]; print(d[k]['BlackboardTable'])")
+          echo "**Create execution (returns instantly):**" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "curl -s -X POST ${API}/murder -H 'Content-Type: application/json' -d '{\"repo\":\"eduardoaugustoes/cawnex\",\"issue_number\":1}'" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "**Check status:**" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "curl -s ${API}/murder/{execution_id} | jq" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "**Run local worker:**" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "python scripts/local-worker.py --table ${TABLE} --region us-east-1" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: CDK Destroy
+        if: inputs.action == 'destroy'
+        working-directory: infra
+        run: |
+          npx cdk destroy CawnexPoc5-${{ inputs.stage }} \
+            --context stage=${{ inputs.stage }} \
+            --context stack=poc5 \
+            --force
+
+      - name: Summary
+        run: |
+          if [ "${{ inputs.action }}" = "deploy" ]; then
+            echo "✅ POC 5 deployed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🗑️ POC 5 destroyed successfully" >> $GITHUB_STEP_SUMMARY
+          fi

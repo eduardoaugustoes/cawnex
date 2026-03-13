@@ -4,6 +4,7 @@ import * as cdk from "aws-cdk-lib";
 import { CawnexStack } from "../lib/cawnex-stack";
 import { Poc1CrowStack } from "../lib/poc1-crow-stack";
 import { Poc3MurderStack } from "../lib/poc3-murder-stack";
+import { Poc5AsyncStack } from "../lib/poc5-async-stack";
 
 const app = new cdk.App();
 
@@ -26,4 +27,8 @@ if (!stack || stack === "poc1") {
 
 if (!stack || stack === "poc3") {
   new Poc3MurderStack(app, `CawnexPoc3-${stage}`, { stage, env });
+}
+
+if (!stack || stack === "poc5") {
+  new Poc5AsyncStack(app, `CawnexPoc5-${stage}`, { stage, env });
 }
