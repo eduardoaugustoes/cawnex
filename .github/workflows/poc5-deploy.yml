@@ -50,6 +50,14 @@ jobs:
         working-directory: infra
         run: npm ci
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build Murder Lambda package
+        run: bash lambdas/poc5-murder/build.sh
+
       - name: CDK Synth (validate)
         working-directory: infra
         run: npx cdk synth CawnexPoc5-${{ inputs.stage }} --context stage=${{ inputs.stage }} --context stack=poc5

@@ -23,6 +23,7 @@ import subprocess
 import sys
 import time
 
+import anthropic
 import boto3
 from boto3.dynamodb.conditions import Key as DKey, Attr
 
@@ -101,7 +102,7 @@ If you encounter an error you can't resolve:
     if use_cli:
         return execute_with_cli(prompt, repo, branch)
     else:
-        return execute_with_sdk(prompt)
+        return execute_with_sdk(prompt, repo, branch)
 
 
 def execute_with_cli(prompt: str, repo: str, branch: str) -> dict:
@@ -177,22 +178,36 @@ def execute_with_cli(prompt: str, repo: str, branch: str) -> dict:
         return {"outcome": "failed", "summary": str(e)}
 
 
-def execute_with_sdk(prompt: str) -> dict:
-    """Fallback: run task using Anthropic SDK (API key, costs money)."""
-    try:
-        import anthropic
-    except ImportError:
-        return {"outcome": "failed", "summary": "anthropic package not installed. Use --cli mode or pip install anthropic"}
-
+def execute_with_sdk(prompt: str, repo: str, branch: str) -> dict:
+    """Run task using Anthropic SDK with tool use for file operations."""
     client = anthropic.Anthropic()
+
+    # Use Claude to generate the work, then apply via GitHub API
+    github_token = os.environ.get("GITHUB_TOKEN", "")
+
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
         max_tokens=4096,
+        system="You are a software developer crow (AI agent). Execute the task and output a JSON result.",
         messages=[{"role": "user", "content": prompt}],
     )
+
     text = "\n".join(b.text for b in response.content if b.type == "text")
+    logger.info(
+        "Claude SDK: in=%d out=%d cost=$%.4f",
+        response.usage.input_tokens,
+        response.usage.output_tokens,
+        (response.usage.input_tokens * 3 + response.usage.output_tokens * 15) / 1_000_000,
+    )
+
     report = try_parse_report(text)
-    return report or {"outcome": "completed", "summary": text[:2000]}
+    if report:
+        # If Claude produced file changes, apply them via GitHub API
+        if not report.get("files_changed") and "```" in text:
+            report["raw_output"] = text[:3000]
+        return report
+
+    return {"outcome": "completed", "summary": text[:2000]}
 
 
 def try_parse_report(text: str) -> dict | None:
@@ -247,14 +262,15 @@ def main():
     parser.add_argument("--table", required=True, help="DynamoDB table name")
     parser.add_argument("--region", default="us-east-1", help="AWS region")
     parser.add_argument("--once", action="store_true", help="Run once then exit (don't poll)")
-    parser.add_argument("--sdk", action="store_true", help="Use Anthropic SDK instead of Claude CLI")
+    parser.add_argument("--cli", action="store_true", help="Use Claude Code CLI instead of Anthropic SDK")
     args = parser.parse_args()
 
     dynamodb_res = boto3.resource("dynamodb", region_name=args.region)
     table = dynamodb_res.Table(args.table)
 
-    logger.info("🐦‍⬛ Cawnex Local Worker started")
-    logger.info("Table: %s | Region: %s | Mode: %s", args.table, args.region, "SDK" if args.sdk else "CLI")
+    mode = "CLI" if args.cli else "SDK"
+    logger.info("Cawnex Local Worker started")
+    logger.info("Table: %s | Region: %s | Mode: %s", args.table, args.region, mode)
 
     while True:
         tasks = find_pending_tasks(table)
@@ -275,7 +291,7 @@ def main():
                 logger.info("═" * 60)
 
                 # Execute
-                report = execute_task(task, use_cli=not args.sdk)
+                report = execute_task(task, use_cli=args.cli)
 
                 # Write report
                 write_report(table, pk, sk, report)

@@ -50,7 +50,7 @@ export class Poc5AsyncStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_12,
       handler: "handler.handler",
       code: lambda.Code.fromAsset(
-        path.join(__dirname, "../../lambdas/poc5-murder")
+        path.join(__dirname, "../../lambdas/poc5-murder/package")
       ),
       memorySize: 256,
       timeout: cdk.Duration.seconds(30), // Murder should be fast (<5s)

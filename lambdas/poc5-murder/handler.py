@@ -12,6 +12,7 @@ import os
 import time
 import urllib.request
 
+import anthropic
 import boto3
 from boto3.dynamodb.conditions import Key as DKey
 
@@ -24,40 +25,30 @@ TABLE_NAME = os.environ.get("BLACKBOARD_TABLE", "")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
 dynamodb = boto3.resource("dynamodb")
+claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 
 # ─────────────────────────────────────────────
-# Claude (lightweight judgment calls only)
+# Claude SDK (lightweight judgment calls only)
 # ─────────────────────────────────────────────
 
 
 def claude_judge(system_prompt: str, user_message: str) -> str:
     """Quick Claude call for Murder's judgment. Should be <3s."""
-    payload = {
-        "model": ANTHROPIC_MODEL,
-        "max_tokens": 2048,
-        "system": system_prompt,
-        "messages": [{"role": "user", "content": user_message}],
-    }
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages", data=data, method="POST"
+    response = claude_client.messages.create(
+        model=ANTHROPIC_MODEL,
+        max_tokens=2048,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_message}],
     )
-    req.add_header("x-api-key", ANTHROPIC_API_KEY)
-    req.add_header("anthropic-version", "2023-06-01")
-    req.add_header("Content-Type", "application/json")
-
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        result = json.loads(resp.read().decode())
 
     text = "\n".join(
-        b["text"] for b in result.get("content", []) if b.get("type") == "text"
+        b.text for b in response.content if b.type == "text"
     )
-    usage = result.get("usage", {})
     logger.info(
         "Claude judge: in=%d out=%d",
-        usage.get("input_tokens", 0),
-        usage.get("output_tokens", 0),
+        response.usage.input_tokens,
+        response.usage.output_tokens,
     )
     return text
 
