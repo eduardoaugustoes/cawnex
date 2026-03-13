@@ -38,14 +38,16 @@ export class Poc6WorkerStack extends cdk.Stack {
     // Reference existing blackboard from POC 5
     // ─────────────────────────────────────────────
     const blackboardTableName = `cawnex-poc5-blackboard-${stage}`;
+
+    // Stream ARN passed as CDK context (looked up at deploy time)
+    const blackboardStreamArn = this.node.tryGetContext("blackboardStreamArn") as string
+      || `arn:aws:dynamodb:${this.region}:${this.account}:table/${blackboardTableName}/stream/*`;
+
     const blackboard = dynamodb.Table.fromTableAttributes(this, "Blackboard", {
       tableName: blackboardTableName,
+      tableStreamArn: blackboardStreamArn,
       globalIndexes: [],
     });
-
-    // We need the stream ARN for the event source.
-    // Import it by name — the stream ARN is derived.
-    const blackboardStreamArn = `arn:aws:dynamodb:${this.region}:${this.account}:table/${blackboardTableName}/stream/*`;
 
     // ─────────────────────────────────────────────
     // VPC — 2 AZs, public + private subnets
@@ -212,12 +214,7 @@ export class Poc6WorkerStack extends cdk.Stack {
 
     // DynamoDB Stream trigger — filter for TASK records
     workerFn.addEventSource(
-      new lambdaEvents.DynamoEventSource(
-        dynamodb.Table.fromTableAttributes(this, "BlackboardStream", {
-          tableName: blackboardTableName,
-          tableStreamArn: blackboardStreamArn,
-        }),
-        {
+      new lambdaEvents.DynamoEventSource(blackboard, {
           startingPosition: lambda.StartingPosition.LATEST,
           batchSize: 1,
           retryAttempts: 2,

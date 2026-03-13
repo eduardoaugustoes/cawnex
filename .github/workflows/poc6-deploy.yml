@@ -68,10 +68,23 @@ jobs:
       - name: Install CDK dependencies
         run: cd infra && npm ci
 
+      - name: Get DynamoDB Stream ARN
+        id: stream
+        run: |
+          STREAM_ARN=$(aws dynamodb describe-table \
+            --table-name cawnex-poc5-blackboard-dev \
+            --query 'Table.LatestStreamArn' \
+            --output text \
+            --region ${{ env.AWS_REGION }})
+          echo "arn=$STREAM_ARN" >> "$GITHUB_OUTPUT"
+          echo "Stream ARN: $STREAM_ARN"
+
       - name: CDK Deploy (infra)
         run: |
           cd infra
-          npx cdk deploy --context stack=${{ env.STACK_NAME }} --context stage=dev --require-approval never 2>&1
+          npx cdk deploy --context stack=${{ env.STACK_NAME }} --context stage=dev \
+            --context blackboardStreamArn=${{ steps.stream.outputs.arn }} \
+            --require-approval never 2>&1
 
       # Step 3: Inject secrets
       - name: Inject secrets
