@@ -1,14 +1,20 @@
 # 🚀 Quick Start - Fixed and Ready!
 
-## ✅ **Syntax Error RESOLVED!**
+## ✅ **All Syntax Errors RESOLVED!**
 
-The async syntax error has been fixed. All launchers now work correctly.
+All launchers and test files now work correctly without async syntax issues.
+
+## 🔧 **Quick Test First:**
+```bash
+cd mcp-monarch  
+./venv/bin/python test_monarch_simple.py
+```
+This verifies everything works and shows Claude Desktop setup.
 
 ## 🎯 **Choose Your Experience:**
 
 ### **1. 🎭 Interactive Demo (No setup needed)**
 ```bash
-cd mcp-monarch
 ./venv/bin/python demo_launcher.py
 ```
 **Perfect for:** Testing the concept, seeing agent spawning logic in action
