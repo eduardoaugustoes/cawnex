@@ -82,10 +82,10 @@ jobs:
         run: |
           BLACKBOARD=$(cat poc5-outputs.json | python3 -c "import sys,json; d=json.load(sys.stdin); k=list(d.keys())[0]; print(d[k]['BlackboardTable'])")
 
-          # Murder Lambda — needs Anthropic key for judgment + GitHub token for PRs
+          # Murder Lambda — uses OAuth refresh token ($0 via subscription) + GitHub token for PRs
           aws lambda update-function-configuration \
             --function-name cawnex-poc5-murder-${{ inputs.stage }} \
-            --environment "Variables={STAGE=${{ inputs.stage }},BLACKBOARD_TABLE=${BLACKBOARD},ANTHROPIC_MODEL=claude-sonnet-4-20250514,ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},GITHUB_TOKEN=${{ secrets.GH_PAT }}}" \
+            --environment "Variables={STAGE=${{ inputs.stage }},BLACKBOARD_TABLE=${BLACKBOARD},ANTHROPIC_MODEL=claude-sonnet-4-20250514,ANTHROPIC_REFRESH_TOKEN=${{ secrets.ANTHROPIC_REFRESH_TOKEN }},GITHUB_TOKEN=${{ secrets.GH_PAT }}}" \
             --no-cli-pager
 
           # API Lambda — needs GitHub token to create branches + fetch issues
