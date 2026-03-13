@@ -30,6 +30,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 OAUTH_TOKEN_URL = "https://console.anthropic.com/v1/oauth/token"
 ANTHROPIC_REFRESH_TOKEN = os.environ.get("ANTHROPIC_REFRESH_TOKEN", "")
+ANTHROPIC_AUTH_TOKEN = os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")  # fallback
 
 dynamodb = boto3.resource("dynamodb")
@@ -68,11 +69,15 @@ def _get_access_token() -> str:
         except Exception as e:
             logger.error("OAuth refresh failed: %s", e)
 
+    # Use OAuth auth token
+    if ANTHROPIC_AUTH_TOKEN:
+        return ANTHROPIC_AUTH_TOKEN
+
     # Fallback to API key
     if ANTHROPIC_API_KEY:
         return ANTHROPIC_API_KEY
 
-    raise RuntimeError("No authentication available: set ANTHROPIC_REFRESH_TOKEN or ANTHROPIC_API_KEY")
+    raise RuntimeError("No authentication available: set ANTHROPIC_AUTH_TOKEN, ANTHROPIC_REFRESH_TOKEN, or ANTHROPIC_API_KEY")
 
 
 def _get_claude_client() -> anthropic.Anthropic:

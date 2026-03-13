@@ -90,6 +90,11 @@ def get_access_token() -> str:
         except Exception as e:
             logger.error("OAuth refresh failed: %s", e)
 
+    # Use OAuth auth token directly
+    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
+    if auth_token:
+        return auth_token
+
     # Fallback to API key
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if api_key:
@@ -97,7 +102,7 @@ def get_access_token() -> str:
         return api_key
 
     raise RuntimeError(
-        "No authentication: set ANTHROPIC_REFRESH_TOKEN or ANTHROPIC_API_KEY"
+        "No authentication: set ANTHROPIC_AUTH_TOKEN, ANTHROPIC_REFRESH_TOKEN, or ANTHROPIC_API_KEY"
     )
 
 
