@@ -94,9 +94,15 @@ def ensure_repo(repo: str) -> str:
     """Clone repo to EFS if not present, otherwise fetch. Returns repo path."""
     repo_dir = os.path.join(EFS_MOUNT, repo.replace("/", "_"))
 
+    # Fix git safe directory (EFS uid/gid may differ from Lambda process)
+    run_git(f"git config --global --add safe.directory {repo_dir}", check=False)
+
     if os.path.exists(os.path.join(repo_dir, ".git")):
         run_git("git fetch origin", cwd=repo_dir)
         run_git("git reset --hard origin/main", cwd=repo_dir)
+        # Ensure git identity is set
+        run_git('git config user.email "cawnex-worker@cawnex.ai"', cwd=repo_dir)
+        run_git('git config user.name "Cawnex Worker"', cwd=repo_dir)
         return repo_dir
 
     clone_url = f"https://x-access-token:{GITHUB_TOKEN}@github.com/{repo}.git"
@@ -125,6 +131,9 @@ def create_worktree(repo_dir: str, execution_id: str, branch: str) -> str:
     # Create branch and worktree
     run_git(f"git branch -D {branch}", cwd=repo_dir, check=False)  # clean slate
     run_git(f"git worktree add {worktree_dir} -b {branch} origin/main", cwd=repo_dir)
+
+    # Mark worktree as safe directory
+    run_git(f"git config --global --add safe.directory {worktree_dir}", check=False)
 
     # Copy git config to worktree
     run_git('git config user.email "cawnex-worker@cawnex.ai"', cwd=worktree_dir)
