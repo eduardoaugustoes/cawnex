@@ -1,6 +1,6 @@
 # Cawnex — Technical Architecture
 
-> AWS serverless, multi-tenant, blackboard-driven orchestration
+> AWS serverless, multi-tenant, MCP-native, blackboard-driven orchestration
 
 ---
 
@@ -207,66 +207,87 @@ Trigger (GitHub Issue / API call)
               → MVI status: completed
 ```
 
-### CrowTask — What Murder Assigns
+### MCP — The Communication Protocol
 
-```json
-{
-  "execution_id": "exec_abc123",
-  "step": 2,
-  "crow": "implementer",
-  "behavior": "building",
-  "action": "implement",
-  "task_description": "Implement the auth flow as described in the plan",
-  "acceptance_criteria": [
-    "Apple Sign In integration works",
-    "JWT tokens returned on success",
-    "Error handling for denied/cancelled"
-  ],
-  "context": {
-    "vision": "Project vision summary...",
-    "milestone": "Milestone 1: Auth + Onboarding",
-    "previous_reports": [ /* Planner's report */ ],
-    "murder_notes": "Follow the plan exactly. Use Cognito SDK, not raw HTTP."
-  },
-  "repo": {
-    "url": "github.com/user/repo",
-    "branch": "cawnex/exec_abc123",
-    "base_branch": "main"
-  },
-  "constraints": {
-    "max_tokens": 100000,
-    "timeout_seconds": 600,
-    "budget_usd": 2.00
-  }
-}
+Murder and Crows communicate via **Model Context Protocol (MCP)** using Streamable HTTP transport. This replaces custom JSON contracts with an open standard.
+
+**Murder = MCP Client.** Connects to crow endpoints, discovers tools, calls them.
+**Crows = MCP Servers.** Each crow exposes its skills as MCP tools.
+
+```
+Murder (MCP Client)                    Crow (MCP Server)
+      │                                      │
+      │── initialize ──────────────────────→ │
+      │←── capabilities ───────────────────── │
+      │                                      │
+      │── tools/list ──────────────────────→ │
+      │←── [plan, implement, review, ...] ── │
+      │                                      │
+      │── tools/call("implement", {          │
+      │     repo: "user/repo",               │
+      │     task: "Add health endpoint",     │
+      │     context: { vision, plan, ... }   │
+      │   }) ─────────────────────────────→  │
+      │                                      │
+      │   (crow executes: calls LLM,         │
+      │    reads/writes files, commits)      │
+      │                                      │
+      │←── result: {                         │
+      │     outcome: "completed",            │
+      │     summary: "Created /health...",   │
+      │     branch: "cawnex/exec_abc",       │
+      │     files_changed: [...],            │
+      │     cost: { tokens, usd }            │
+      │   } ──────────────────────────────── │
 ```
 
-### CrowReport — What Crows Return
+### Three Building Blocks
+
+| Concept | What It Is | How It Works |
+|---------|-----------|--------------|
+| **Skills** | Tool packs (collections of MCP tools) | `filesystem` = read_file + write_file + list_files. `git` = commit + branch + create_pr. Users can create custom skills. |
+| **Agents (Crows)** | MCP servers loaded with skills + system prompt + model | Each crow is a Lambda running an MCP server. Its tools come from its assigned skills. Users configure crows in the app (S42). |
+| **Murders** | MCP clients that orchestrate agents via tool discovery + LLM judgment | Murder connects to crows, discovers their tools, decides which to call based on blackboard state. Users configure murders in the app (S41). |
+
+### Why MCP
+
+- **Open standard** — not a proprietary protocol; ecosystem of tools and clients
+- **Dynamic discovery** — Murder doesn't hardcode what crows can do; it asks via `tools/list`
+- **Pluggable** — add a new crow with new skills, Murder discovers it automatically
+- **User-extensible** — users can create their own skills (MCP tools) and crows (MCP servers)
+- **Streamable HTTP** — works natively behind API Gateway → Lambda
+
+### Blackboard Records
+
+Murder writes **task assignments** to the blackboard before calling a crow via MCP. Reports are written after execution. Murder writes **decisions** after judging.
+
+The blackboard is the audit trail. MCP is the live communication channel.
 
 ```json
+// Task assignment (Murder writes before MCP call)
 {
-  "execution_id": "exec_abc123",
-  "step": 2,
+  "PK": "T#tid#EXEC#e1", "SK": "STEP#02#TASK",
   "crow": "implementer",
-  "behavior": "landed",
+  "mcp_tool": "implement",
+  "mcp_input": { "repo": "user/repo", "task": "...", "context": {} },
+  "constraints": { "max_tokens": 100000, "timeout_seconds": 600, "budget_usd": 2.00 }
+}
+
+// Report (written after MCP tool call returns)
+{
+  "PK": "T#tid#EXEC#e1", "SK": "STEP#02#REPORT",
   "outcome": "completed",
-  "summary": "Implemented Apple Sign In with Cognito integration",
-  "criteria_results": [
-    { "criterion": "Apple Sign In integration works", "pass": true, "detail": "Using ASAuthorizationController" },
-    { "criterion": "JWT tokens returned on success", "pass": true, "detail": "Access + refresh tokens from Cognito" },
-    { "criterion": "Error handling for denied/cancelled", "pass": true, "detail": "Handles .cancelled, .failed, .notHandled" }
-  ],
-  "artifacts": {
-    "branch": "cawnex/exec_abc123",
-    "files_changed": ["Sources/Auth/AppleSignIn.swift", "Sources/Auth/CognitoClient.swift"],
-    "commit_sha": "a1b2c3d"
-  },
-  "cost": {
-    "tokens_in": 12500,
-    "tokens_out": 8300,
-    "usd": 0.42
-  },
-  "context_for_next": "Auth flow complete. CognitoClient exposes `signIn()` and `refreshToken()` methods."
+  "summary": "Implemented health endpoint",
+  "artifacts": { "branch": "cawnex/exec_e1", "files_changed": [], "commit_sha": "a1b2c3d" },
+  "cost": { "tokens_in": 12500, "tokens_out": 8300, "usd": 0.42 }
+}
+
+// Decision (Murder writes after judging the report)
+{
+  "PK": "T#tid#EXEC#e1", "SK": "STEP#02#DECISION",
+  "verdict": "approve",
+  "reason": "Code meets all acceptance criteria",
+  "next_action": "assign_reviewer"
 }
 ```
 
