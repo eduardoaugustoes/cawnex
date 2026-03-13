@@ -1,16 +1,13 @@
 # MCP Server dependencies
-mcp==1.0.0
-anthropic>=0.40.0
+mcp>=1.26.0
+anthropic>=0.84.0
 
 # Telegram Bot
-python-telegram-bot>=21.0.0
+python-telegram-bot>=22.6
 
 # AWS for agent deployment  
-boto3>=1.35.0
-aws-cdk-lib>=2.160.0
-constructs>=10.3.0
+boto3>=1.42.0
 
 # Utilities
-aiohttp>=3.9.0
-python-dotenv>=1.0.0
-pydantic>=2.5.0
+aiohttp>=3.13.0
+python-dotenv>=1.2.0
