@@ -72,11 +72,15 @@ struct DashboardScreen: View {
                         .font(.system(size: 16))
                         .foregroundStyle(CawnexColors.mutedForeground)
                 }
+                .disabled(true)
+                .opacity(0.4)
                 Button {} label: {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 16))
                         .foregroundStyle(CawnexColors.mutedForeground)
                 }
+                .disabled(true)
+                .opacity(0.4)
             }
         }
     }

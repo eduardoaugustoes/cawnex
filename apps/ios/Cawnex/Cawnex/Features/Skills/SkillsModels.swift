@@ -13,7 +13,7 @@ enum SkillCategory: String, Equatable, CaseIterable, Hashable {
         switch self {
         case .dev: CawnexColors.primaryLight
         case .editorial: CawnexColors.warning
-        case .social: Color(hex: 0xEC4899)
+        case .social: CawnexColors.pink
         case .custom: CawnexColors.mutedForeground
         }
     }

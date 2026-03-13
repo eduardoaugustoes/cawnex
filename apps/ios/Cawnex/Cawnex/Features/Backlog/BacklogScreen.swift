@@ -3,7 +3,6 @@ import SwiftUI
 struct BacklogScreen: View {
     let projectId: String
     @State var viewModel: BacklogViewModel
-    var backlogService: any BacklogService
     var onBack: () -> Void = {}
     var onGoalTap: (String) -> Void = { _ in }
 
@@ -62,7 +61,7 @@ struct BacklogScreen: View {
         .sheet(isPresented: $isShowingForm) {
             MilestoneFormScreen(
                 viewModel: MilestoneFormViewModel(
-                    backlogService: backlogService,
+                    backlogService: viewModel.backlogService,
                     projectId: projectId,
                     milestone: editingMilestone
                 ),
@@ -88,8 +87,7 @@ struct BacklogScreen: View {
             projectId: "1",
             viewModel: BacklogViewModel(
                 backlogService: InMemoryBacklogService(store: store)
-            ),
-            backlogService: InMemoryBacklogService(store: store)
+            )
         )
     }
     .environment(store)

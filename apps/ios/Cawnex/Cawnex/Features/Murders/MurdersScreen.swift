@@ -135,7 +135,7 @@ struct MurdersScreen: View {
                     .padding(.horizontal, CawnexSpacing.md)
                     .padding(.vertical, CawnexSpacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(hex: 0x0F172A))
+                    .background(CawnexColors.deepNavy)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
 
@@ -250,6 +250,8 @@ struct MurdersScreen: View {
                         .foregroundStyle(CawnexColors.primaryLight)
                 }
                 .buttonStyle(.plain)
+                .disabled(true)
+                .opacity(0.4)
             }
 
             Text("Community murder templates ready to install")
@@ -280,10 +282,12 @@ struct MurdersScreen: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, CawnexSpacing.md)
                         .padding(.vertical, 4)
-                        .background(CawnexColors.primary)
+                        .background(CawnexColors.muted)
                         .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.lg))
                 }
                 .buttonStyle(.plain)
+                .disabled(true)
+                .opacity(0.4)
             }
 
             Text(item.description)

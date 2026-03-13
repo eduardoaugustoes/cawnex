@@ -67,7 +67,7 @@ final class InMemorySkillsService: SkillsService {
                     id: "msk2",
                     name: "Image Generator",
                     icon: "photo.fill",
-                    iconColor: Color(hex: 0xEC4899),
+                    iconColor: CawnexColors.pink,
                     description: "AI-powered image creation for social posts, thumbnails, and marketing assets. For Social Murder.",
                     rating: 4.6,
                     installs: "890",

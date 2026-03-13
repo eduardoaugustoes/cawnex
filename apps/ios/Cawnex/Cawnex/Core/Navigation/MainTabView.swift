@@ -131,7 +131,6 @@ struct MainTabView: View {
                 viewModel: BacklogViewModel(
                     backlogService: services.makeBacklogService()
                 ),
-                backlogService: services.makeBacklogService(),
                 onBack: { tabRouter.projectPath.removeLast() },
                 onGoalTap: { goalId in tabRouter.pushGoal(projectId, goalId: goalId) }
             )
@@ -178,20 +177,6 @@ struct MainTabView: View {
                 onBack: { tabRouter.projectPath.removeLast() }
             )
         }
-    }
-
-    // MARK: - Placeholders
-
-    private func tabPlaceholder(_ title: String) -> some View {
-        VStack {
-            Spacer()
-            Text("\(title) — Coming Soon")
-                .font(CawnexTypography.heading3)
-                .foregroundStyle(CawnexColors.cardForeground)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(CawnexColors.background)
     }
 
     private func documentDestination(projectId: String, type: DocumentType) -> some View {

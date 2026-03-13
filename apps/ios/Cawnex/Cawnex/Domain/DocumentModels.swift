@@ -3,8 +3,8 @@ import Foundation
 struct DocumentSection: Identifiable, Equatable {
     let id: String
     let title: String
-    var content: String
-    var status: DocumentSectionStatus
+    let content: String
+    let status: DocumentSectionStatus
 }
 
 enum DocumentSectionStatus: String, Equatable {
@@ -19,7 +19,7 @@ struct ChatMessage: Identifiable, Equatable {
     let id: String
     let role: ChatRole
     let content: String
-    var synthesizedSection: DocumentSection?
+    let synthesizedSection: DocumentSection?
 }
 
 struct DocumentDetail: Equatable {

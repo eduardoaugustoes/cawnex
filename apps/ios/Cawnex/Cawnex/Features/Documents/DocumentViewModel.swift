@@ -42,7 +42,7 @@ final class DocumentViewModel {
 
         guard case .loaded(var current) = state else { return }
 
-        let userMessage = ChatMessage(id: UUID().uuidString, role: .user, content: trimmed)
+        let userMessage = ChatMessage(id: UUID().uuidString, role: .user, content: trimmed, synthesizedSection: nil)
         current = DocumentDetail(
             projectId: current.projectId,
             sections: current.sections,

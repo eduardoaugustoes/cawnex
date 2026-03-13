@@ -27,6 +27,11 @@ enum CawnexColors {
     static let info = Color(hex: 0x3B82F6)
     static let accent = Color(hex: 0xF97316)
 
+    // MARK: - Extended Palette
+
+    static let pink = Color(hex: 0xEC4899)
+    static let deepNavy = Color(hex: 0x0F172A)
+
     // MARK: - Borders
 
     static let border = Color(hex: 0x404244)

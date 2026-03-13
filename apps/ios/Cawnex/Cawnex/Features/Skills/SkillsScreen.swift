@@ -187,6 +187,8 @@ struct SkillsScreen: View {
                         .foregroundStyle(CawnexColors.primaryLight)
                 }
                 .buttonStyle(.plain)
+                .disabled(true)
+                .opacity(0.4)
             }
 
             Text("Community skills ready to add to your murders")
@@ -217,10 +219,12 @@ struct SkillsScreen: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, CawnexSpacing.md)
                         .padding(.vertical, 4)
-                        .background(CawnexColors.primary)
+                        .background(CawnexColors.muted)
                         .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.lg))
                 }
                 .buttonStyle(.plain)
+                .disabled(true)
+                .opacity(0.4)
             }
 
             Text(item.description)

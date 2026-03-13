@@ -469,10 +469,12 @@ struct PRReviewScreen: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 36, height: 36)
-                    .background(CawnexColors.primaryLight)
+                    .background(CawnexColors.muted)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
+            .disabled(true)
+            .opacity(0.4)
         }
         .padding(.horizontal, CawnexSpacing.xl)
         .padding(.vertical, CawnexSpacing.md)
@@ -493,10 +495,12 @@ struct PRReviewScreen: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                .background(CawnexColors.success)
+                .background(CawnexColors.muted)
                 .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
             }
             .buttonStyle(.plain)
+            .disabled(true)
+            .opacity(0.4)
 
             // Secondary row
             HStack(spacing: CawnexSpacing.md) {
@@ -530,46 +534,8 @@ struct PRReviewScreen: View {
             )
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Flow Layout
-
-private struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        for (index, position) in result.positions.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
-        }
-    }
-
-    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
-        let maxWidth = proposal.width ?? .infinity
-        var positions: [CGPoint] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth, x > 0 {
-                x = 0
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            positions.append(CGPoint(x: x, y: y))
-            rowHeight = max(rowHeight, size.height)
-            x += size.width + spacing
-        }
-
-        return (CGSize(width: maxWidth, height: y + rowHeight), positions)
+        .disabled(true)
+        .opacity(0.4)
     }
 }
 

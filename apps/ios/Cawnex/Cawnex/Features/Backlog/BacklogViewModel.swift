@@ -2,7 +2,7 @@ import Foundation
 
 @Observable
 final class BacklogViewModel {
-    private let backlogService: any BacklogService
+    let backlogService: any BacklogService
     var state: ViewState<[Milestone]> = .idle
     var expandedMilestones: Set<String> = []
 
