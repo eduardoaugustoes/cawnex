@@ -22,7 +22,7 @@ struct ChatMessage: Identifiable, Equatable {
     var synthesizedSection: DocumentSection?
 }
 
-struct VisionDocumentDetail: Equatable {
+struct DocumentDetail: Equatable {
     let projectId: String
     let sections: [DocumentSection]
     let messages: [ChatMessage]

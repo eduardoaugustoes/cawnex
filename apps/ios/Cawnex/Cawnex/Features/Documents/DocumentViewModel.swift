@@ -1,13 +1,14 @@
 import Foundation
 
 @Observable
-final class VisionDocumentViewModel {
+final class DocumentViewModel {
     private let documentService: any DocumentService
-    var state: ViewState<VisionDocumentDetail> = .idle
+    private let documentType: DocumentType
+    var state: ViewState<DocumentDetail> = .idle
     var messageText: String = ""
     var isSending: Bool = false
 
-    var detail: VisionDocumentDetail? {
+    var detail: DocumentDetail? {
         if case .loaded(let d) = state { return d }
         return nil
     }
@@ -20,14 +21,15 @@ final class VisionDocumentViewModel {
         detail?.sections.count ?? 0
     }
 
-    init(documentService: any DocumentService) {
+    init(documentService: any DocumentService, documentType: DocumentType) {
         self.documentService = documentService
+        self.documentType = documentType
     }
 
     func load(projectId: String) async {
         state = .loading
         do {
-            let loaded = try await documentService.getDocument(projectId: projectId, type: .vision)
+            let loaded = try await documentService.getDocument(projectId: projectId, type: documentType)
             state = .loaded(loaded)
         } catch {
             state = .error(error.localizedDescription)
@@ -41,7 +43,7 @@ final class VisionDocumentViewModel {
         guard case .loaded(var current) = state else { return }
 
         let userMessage = ChatMessage(id: UUID().uuidString, role: .user, content: trimmed)
-        current = VisionDocumentDetail(
+        current = DocumentDetail(
             projectId: current.projectId,
             sections: current.sections,
             messages: current.messages + [userMessage]
@@ -51,8 +53,8 @@ final class VisionDocumentViewModel {
         isSending = true
 
         do {
-            let response = try await documentService.sendMessage(projectId: projectId, type: .vision, content: trimmed)
-            current = VisionDocumentDetail(
+            let response = try await documentService.sendMessage(projectId: projectId, type: documentType, content: trimmed)
+            current = DocumentDetail(
                 projectId: current.projectId,
                 sections: current.sections,
                 messages: current.messages + [response]

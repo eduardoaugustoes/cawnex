@@ -1,11 +1,38 @@
 import SwiftUI
 
-struct VisionDocumentScreen: View {
-    let projectId: String
-    @State var viewModel: VisionDocumentViewModel
-    var onBack: () -> Void = {}
+// MARK: - DocumentType Display Properties
 
-    private let accentColor = CawnexColors.primary
+extension DocumentType {
+    var displayTitle: String {
+        switch self {
+        case .vision: "Vision"
+        case .architecture: "Architecture"
+        case .glossary: "Glossary"
+        case .design: "Design System"
+        }
+    }
+
+    var accentColor: Color {
+        switch self {
+        case .vision: CawnexColors.primary
+        case .architecture: CawnexColors.info
+        case .glossary: CawnexColors.success
+        case .design: CawnexColors.accent
+        }
+    }
+}
+
+// MARK: - DocumentScreen
+
+struct DocumentScreen: View {
+    let projectId: String
+    let type: DocumentType
+    @State var viewModel: DocumentViewModel
+    var onBack: () -> Void = {}
+    @State private var isShowingPreview = false
+
+    private var accentColor: Color { type.accentColor }
+    private var title: String { type.displayTitle }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -15,6 +42,16 @@ struct VisionDocumentScreen: View {
         .background(CawnexColors.background)
         .navigationBarHidden(true)
         .task { await viewModel.load(projectId: projectId) }
+        .sheet(isPresented: $isShowingPreview) {
+            if let detail = viewModel.detail {
+                DocumentPreviewSheet(
+                    title: title,
+                    accentColor: accentColor,
+                    sections: detail.sections,
+                    onDismiss: { isShowingPreview = false }
+                )
+            }
+        }
     }
 
     private var scrollContent: some View {
@@ -46,7 +83,7 @@ struct VisionDocumentScreen: View {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(CawnexColors.cardForeground)
-                    Text("Vision")
+                    Text(title)
                         .font(CawnexTypography.heading3)
                         .foregroundStyle(CawnexColors.cardForeground)
                 }
@@ -69,7 +106,7 @@ struct VisionDocumentScreen: View {
     private var bannerRow: some View {
         if viewModel.detail != nil {
             DocPreviewBanner(
-                title: "Vision Document",
+                title: title,
                 accentColor: accentColor,
                 sectionsComplete: viewModel.completedSections,
                 sectionsTotal: viewModel.totalSections
@@ -101,7 +138,7 @@ struct VisionDocumentScreen: View {
     }
 
     private var previewButton: some View {
-        Button(action: {}) {
+        Button(action: { isShowingPreview = true }) {
             HStack(spacing: CawnexSpacing.sm) {
                 Image(systemName: "eye")
                     .font(.system(size: 15))
@@ -131,14 +168,32 @@ struct VisionDocumentScreen: View {
     }
 }
 
-#Preview {
+#Preview("Vision") {
     let store = AppStore()
     store.seedData()
     return NavigationStack {
-        VisionDocumentScreen(
+        DocumentScreen(
             projectId: "1",
-            viewModel: VisionDocumentViewModel(
-                documentService: InMemoryDocumentService()
+            type: .vision,
+            viewModel: DocumentViewModel(
+                documentService: InMemoryDocumentService(),
+                documentType: .vision
+            )
+        )
+    }
+    .environment(store)
+}
+
+#Preview("Architecture") {
+    let store = AppStore()
+    store.seedData()
+    return NavigationStack {
+        DocumentScreen(
+            projectId: "1",
+            type: .architecture,
+            viewModel: DocumentViewModel(
+                documentService: InMemoryDocumentService(),
+                documentType: .architecture
             )
         )
     }

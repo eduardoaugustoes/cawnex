@@ -13,7 +13,7 @@ struct BudgetBar: View {
     var body: some View {
         HStack(spacing: CawnexSpacing.sm) {
             Text("Spent \(formatCurrency(spent))")
-                .font(.custom("JetBrains Mono", size: 11).weight(.semibold))
+                .font(CawnexTypography.monoSemibold)
                 .foregroundStyle(CawnexColors.mutedForeground)
                 .fixedSize()
 
@@ -31,7 +31,7 @@ struct BudgetBar: View {
             .clipShape(RoundedRectangle(cornerRadius: 3))
 
             Text("Saved \(formatCurrency(saved))")
-                .font(.custom("JetBrains Mono", size: 11).weight(.semibold))
+                .font(CawnexTypography.monoSemibold)
                 .foregroundStyle(CawnexColors.success)
                 .fixedSize()
         }

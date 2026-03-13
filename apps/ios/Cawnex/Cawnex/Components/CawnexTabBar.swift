@@ -63,7 +63,7 @@ struct CawnexTabBar: View {
                 }
                 .frame(width: 18, height: 18)
                 Text(tab.label)
-                    .font(.custom("Inter", size: 10).weight(isSelected ? .semibold : .medium))
+                    .font(CawnexTypography.display(10, weight: isSelected ? .semibold : .medium))
                     .tracking(0.5)
             }
             .foregroundStyle(isSelected ? CawnexColors.primaryForeground : CawnexColors.mutedForeground)

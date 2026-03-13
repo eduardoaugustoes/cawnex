@@ -157,20 +157,16 @@ struct MainTabView: View {
         .background(CawnexColors.background)
     }
 
-    @ViewBuilder
     private func documentDestination(projectId: String, type: DocumentType) -> some View {
-        switch type {
-        case .vision:
-            VisionDocumentScreen(
-                projectId: projectId,
-                viewModel: VisionDocumentViewModel(
-                    documentService: services.makeDocumentService()
-                ),
-                onBack: { tabRouter.projectPath.removeLast() }
-            )
-        default:
-            routePlaceholder("Document: \(type.rawValue)", id: projectId)
-        }
+        DocumentScreen(
+            projectId: projectId,
+            type: type,
+            viewModel: DocumentViewModel(
+                documentService: services.makeDocumentService(),
+                documentType: type
+            ),
+            onBack: { tabRouter.projectPath.removeLast() }
+        )
     }
 
     private func routePlaceholder(_ title: String, id: String) -> some View {

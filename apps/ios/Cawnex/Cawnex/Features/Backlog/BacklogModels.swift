@@ -1,4 +1,4 @@
-import SwiftUI
+import Foundation
 
 enum MilestoneStatus: String, Equatable {
     case inProgress = "In Progress"

@@ -12,6 +12,7 @@ enum CawnexTypography {
 
     static let wordmark = Font.custom("Inter", size: 36).weight(.bold)
     static let tagline = Font.custom("Inter", size: 14).weight(.regular)
+    static let heading0 = Font.custom("Inter", size: 28).weight(.bold)
     static let heading1 = Font.custom("Inter", size: 24).weight(.bold)
     static let heading2 = Font.custom("Inter", size: 20).weight(.heavy)
     static let heading3 = Font.custom("Inter", size: 17).weight(.bold)
@@ -29,4 +30,6 @@ enum CawnexTypography {
     static let tinyMedium = Font.custom("Inter", size: 10).weight(.medium)
     static let mono = Font.custom("JetBrains Mono", size: 12).weight(.regular)
     static let monoBold = Font.custom("JetBrains Mono", size: 12).weight(.bold)
+    static let monoSemibold = Font.custom("JetBrains Mono", size: 11).weight(.semibold)
+    static let microBold = Font.custom("Inter", size: 9).weight(.semibold)
 }

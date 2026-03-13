@@ -54,7 +54,7 @@ struct ProjectHubScreen: View {
     private func projectHeader(_ project: Project) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(project.name)
-                .font(.custom("Inter", size: 22).weight(.heavy))
+                .font(CawnexTypography.display(22, weight: .heavy))
                 .foregroundStyle(CawnexColors.cardForeground)
             Text(project.description)
                 .font(CawnexTypography.caption)

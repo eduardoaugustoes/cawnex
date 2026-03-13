@@ -34,7 +34,7 @@ struct SignInScreen: View {
                 .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
 
             Text("CAWNEX")
-                .font(.custom("Inter", size: 28).weight(.bold))
+                .font(CawnexTypography.heading0)
                 .tracking(4)
                 .foregroundStyle(CawnexColors.cardForeground)
 
@@ -58,7 +58,7 @@ struct SignInScreen: View {
     private var emailField: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Email")
-                .font(.custom("Inter", size: 13).weight(.medium))
+                .font(CawnexTypography.captionMedium)
                 .foregroundStyle(CawnexColors.mutedForeground)
 
             HStack(spacing: 10) {
@@ -68,7 +68,7 @@ struct SignInScreen: View {
                     .frame(width: 18, height: 18)
 
                 TextField("", text: $email, prompt: Text("your@email.com").foregroundStyle(Color(hex: 0x475569)))
-                    .font(.custom("Inter", size: 15))
+                    .font(CawnexTypography.body)
                     .foregroundStyle(CawnexColors.cardForeground)
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
@@ -89,7 +89,7 @@ struct SignInScreen: View {
     private var passwordField: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Password")
-                .font(.custom("Inter", size: 13).weight(.medium))
+                .font(CawnexTypography.captionMedium)
                 .foregroundStyle(CawnexColors.mutedForeground)
 
             HStack(spacing: 10) {
@@ -105,7 +105,7 @@ struct SignInScreen: View {
                         SecureField("", text: $password, prompt: Text("••••••••").foregroundStyle(Color(hex: 0x475569)))
                     }
                 }
-                .font(.custom("Inter", size: 15))
+                .font(CawnexTypography.body)
                 .foregroundStyle(CawnexColors.cardForeground)
                 .textContentType(.password)
 
@@ -131,7 +131,7 @@ struct SignInScreen: View {
     private var signInButton: some View {
         Button(action: onSignIn) {
             Text("Sign In")
-                .font(.custom("Inter", size: 16).weight(.semibold))
+                .font(CawnexTypography.sectionTitle)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
@@ -167,7 +167,7 @@ struct SignInScreen: View {
                     .font(.system(size: 18))
                     .foregroundStyle(.black)
                 Text("Continue with Apple")
-                    .font(.custom("Inter", size: 16).weight(.semibold))
+                    .font(CawnexTypography.sectionTitle)
                     .foregroundStyle(.black)
             }
             .frame(maxWidth: .infinity)
@@ -188,7 +188,7 @@ struct SignInScreen: View {
                 // TBD: registration flow
             } label: {
                 Text("Sign Up")
-                    .font(.custom("Inter", size: 13).weight(.semibold))
+                    .font(CawnexTypography.captionBold)
                     .foregroundStyle(CawnexColors.primaryLight)
             }
         }

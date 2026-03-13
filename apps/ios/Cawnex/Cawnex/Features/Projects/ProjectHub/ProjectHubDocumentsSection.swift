@@ -37,7 +37,7 @@ struct ProjectHubDocumentsSection: View {
                     .foregroundStyle(CawnexColors.cardForeground)
 
                 Text(doc.status.rawValue)
-                    .font(.custom("Inter", size: 9).weight(.semibold))
+                    .font(CawnexTypography.microBold)
                     .foregroundStyle(chipForeground(for: doc.status))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)

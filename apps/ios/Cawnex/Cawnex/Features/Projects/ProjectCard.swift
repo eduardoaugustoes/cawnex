@@ -71,8 +71,11 @@ struct ProjectCard: View {
 
     // MARK: - Budget
 
+    @ViewBuilder
     private var budgetBar: some View {
-        BudgetBar(spent: project.creditsSpent, saved: project.humanEquivSaved)
+        if project.creditsSpent > 0 {
+            BudgetBar(spent: project.creditsSpent, saved: project.humanEquivSaved)
+        }
     }
 }
 
