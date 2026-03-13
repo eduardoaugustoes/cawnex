@@ -1,0 +1,125 @@
+name: POC 6 — Worker Lambda + EFS
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Deploy or destroy the stack"
+        type: choice
+        options:
+          - deploy
+          - destroy
+        default: deploy
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  STACK_NAME: poc6
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: inputs.action == 'deploy'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install CDK dependencies
+        run: cd infra && npm ci
+
+      - name: CDK Deploy (infra)
+        run: |
+          cd infra
+          npx cdk deploy --context stack=${{ env.STACK_NAME }} --context stage=dev --require-approval never 2>&1
+
+      - name: Get ECR URI
+        id: ecr
+        run: |
+          ECR_URI=$(aws ecr describe-repositories \
+            --repository-names cawnex-poc6-worker-dev \
+            --query 'repositories[0].repositoryUri' \
+            --output text)
+          echo "uri=$ECR_URI" >> "$GITHUB_OUTPUT"
+          echo "ECR URI: $ECR_URI"
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+            docker login --username AWS --password-stdin ${{ steps.ecr.outputs.uri }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t cawnex-worker lambdas/poc6-worker/
+          docker tag cawnex-worker:latest ${{ steps.ecr.outputs.uri }}:latest
+          docker push ${{ steps.ecr.outputs.uri }}:latest
+
+      - name: Update Lambda code
+        run: |
+          aws lambda update-function-code \
+            --function-name cawnex-poc6-worker-dev \
+            --image-uri ${{ steps.ecr.outputs.uri }}:latest \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for Lambda update
+        run: |
+          aws lambda wait function-updated \
+            --function-name cawnex-poc6-worker-dev \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Inject secrets
+        run: |
+          aws lambda update-function-configuration \
+            --function-name cawnex-poc6-worker-dev \
+            --environment "Variables={
+              BLACKBOARD_TABLE=cawnex-poc5-blackboard-dev,
+              ANTHROPIC_MODEL=claude-sonnet-4-20250514,
+              ANTHROPIC_AUTH_TOKEN=${{ secrets.ANTHROPIC_AUTH_TOKEN }},
+              GITHUB_TOKEN=${{ secrets.GH_PAT }},
+              EFS_MOUNT=/mnt/repos,
+              STAGE=dev
+            }" \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Summary
+        run: |
+          echo "## POC 6 Deployed ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Worker Lambda**: cawnex-poc6-worker-dev" >> $GITHUB_STEP_SUMMARY
+          echo "- **ECR Image**: ${{ steps.ecr.outputs.uri }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "- **Blackboard**: cawnex-poc5-blackboard-dev" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Worker is now listening for TASK records on DynamoDB Stream." >> $GITHUB_STEP_SUMMARY
+
+  destroy:
+    runs-on: ubuntu-latest
+    if: inputs.action == 'destroy'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install CDK dependencies
+        run: cd infra && npm ci
+
+      - name: CDK Destroy
+        run: |
+          cd infra
+          npx cdk destroy --context stack=${{ env.STACK_NAME }} --context stage=dev --force

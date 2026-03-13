@@ -5,6 +5,7 @@ import { CawnexStack } from "../lib/cawnex-stack";
 import { Poc1CrowStack } from "../lib/poc1-crow-stack";
 import { Poc3MurderStack } from "../lib/poc3-murder-stack";
 import { Poc5AsyncStack } from "../lib/poc5-async-stack";
+import { Poc6WorkerStack } from "../lib/poc6-worker-stack";
 
 const app = new cdk.App();
 
@@ -31,4 +32,8 @@ if (!stack || stack === "poc3") {
 
 if (!stack || stack === "poc5") {
   new Poc5AsyncStack(app, `CawnexPoc5-${stage}`, { stage, env });
+}
+
+if (!stack || stack === "poc6") {
+  new Poc6WorkerStack(app, `CawnexPoc6-${stage}`, { stage, env });
 }
