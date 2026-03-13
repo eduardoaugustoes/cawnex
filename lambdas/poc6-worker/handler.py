@@ -451,7 +451,7 @@ def lambda_handler(event: dict, context: Any):
                         if diff:
                             run_git(f'git commit -m "{commit_msg}"', cwd=worktree_dir)
                             push_url = f"https://x-access-token:{GITHUB_TOKEN}@github.com/{repo}.git"
-                            run_git(f"git push {push_url} {branch}", cwd=worktree_dir)
+                            run_git(f"git push --force-with-lease {push_url} {branch}", cwd=worktree_dir)
                             log_event(execution_id, "git_pushed",
                                       branch=branch, files=len(files_changed))
 
