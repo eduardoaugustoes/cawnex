@@ -4,6 +4,7 @@ struct MainTabView: View {
     @Environment(AppStore.self) private var store
     @State private var selectedTab: CawnexTab = .projects
     @State private var tabRouter = TabRouter()
+    @State private var isCreatingProject: Bool = false
 
     private var services: ServiceFactory {
         ServiceFactory(store: store)
@@ -51,7 +52,7 @@ struct MainTabView: View {
                     projectService: services.makeProjectService()
                 ),
                 onBellTap: {},
-                onAddTap: {},
+                onAddTap: { isCreatingProject = true },
                 onProjectTap: { project in
                     tabRouter.pushProject(project.id)
                 }
@@ -59,6 +60,18 @@ struct MainTabView: View {
             .navigationDestination(for: ProjectRoute.self) { route in
                 destinationView(for: route)
             }
+        }
+        .sheet(isPresented: $isCreatingProject) {
+            CreateProjectScreen(
+                viewModel: CreateProjectViewModel(
+                    projectService: services.makeProjectService()
+                ),
+                onCancel: { isCreatingProject = false },
+                onCreate: { project in
+                    isCreatingProject = false
+                    tabRouter.pushProject(project.id)
+                }
+            )
         }
     }
 

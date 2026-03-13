@@ -3,7 +3,7 @@ import Foundation
 protocol ProjectService {
     func listProjects() async throws -> [Project]
     func getProject(_ id: String) async throws -> Project?
-    func createProject(name: String, description: String) async throws -> Project
+    func createProject(name: String, description: String, murders: Set<MurderType>) async throws -> Project
 }
 
 final class InMemoryProjectService: ProjectService {
@@ -21,7 +21,7 @@ final class InMemoryProjectService: ProjectService {
         store.projects.first { $0.id == id }
     }
 
-    func createProject(name: String, description: String) async throws -> Project {
+    func createProject(name: String, description: String, murders: Set<MurderType>) async throws -> Project {
         let project = Project(
             id: UUID().uuidString,
             name: name,
