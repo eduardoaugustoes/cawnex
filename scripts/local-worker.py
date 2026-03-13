@@ -248,6 +248,7 @@ def execute_with_sdk(prompt: str, repo: str, branch: str) -> dict:
     # OAuth tokens (sk-ant-oat01-*) need Bearer auth + beta header
     if token.startswith("sk-ant-oat"):
         client = anthropic.Anthropic(
+            api_key=None,
             auth_token=token,
             default_headers={"anthropic-beta": "oauth-2025-04-20"},
         )

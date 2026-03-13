@@ -81,6 +81,7 @@ def _get_claude_client() -> anthropic.Anthropic:
     # OAuth tokens (sk-ant-oat01-*) need Bearer auth + beta header
     if token.startswith("sk-ant-oat"):
         return anthropic.Anthropic(
+            api_key=None,
             auth_token=token,
             default_headers={"anthropic-beta": "oauth-2025-04-20"},
         )
