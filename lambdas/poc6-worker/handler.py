@@ -505,7 +505,7 @@ def lambda_handler(event: dict, context: Any):
             finally:
                 # 7. Cleanup worktree
                 cleanup_worktree(repo_dir, worktree_dir)
-                log_event(execution_id, "worktree_cleaned", execution_id=execution_id)
+                log_event(execution_id, "worktree_cleaned")
 
         except Exception as e:
             error_msg = str(e)
