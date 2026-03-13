@@ -91,25 +91,45 @@ def run_git(cmd: str, cwd: str = None, check: bool = True) -> str:
 def ensure_repo(repo: str) -> str:
     """Clone repo to EFS if not present, otherwise fetch. Returns repo path."""
     repo_dir = os.path.join(EFS_MOUNT, repo.replace("/", "_"))
+    clone_url = f"https://x-access-token:{GITHUB_TOKEN}@github.com/{repo}.git"
 
-    # Fix git safe directory (EFS uid/gid may differ from Lambda process)
-    run_git(f"git config --global --add safe.directory {repo_dir}", check=False)
+    # Check if we should force re-clone (e.g. after fixing shallow clone issue)
+    force_reclone = os.environ.get("FORCE_RECLONE", "")
 
     if os.path.exists(os.path.join(repo_dir, ".git")):
-        run_git("git fetch origin", cwd=repo_dir)
-        run_git("git reset --hard origin/main", cwd=repo_dir)
-        # Ensure git identity is set
-        run_git('git config user.email "cawnex-worker@cawnex.ai"', cwd=repo_dir)
-        run_git('git config user.name "Cawnex Worker"', cwd=repo_dir)
-        return repo_dir
+        # Validate clone is healthy — also detect shallow clones
+        health = run_git("git status --porcelain", cwd=repo_dir, check=False)
+        is_shallow = os.path.exists(os.path.join(repo_dir, ".git", "shallow"))
+        if "fatal" in health or is_shallow or force_reclone:
+            reason = "corrupted" if "fatal" in health else "shallow" if is_shallow else "force_reclone"
+            logger.warning("Removing repo at %s (reason=%s), will re-clone", repo_dir, reason)
+            shutil.rmtree(repo_dir)
+        else:
+            start = time.time()
+            run_git("git fetch origin", cwd=repo_dir)
+            fetch_ms = int((time.time() - start) * 1000)
+            file_count = run_git("git ls-tree --name-only -r HEAD | wc -l", cwd=repo_dir, check=False).strip()
+            logger.info(json.dumps({
+                "event": "ensure_repo_fetched", "repo": repo,
+                "fetch_ms": fetch_ms, "head_files": file_count,
+            }))
+            return repo_dir
 
-    clone_url = f"https://x-access-token:{GITHUB_TOKEN}@github.com/{repo}.git"
-    run_git(f"git clone --depth 50 {clone_url} {repo_dir}")
+    # Full clone (no --depth), repo base serves as object cache for worktrees
+    logger.info(json.dumps({"event": "ensure_repo_cloning", "repo": repo, "dest": repo_dir}))
+    start = time.time()
+    run_git(f"git clone {clone_url} {repo_dir}")
+    clone_ms = int((time.time() - start) * 1000)
 
     # Configure git identity
     run_git('git config user.email "cawnex-worker@cawnex.ai"', cwd=repo_dir)
     run_git('git config user.name "Cawnex Worker"', cwd=repo_dir)
 
+    file_count = run_git("git ls-tree --name-only -r HEAD | wc -l", cwd=repo_dir, check=False).strip()
+    logger.info(json.dumps({
+        "event": "ensure_repo_cloned", "repo": repo,
+        "clone_ms": clone_ms, "head_files": file_count,
+    }))
     return repo_dir
 
 
