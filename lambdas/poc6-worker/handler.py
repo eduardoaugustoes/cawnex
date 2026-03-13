@@ -259,6 +259,60 @@ def gather_code_context(worktree_dir: str, max_files: int = 30) -> str:
     return "\n".join(context_parts)
 
 
+def gather_reviewer_context(worktree_dir: str, base_branch: str = "main") -> str:
+    """Optimized context for reviewer: only git diff + modified files."""
+    context_parts = []
+    
+    try:
+        # 1. Git diff summary (files changed, lines added/removed)
+        diff_summary = run_git(f"git diff --stat {base_branch}..HEAD", cwd=worktree_dir)
+        if diff_summary.strip():
+            context_parts.append(f"## Changes Summary\n```\n{diff_summary}\n```\n")
+        
+        # 2. Full diff content showing exact changes
+        diff_content = run_git(f"git diff {base_branch}..HEAD", cwd=worktree_dir)
+        if diff_content.strip():
+            context_parts.append(f"## Git Diff\n```diff\n{diff_content}\n```\n")
+        
+        # 3. Modified files for context (max 10 files)
+        modified_files_cmd = run_git(f"git diff --name-only {base_branch}..HEAD", cwd=worktree_dir)
+        modified_files = [f.strip() for f in modified_files_cmd.split('\n') if f.strip()]
+        
+        if modified_files:
+            context_parts.append(f"## Modified Files ({len(modified_files)} files)")
+            
+            files_read = 0
+            for filepath in modified_files[:10]:  # Limit to 10 modified files
+                fullpath = os.path.join(worktree_dir, filepath)
+                if os.path.exists(fullpath):
+                    try:
+                        size = os.path.getsize(fullpath)
+                        if size > 50_000:  # Skip large files
+                            context_parts.append(f"### {filepath}\n*File too large ({size} bytes), see diff above*\n")
+                            continue
+                        with open(fullpath, "r", errors="ignore") as f:
+                            content = f.read()
+                        context_parts.append(f"### {filepath}\n```\n{content}\n```\n")
+                        files_read += 1
+                    except Exception as e:
+                        context_parts.append(f"### {filepath}\n*Could not read: {e}*\n")
+        
+        context_text = "\n\n".join(context_parts)
+        
+        log_event("", "gather_reviewer_context",
+                  worktree_dir=worktree_dir,
+                  modified_files=len(modified_files),
+                  files_read=files_read,
+                  context_bytes=len(context_text))
+        
+        return context_text
+        
+    except Exception as e:
+        logger.error(f"Error gathering reviewer context: {e}")
+        # Fallback to regular context if git operations fail
+        return gather_code_context(worktree_dir, max_files=10)
+
+
 # ─────────────────────────────────────────────
 # Claude execution
 # ─────────────────────────────────────────────
@@ -287,13 +341,26 @@ Output a JSON object:
   "summary": "What was implemented"
 }""",
 
-    "reviewer": """You are a reviewer crow. Review the code changes and provide feedback.
+    "reviewer": """You are a reviewer crow. Review the git diff and code changes.
+
+You will receive:
+- Changes summary (files modified, lines added/removed)  
+- Full git diff showing exact changes
+- Content of modified files for context
+
+Focus on:
+- Code quality and best practices
+- Potential bugs or issues in the changed lines
+- Performance implications of the changes
+- Security concerns
+- Test coverage for new functionality
+
 Output a JSON object:
 {
   "approved": true | false,
   "issues": ["Issue 1", "Issue 2"],
   "suggestions": ["Suggestion 1"],
-  "summary": "Review summary"
+  "summary": "Review summary focusing on the actual changes"
 }""",
 }
 
@@ -486,9 +553,13 @@ def lambda_handler(event: dict, context: Any):
                           files_sample=wt_files[:500],
                           recent_commits=wt_log[:300])
 
-                code_context = gather_code_context(worktree_dir)
+                # Use optimized context for reviewer
+                if crow == "reviewer":
+                    code_context = gather_reviewer_context(worktree_dir)
+                else:
+                    code_context = gather_code_context(worktree_dir)
                 log_event(execution_id, "code_context_gathered",
-                          chars=len(code_context))
+                          crow=crow, chars=len(code_context))
 
                 # 4. Call Claude
                 claude_start = time.time()
