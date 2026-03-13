@@ -99,7 +99,8 @@ export class Poc6WorkerStack extends cdk.Stack {
       cpuType: ec2.AmazonLinuxCpuType.ARM_64,
     });
 
-    const natEc2 = new ec2.Instance(this, "NatInstance", {
+    // Force replacement when user data changes (v2 = NAT interface fix)
+    const natEc2 = new ec2.Instance(this, "NatInstanceV2", {
       instanceType: ec2.InstanceType.of(
         ec2.InstanceClass.T4G,
         ec2.InstanceSize.NANO
