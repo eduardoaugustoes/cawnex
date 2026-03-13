@@ -86,6 +86,16 @@ jobs:
             --context blackboardStreamArn=${{ steps.stream.outputs.arn }} \
             --require-approval never 2>&1
 
+      - name: Force Lambda to use latest image
+        run: |
+          aws lambda update-function-code \
+            --function-name cawnex-poc6-worker-dev \
+            --image-uri ${{ steps.ecr.outputs.uri }}:latest \
+            --region ${{ env.AWS_REGION }} --no-cli-pager
+          aws lambda wait function-updated \
+            --function-name cawnex-poc6-worker-dev \
+            --region ${{ env.AWS_REGION }}
+
       # Step 3: Inject secrets
       - name: Inject secrets
         run: |
