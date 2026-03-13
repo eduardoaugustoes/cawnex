@@ -245,9 +245,12 @@ def execute_with_cli(prompt: str, repo: str, branch: str) -> dict:
 def execute_with_sdk(prompt: str, repo: str, branch: str) -> dict:
     """Run task using Anthropic SDK with OAuth token ($0 via subscription)."""
     token = get_access_token()
-    # OAuth tokens (sk-ant-oat01-*) use Bearer auth, API keys use x-api-key
+    # OAuth tokens (sk-ant-oat01-*) need Bearer auth + beta header
     if token.startswith("sk-ant-oat"):
-        client = anthropic.Anthropic(auth_token=token)
+        client = anthropic.Anthropic(
+            auth_token=token,
+            default_headers={"anthropic-beta": "oauth-2025-04-20"},
+        )
     else:
         client = anthropic.Anthropic(api_key=token)
 

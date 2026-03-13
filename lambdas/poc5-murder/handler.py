@@ -78,9 +78,12 @@ def _get_access_token() -> str:
 def _get_claude_client() -> anthropic.Anthropic:
     """Get an Anthropic client with a valid token."""
     token = _get_access_token()
-    # OAuth tokens (sk-ant-oat01-*) use Bearer auth, API keys use x-api-key
+    # OAuth tokens (sk-ant-oat01-*) need Bearer auth + beta header
     if token.startswith("sk-ant-oat"):
-        return anthropic.Anthropic(auth_token=token)
+        return anthropic.Anthropic(
+            auth_token=token,
+            default_headers={"anthropic-beta": "oauth-2025-04-20"},
+        )
     return anthropic.Anthropic(api_key=token)
 
 
