@@ -61,6 +61,7 @@ export class Poc1CrowStack extends cdk.Stack {
       environment: {
         STAGE: stage,
         SESSION_BUCKET: sessionBucket.bucketName,
+        // GITHUB_TOKEN set via console or Secrets Manager
       },
       logRetention: logs.RetentionDays.ONE_WEEK,
       description: "POC 1 — MCP Crow server (stub)",

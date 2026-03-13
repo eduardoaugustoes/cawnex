@@ -3,6 +3,7 @@ import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
 import { CawnexStack } from "../lib/cawnex-stack";
 import { Poc1CrowStack } from "../lib/poc1-crow-stack";
+import { Poc3MurderStack } from "../lib/poc3-murder-stack";
 
 const app = new cdk.App();
 
@@ -21,4 +22,8 @@ if (!stack || stack === "main") {
 
 if (!stack || stack === "poc1") {
   new Poc1CrowStack(app, `CawnexPoc1-${stage}`, { stage, env });
+}
+
+if (!stack || stack === "poc3") {
+  new Poc3MurderStack(app, `CawnexPoc3-${stage}`, { stage, env });
 }
