@@ -1,178 +1,226 @@
-"""
-POC 5 — API Lambda
-
-POST /murder — Create execution, return immediately with exec_id
-GET  /murder/{id} — Return current blackboard state
-"""
-
 import json
-import logging
-import os
-import time
-import uuid
-import urllib.request
-
 import boto3
-from boto3.dynamodb.conditions import Key as DKey
+import os
+from typing import Dict, Any, Optional
+import time
+from boto3.dynamodb.conditions import Key
+from decimal import Decimal
+import logging
+from github import Github
+from datetime import datetime, timezone
+import uuid
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-TABLE_NAME = os.environ.get("BLACKBOARD_TABLE", "")
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+# Initialize AWS resources
+dynamodb = boto3.resource('dynamodb')
+blackboard_table = dynamodb.Table(os.environ['BLACKBOARD_TABLE'])
 
-dynamodb = boto3.resource("dynamodb")
-
-
-def github_api(method: str, path: str, body: dict | None = None) -> dict:
-    url = f"https://api.github.com{path}"
-    data = json.dumps(body).encode() if body else None
-    req = urllib.request.Request(url, data=data, method=method)
-    req.add_header("Authorization", f"token {GITHUB_TOKEN}")
-    req.add_header("Accept", "application/vnd.github.v3+json")
-    req.add_header("User-Agent", "cawnex-api")
-    if data:
-        req.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read().decode())
-
-
-def handle_create(body: dict) -> dict:
-    """POST /murder — create execution and return immediately."""
-    repo = body.get("repo")
-    issue_number = body.get("issue_number")
-
-    if not repo or not issue_number:
-        return _response(400, {"error": "Missing 'repo' or 'issue_number'"})
-
-    issue_number = int(issue_number)
-
-    # Fetch issue
+def lambda_handler(event, context):
+    """API Gateway handler for POC 5 async blackboard operations"""
     try:
-        issue = github_api("GET", f"/repos/{repo}/issues/{issue_number}")
+        logger.info(f"Event: {json.dumps(event)}")
+        
+        http_method = event.get('httpMethod', '')
+        path = event.get('path', '')
+        
+        # Health check endpoint
+        if http_method == 'GET' and path == '/health':
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({
+                    'status': 'ok',
+                    'version': '1.0.0'
+                })
+            }
+        
+        # Route to appropriate handler
+        if path.startswith('/murder'):
+            return handle_murder_endpoints(event, context)
+        else:
+            return {
+                'statusCode': 404,
+                'body': json.dumps({'error': 'Not found'})
+            }
+            
     except Exception as e:
-        return _response(400, {"error": f"Failed to fetch issue: {e}"})
+        logger.error(f"Handler error: {str(e)}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Internal server error'})
+        }
 
-    issue_title = issue.get("title", "")
-    issue_body = issue.get("body", "") or ""
-
-    # Create branch
-    execution_id = f"exec_{uuid.uuid4().hex[:8]}"
-    branch = f"cawnex/{execution_id}"
-
-    try:
-        ref_data = github_api("GET", f"/repos/{repo}/git/ref/heads/main")
-        sha = ref_data["object"]["sha"]
-        github_api("POST", f"/repos/{repo}/git/refs", {
-            "ref": f"refs/heads/{branch}", "sha": sha,
-        })
-    except Exception as e:
-        return _response(500, {"error": f"Failed to create branch: {e}"})
-
-    # Write META to blackboard (this triggers Murder via Stream)
-    table = dynamodb.Table(TABLE_NAME)
-    table.put_item(Item={
-        "PK": f"EXEC#{execution_id}",
-        "SK": "META",
-        "ts": int(time.time()),
-        "status": "pending",
-        "repo": repo,
-        "branch": branch,
-        "issue_number": issue_number,
-        "issue_title": issue_title,
-        "issue_body": issue_body,
-    })
-
-    logger.info("Execution created: %s for %s#%d", execution_id, repo, issue_number)
-
-    # Return immediately
-    return _response(200, {
-        "execution_id": execution_id,
-        "status": "pending",
-        "branch": branch,
-        "message": "Execution created. Murder will react via Stream.",
-    })
-
-
-def handle_status(execution_id: str) -> dict:
-    """GET /murder/{id} — return current blackboard state."""
-    table = dynamodb.Table(TABLE_NAME)
-    pk = f"EXEC#{execution_id}"
-
-    resp = table.query(KeyConditionExpression=DKey("PK").eq(pk))
-    items = resp.get("Items", [])
-
-    if not items:
-        return _response(404, {"error": f"Execution {execution_id} not found"})
-
-    meta = next((i for i in items if i["SK"] == "META"), {})
-    result = next((i for i in items if i["SK"] == "RESULT"), None)
-    steps = []
-
-    for item in sorted(items, key=lambda x: x.get("ts", 0)):
-        sk = item["SK"]
-        if sk in ("META", "RESULT"):
-            continue
-        steps.append({
-            "sk": sk,
-            **{k: v for k, v in item.items() if k not in ("PK", "SK")},
-        })
-
-    output = {
-        "execution_id": execution_id,
-        "status": meta.get("status", "unknown"),
-        "repo": meta.get("repo", ""),
-        "issue_number": meta.get("issue_number"),
-        "issue_title": meta.get("issue_title", ""),
-        "branch": meta.get("branch", ""),
-        "steps": steps,
-    }
-
-    if result:
-        output["pr_url"] = result.get("pr_url", "")
-        output["pr_number"] = result.get("pr_number")
-
-    if meta.get("error"):
-        output["error"] = meta["error"]
-
-    return _response(200, output)
-
-
-# ─────────────────────────────────────────────
-# Lambda Handler (API Gateway v2)
-# ─────────────────────────────────────────────
-
-
-def handler(event, context):
-    logger.info("API invoked: %s %s", event.get("requestContext", {}).get("http", {}).get("method"), event.get("rawPath"))
-
-    method = event.get("requestContext", {}).get("http", {}).get("method", "")
-    path = event.get("rawPath", "")
-
-    if method == "POST" and path == "/murder":
-        try:
-            body = event.get("body", "{}")
-            if event.get("isBase64Encoded"):
-                import base64
-                body = base64.b64decode(body).decode()
-            return handle_create(json.loads(body))
-        except Exception as e:
-            logger.exception("Create failed")
-            return _response(500, {"error": str(e)})
-
-    elif method == "GET" and path.startswith("/murder/"):
-        exec_id = path.split("/murder/", 1)[1].strip("/")
-        if not exec_id:
-            return _response(400, {"error": "Missing execution_id"})
-        return handle_status(exec_id)
-
+def handle_murder_endpoints(event, context):
+    """Handle murder-related endpoints"""
+    http_method = event.get('httpMethod', '')
+    path = event.get('path', '')
+    
+    if http_method == 'POST' and path == '/murder':
+        return create_murder_execution(event, context)
+    elif http_method == 'GET' and path.startswith('/murder/'):
+        execution_id = path.split('/')[-1]
+        return get_murder_status(execution_id, context)
     else:
-        return _response(404, {"error": "Not found"})
+        return {
+            'statusCode': 405,
+            'body': json.dumps({'error': 'Method not allowed'})
+        }
 
+def create_murder_execution(event, context):
+    """Create a new murder execution"""
+    try:
+        # Parse request body
+        body = json.loads(event.get('body', '{}'))
+        repo = body.get('repo')
+        issue_number = body.get('issue_number')
+        
+        if not repo or not issue_number:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'repo and issue_number are required'})
+            }
+        
+        # Validate GitHub issue exists
+        github_token = os.environ.get('GITHUB_TOKEN')
+        if not github_token:
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': 'GitHub token not configured'})
+            }
+        
+        g = Github(github_token)
+        try:
+            repo_obj = g.get_repo(repo)
+            issue = repo_obj.get_issue(issue_number)
+        except Exception as e:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': f'Invalid repo or issue: {str(e)}'})
+            }
+        
+        # Generate execution ID
+        execution_id = str(uuid.uuid4())
+        
+        # Create initial blackboard entry
+        blackboard_item = {
+            'id': execution_id,
+            'type': 'EXECUTION',
+            'status': 'PENDING',
+            'repo': repo,
+            'issue_number': issue_number,
+            'issue_title': issue.title,
+            'issue_body': issue.body or '',
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'updated_at': datetime.now(timezone.utc).isoformat(),
+            'tasks': [],
+            'cost': Decimal('0'),
+            'ai_minutes': 0,
+            'logs': []
+        }
+        
+        # Store in DynamoDB
+        blackboard_table.put_item(Item=blackboard_item)
+        
+        # Create TASK record to trigger murder lambda
+        task_item = {
+            'id': f"task-{execution_id}",
+            'type': 'TASK',
+            'execution_id': execution_id,
+            'agent': 'murder',
+            'action': 'solve_issue',
+            'status': 'PENDING',
+            'payload': {
+                'repo': repo,
+                'issue_number': issue_number
+            },
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'priority': 1
+        }
+        
+        blackboard_table.put_item(Item=task_item)
+        
+        logger.info(f"Created execution {execution_id} for {repo}#{issue_number}")
+        
+        return {
+            'statusCode': 201,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({
+                'execution_id': execution_id,
+                'status': 'PENDING',
+                'repo': repo,
+                'issue_number': issue_number,
+                'issue_title': issue.title,
+                'message': 'Execution created and queued for processing'
+            })
+        }
+        
+    except json.JSONDecodeError:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': 'Invalid JSON in request body'})
+        }
+    except Exception as e:
+        logger.error(f"Error creating execution: {str(e)}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Failed to create execution'})
+        }
 
-def _response(code: int, body: dict) -> dict:
-    return {
-        "statusCode": code,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps(body, default=str),
-    }
+def get_murder_status(execution_id: str, context):
+    """Get the status of a murder execution"""
+    try:
+        # Get execution record
+        response = blackboard_table.get_item(
+            Key={'id': execution_id, 'type': 'EXECUTION'}
+        )
+        
+        if 'Item' not in response:
+            return {
+                'statusCode': 404,
+                'body': json.dumps({'error': 'Execution not found'})
+            }
+        
+        execution = response['Item']
+        
+        # Get associated tasks
+        task_response = blackboard_table.query(
+            IndexName='type-index',  # Assuming you have a GSI on type
+            KeyConditionExpression=Key('type').eq('TASK'),
+            FilterExpression=Key('execution_id').eq(execution_id)
+        )
+        
+        tasks = task_response.get('Items', [])
+        
+        # Convert Decimal to float for JSON serialization
+        def convert_decimal(obj):
+            if isinstance(obj, dict):
+                return {k: convert_decimal(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_decimal(v) for v in obj]
+            elif isinstance(obj, Decimal):
+                return float(obj)
+            else:
+                return obj
+        
+        execution_data = convert_decimal(execution)
+        tasks_data = convert_decimal(tasks)
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({
+                'execution_id': execution_id,
+                'execution': execution_data,
+                'tasks': tasks_data
+            })
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting execution status: {str(e)}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Failed to get execution status'})
+        }
