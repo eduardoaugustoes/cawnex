@@ -1,523 +1,608 @@
-# Claude SDK — Authentication & Usage Guide
+# Claude API / SDK Reference
 
-> Internal reference for Cawnex's integration with the Anthropic API.
-> Last updated: 2026-03-13
-
----
-
-## Table of Contents
-
-1. [Authentication Methods](#authentication-methods)
-2. [OAuth Flow (PKCE)](#oauth-flow-pkce)
-3. [SDK Configuration](#sdk-configuration)
-4. [API Request/Response](#api-requestresponse)
-5. [Tool Use (Agent Loop)](#tool-use-agent-loop)
-6. [Cawnex Architecture](#cawnex-architecture)
-7. [Gotchas & Lessons Learned](#gotchas--lessons-learned)
+> Reference for integrating Claude into Cawnex — backend (Python), mobile (Swift), and Lambda.
 
 ---
 
-## Authentication Methods
+## Authentication
 
-The Anthropic API (`api.anthropic.com`) supports two authentication mechanisms:
+### Three Auth Modes
 
-### 1. API Key (`x-api-key` header)
+| Mode | Token Format | Cost | Header |
+|------|-------------|------|--------|
+| API Key | `sk-ant-api03-...` | Pay per token | `X-Api-Key: <key>` |
+| OAuth (subscription) | `sk-ant-oat01-...` | $0 (included in plan) | `Authorization: Bearer <token>` + `anthropic-beta: oauth-2025-04-20` |
+| OAuth Refresh | `sk-ant-ort01-...` | N/A (exchange only) | Used to get new access token |
 
-```
-x-api-key: sk-ant-api03-...
-```
-
-- Created at [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
-- Billed per token (Sonnet: $3/M input, $15/M output)
-- Works everywhere (Lambda, VPS, local, CI)
-- Prefix: `sk-ant-api03-*`
-
-### 2. OAuth Token (`Authorization: Bearer` header)
+### OAuth PKCE Flow (for mobile app)
 
 ```
-Authorization: Bearer sk-ant-oat01-...
-anthropic-beta: oauth-2025-04-20
+1. Generate code_verifier (43-128 chars, [A-Za-z0-9-._~])
+2. Generate code_challenge = base64url(sha256(code_verifier))
+3. Open browser:
+   GET https://claude.ai/oauth/authorize
+     ?client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e
+     &response_type=code
+     &redirect_uri=https://console.anthropic.com/oauth/code/callback
+     &scope=user:inference user:profile
+     &code_challenge={code_challenge}
+     &code_challenge_method=S256
+     &state={code_verifier}
+
+4. User approves → redirected to callback with ?code=...&state=...
+5. Exchange code for tokens:
+   POST https://console.anthropic.com/v1/oauth/token
+   Content-Type: application/json
+   {
+     "grant_type": "authorization_code",
+     "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+     "code": "<auth_code>",
+     "redirect_uri": "https://console.anthropic.com/oauth/code/callback",
+     "code_verifier": "<code_verifier>"
+   }
 ```
 
-- Obtained via OAuth PKCE flow against `claude.ai`
-- Uses your Claude subscription (Pro/Max) — **$0 cost**
-- Requires the beta header `anthropic-beta: oauth-2025-04-20`
-- Access token expires in **8 hours**
-- Refresh token rotates on each use (one-time use)
-- Prefix: `sk-ant-oat01-*` (access), `sk-ant-ort01-*` (refresh)
+### Token Exchange Response
 
-> ⚠️ **Without the beta header**, the API returns:
-> `"OAuth authentication is currently not supported."`
-
----
-
-## OAuth Flow (PKCE)
-
-Cawnex uses the same OAuth flow as Claude Code CLI. It's a standard Authorization Code flow with PKCE (Proof Key for Code Exchange).
-
-### Endpoints
-
-| Purpose | URL |
-|---------|-----|
-| Authorize | `https://claude.ai/oauth/authorize` |
-| Token | `https://console.anthropic.com/v1/oauth/token` |
-| Redirect | `https://console.anthropic.com/oauth/code/callback` |
-
-> ⚠️ `platform.claude.com/v1/oauth/token` returns "Invalid request format".
-> The correct token endpoint is `console.anthropic.com/v1/oauth/token`.
-
-### Client
-
-| Field | Value |
-|-------|-------|
-| Client ID | `9d1c250a-e61b-44d9-88ed-5944d1962f5e` |
-| Type | Public client (no client_secret) |
-| PKCE | Required (S256) |
-
-This is Claude Code's public client ID. No registration needed.
-
-### Scopes
-
-| Scope | Purpose |
-|-------|---------|
-| `user:inference` | Make API calls using subscription |
-| `user:profile` | Read user profile info |
-| `org:create_api_key` | Create API keys (not needed for inference) |
-
-For Cawnex, only `user:inference` and `user:profile` are needed.
-
-### Step-by-Step Flow
-
-#### 1. Generate PKCE values
-
-```python
-import secrets, hashlib, base64
-
-code_verifier = secrets.token_urlsafe(32)
-code_challenge = base64.urlsafe_b64encode(
-    hashlib.sha256(code_verifier.encode()).digest()
-).rstrip(b'=').decode()
-```
-
-#### 2. Build authorize URL
-
-```
-https://claude.ai/oauth/authorize?
-  code=true
-  &client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e
-  &response_type=code
-  &redirect_uri=https://console.anthropic.com/oauth/code/callback
-  &scope=user:inference user:profile
-  &code_challenge={code_challenge}
-  &code_challenge_method=S256
-  &state={code_verifier}
-```
-
-> **Trick**: Use `code_verifier` as `state`. The state is echoed back,
-> so you get the verifier back in the callback without storing it.
-
-#### 3. User authorizes
-
-User opens URL in browser → logs in → authorizes → gets redirected.
-The callback page shows a code in format: `{auth_code}#{state}`
-
-#### 4. Exchange code for tokens
-
-```bash
-curl -s -X POST https://console.anthropic.com/v1/oauth/token \
-  -H "Content-Type: application/json" \
-  -d '{
-    "grant_type": "authorization_code",
-    "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
-    "code": "<auth_code>",
-    "state": "<state>",
-    "redirect_uri": "https://console.anthropic.com/oauth/code/callback",
-    "code_verifier": "<code_verifier>"
-  }'
-```
-
-Response:
 ```json
 {
   "token_type": "Bearer",
-  "access_token": "sk-ant-oat01-...",
+  "access_token": "sk-ant-oat01-lYxV_KPy_HHqs...",
   "expires_in": 28800,
-  "refresh_token": "sk-ant-ort01-...",
+  "refresh_token": "sk-ant-ort01-YrGUQ8bkFAf-...",
   "scope": "user:inference user:profile",
   "organization": {
-    "uuid": "...",
+    "uuid": "1dfabe8f-f7af-439b-8655-c1e03676bccf",
     "name": "user@example.com's Organization"
   },
   "account": {
-    "uuid": "...",
+    "uuid": "8a8c93ff-b806-498e-8f89-599ea0a647cc",
     "email_address": "user@example.com"
   }
 }
 ```
 
-#### 5. Refresh token
+### Token Refresh
 
-```bash
-curl -s -X POST https://console.anthropic.com/v1/oauth/token \
-  -H "Content-Type: application/json" \
-  -d '{
-    "grant_type": "refresh_token",
-    "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
-    "refresh_token": "sk-ant-ort01-..."
-  }'
+⚠️ **Refresh tokens are single-use** — each refresh rotates the token. Store the new one immediately.
+
+```
+POST https://console.anthropic.com/v1/oauth/token
+Content-Type: application/json
+{
+  "grant_type": "refresh_token",
+  "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+  "refresh_token": "<refresh_token>"
+}
 ```
 
-> ⚠️ **Refresh tokens are one-time use.** Each refresh returns a new
-> `refresh_token`. The old one is immediately invalidated.
+Response: same structure as token exchange (new access_token + new refresh_token).
 
-> ⚠️ **Cloudflare blocks** the token endpoint from some IPs (AWS Lambda,
-> GitHub Actions runners). The VPS and local machines work fine.
+### Access Token Expiry
+
+- **Lifetime**: 8 hours (28800 seconds)
+- **Refresh buffer**: refresh when < 5 min remaining
+- **Refresh blocked from**: AWS Lambda IPs, GitHub Actions (Cloudflare 403)
+- **Refresh works from**: User devices, VPS with residential IP
 
 ---
 
-## SDK Configuration
+## Messages API
 
-### Python SDK
+### Endpoint
 
-Install:
-```bash
-pip install anthropic
+```
+POST https://api.anthropic.com/v1/messages
 ```
 
-The SDK supports two auth params:
+### Required Headers
 
-| Param | Header | Env Var |
-|-------|--------|---------|
-| `api_key` | `X-Api-Key: ...` | `ANTHROPIC_API_KEY` |
-| `auth_token` | `Authorization: Bearer ...` | `ANTHROPIC_AUTH_TOKEN` |
+| Header | Value |
+|--------|-------|
+| `Content-Type` | `application/json` |
+| `anthropic-version` | `2023-06-01` |
+| `X-Api-Key` | `sk-ant-api03-...` (API key mode) |
+| `Authorization` | `Bearer sk-ant-oat01-...` (OAuth mode) |
+| `anthropic-beta` | `oauth-2025-04-20` (OAuth mode only) |
 
-### Using API Key
+⚠️ **Never send both `X-Api-Key` and `Authorization`** — the API rejects the request if `X-Api-Key` contains an OAuth token format.
+
+### Request Body
+
+```json
+{
+  "model": "claude-sonnet-4-20250514",
+  "max_tokens": 4096,
+  "system": "You are a helpful assistant.",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello, Claude!"
+    }
+  ],
+  "temperature": 1.0,
+  "top_p": 0.999,
+  "stop_sequences": []
+}
+```
+
+### Response Body
+
+```json
+{
+  "id": "msg_01XFDUDYJgAACzvnptvVoYEL",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-4-20250514",
+  "content": [
+    {
+      "type": "text",
+      "text": "Hello! How can I help you today?"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 337,
+    "output_tokens": 4096,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+  }
+}
+```
+
+### Content Block Types
+
+```json
+// Text block
+{ "type": "text", "text": "..." }
+
+// Tool use block (when using tools)
+{ "type": "tool_use", "id": "toolu_01...", "name": "tool_name", "input": { ... } }
+
+// Tool result (in user messages)
+{ "type": "tool_result", "tool_use_id": "toolu_01...", "content": "..." }
+```
+
+### Models & Pricing
+
+| Model | Input ($/1M) | Output ($/1M) | Max Output |
+|-------|-------------|---------------|------------|
+| `claude-sonnet-4-20250514` | $3.00 | $15.00 | 8,192 |
+| `claude-opus-4-0-20250514` | $15.00 | $75.00 | 8,192 |
+| `claude-haiku-3-5-20241022` | $0.80 | $4.00 | 8,192 |
+
+### Cost Calculation
+
+```python
+cost = (usage.input_tokens * input_price + usage.output_tokens * output_price) / 1_000_000
+
+# Example: Sonnet, 337 in / 4096 out
+cost = (337 * 3 + 4096 * 15) / 1_000_000  # = $0.0625
+```
+
+---
+
+## Streaming
+
+### Request
+
+Add `"stream": true` to request body.
+
+### Response (Server-Sent Events)
+
+```
+event: message_start
+data: {"type":"message_start","message":{"id":"msg_01...","type":"message","role":"assistant","content":[],"model":"claude-sonnet-4-20250514","stop_reason":null,"usage":{"input_tokens":337,"output_tokens":0}}}
+
+event: content_block_start
+data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"! How"}}
+
+event: content_block_stop
+data: {"type":"content_block_stop","index":0}
+
+event: message_delta
+data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":42}}
+
+event: message_stop
+data: {"type":"message_stop"}
+```
+
+### Stream Event Types
+
+| Event | Description |
+|-------|-------------|
+| `message_start` | Start of message, includes model/usage |
+| `content_block_start` | New content block beginning |
+| `content_block_delta` | Incremental text/tool content |
+| `content_block_stop` | Content block complete |
+| `message_delta` | Final stop_reason + output token count |
+| `message_stop` | Stream complete |
+| `ping` | Keep-alive |
+| `error` | Error during stream |
+
+---
+
+## Error Responses
+
+### 401 Unauthorized
+
+```json
+{
+  "type": "error",
+  "error": {
+    "type": "authentication_error",
+    "message": "invalid x-api-key"
+  }
+}
+```
+
+**Common causes:**
+- OAuth token in `X-Api-Key` header (must use `Authorization: Bearer`)
+- Missing `anthropic-beta: oauth-2025-04-20` header with OAuth token
+- Both `X-Api-Key` and `Authorization` headers sent simultaneously
+- Expired access token (8h lifetime)
+
+### 429 Rate Limited
+
+```json
+{
+  "type": "error",
+  "error": {
+    "type": "rate_limit_error",
+    "message": "Rate limit reached"
+  }
+}
+```
+
+Headers: `retry-after: <seconds>`
+
+### 529 Overloaded
+
+```json
+{
+  "type": "error",
+  "error": {
+    "type": "overloaded_error",
+    "message": "Overloaded"
+  }
+}
+```
+
+---
+
+## SDK Usage
+
+### Python (Lambda / Backend)
 
 ```python
 import anthropic
 
+# API Key mode
 client = anthropic.Anthropic(api_key="sk-ant-api03-...")
-# or just set ANTHROPIC_API_KEY env var
-client = anthropic.Anthropic()
-```
 
-### Using OAuth Token
-
-```python
-import anthropic
-
+# OAuth mode ($0 cost)
 client = anthropic.Anthropic(
-    api_key=None,                # ← CRITICAL: must be None
+    api_key=None,  # CRITICAL: prevents SDK from reading ANTHROPIC_API_KEY env var
     auth_token="sk-ant-oat01-...",
     default_headers={"anthropic-beta": "oauth-2025-04-20"},
 )
-```
 
-> ⚠️ **Dual header bug**: If `ANTHROPIC_API_KEY` env var is set, the SDK
-> sends BOTH `X-Api-Key` and `Authorization: Bearer` headers. The API
-> rejects the `X-Api-Key` with an OAuth token value (`invalid x-api-key`).
->
-> **Fix**: Either set `api_key=None` explicitly, or use `ANTHROPIC_AUTH_TOKEN`
-> env var instead of `ANTHROPIC_API_KEY`.
-
-### Auto-detection pattern
-
-```python
-import os
-import anthropic
-
-token = os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY", "")
-
-if token.startswith("sk-ant-oat"):
-    client = anthropic.Anthropic(
-        api_key=None,
-        auth_token=token,
-        default_headers={"anthropic-beta": "oauth-2025-04-20"},
-    )
-else:
-    client = anthropic.Anthropic(api_key=token)
-```
-
-### Available SDKs
-
-| Language | Package | Docs |
-|----------|---------|------|
-| Python | `pip install anthropic` | [platform.claude.com/docs/en/api/sdks/python](https://platform.claude.com/docs/en/api/sdks/python) |
-| TypeScript | `npm install @anthropic-ai/sdk` | [/docs/en/api/sdks/typescript](https://platform.claude.com/docs/en/api/sdks/typescript) |
-| Java | `com.anthropic:anthropic-java` | [/docs/en/api/sdks/java](https://platform.claude.com/docs/en/api/sdks/java) |
-| Go | `github.com/anthropics/anthropic-sdk-go` | [/docs/en/api/sdks/go](https://platform.claude.com/docs/en/api/sdks/go) |
-| Ruby | `bundler add anthropic` | [/docs/en/api/sdks/ruby](https://platform.claude.com/docs/en/api/sdks/ruby) |
-| C# | `dotnet add package Anthropic` | [/docs/en/api/sdks/csharp](https://platform.claude.com/docs/en/api/sdks/csharp) |
-| PHP | `composer require anthropic-ai/sdk` | [/docs/en/api/sdks/php](https://platform.claude.com/docs/en/api/sdks/php) |
-
-Source: [github.com/anthropics/anthropic-sdk-python](https://github.com/anthropics/anthropic-sdk-python)
-
----
-
-## API Request/Response
-
-### Basic message
-
-```python
 response = client.messages.create(
     model="claude-sonnet-4-20250514",
     max_tokens=4096,
     system="You are a helpful assistant.",
-    messages=[
-        {"role": "user", "content": "Hello, Claude"}
-    ],
+    messages=[{"role": "user", "content": "Hello!"}],
 )
 
-print(response.content[0].text)
-print(f"Tokens: {response.usage.input_tokens} in, {response.usage.output_tokens} out")
+# Access response
+text = "\n".join(b.text for b in response.content if b.type == "text")
+print(f"Tokens: in={response.usage.input_tokens} out={response.usage.output_tokens}")
 ```
 
-### Streaming
+### Swift (iOS App)
 
-```python
-with client.messages.stream(
-    model="claude-sonnet-4-20250514",
-    max_tokens=4096,
-    messages=[{"role": "user", "content": "Hello"}],
-) as stream:
-    for text in stream.text_stream:
-        print(text, end="", flush=True)
+```swift
+import Foundation
+
+struct ClaudeAPIClient {
+    let baseURL = URL(string: "https://api.anthropic.com/v1/messages")!
+
+    enum AuthMode {
+        case apiKey(String)
+        case oauth(accessToken: String)
+    }
+
+    func sendMessage(
+        auth: AuthMode,
+        model: String = "claude-sonnet-4-20250514",
+        system: String? = nil,
+        messages: [[String: Any]],
+        maxTokens: Int = 4096,
+        stream: Bool = false
+    ) async throws -> MessageResponse {
+        var request = URLRequest(url: baseURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        switch auth {
+        case .apiKey(let key):
+            request.setValue(key, forHTTPHeaderField: "X-Api-Key")
+        case .oauth(let token):
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+        }
+
+        var body: [String: Any] = [
+            "model": model,
+            "max_tokens": maxTokens,
+            "messages": messages,
+            "stream": stream,
+        ]
+        if let system { body["system"] = system }
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ClaudeError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            let error = try? JSONDecoder().decode(APIError.self, from: data)
+            throw ClaudeError.apiError(
+                status: httpResponse.statusCode,
+                message: error?.error.message ?? "Unknown error"
+            )
+        }
+
+        return try JSONDecoder().decode(MessageResponse.self, from: data)
+    }
+}
+
+// MARK: - Models
+
+struct MessageResponse: Codable {
+    let id: String
+    let type: String
+    let role: String
+    let model: String
+    let content: [ContentBlock]
+    let stopReason: String?
+    let usage: Usage
+
+    enum CodingKeys: String, CodingKey {
+        case id, type, role, model, content, usage
+        case stopReason = "stop_reason"
+    }
+}
+
+struct ContentBlock: Codable {
+    let type: String
+    let text: String?
+}
+
+struct Usage: Codable {
+    let inputTokens: Int
+    let outputTokens: Int
+
+    enum CodingKeys: String, CodingKey {
+        case inputTokens = "input_tokens"
+        case outputTokens = "output_tokens"
+    }
+}
+
+struct APIError: Codable {
+    let type: String
+    let error: ErrorDetail
+}
+
+struct ErrorDetail: Codable {
+    let type: String
+    let message: String
+}
+
+enum ClaudeError: Error {
+    case invalidResponse
+    case apiError(status: Int, message: String)
+    case tokenExpired
+}
 ```
 
-### Models
+### Swift Streaming (iOS)
 
-| Model | Input | Output | Context |
-|-------|-------|--------|---------|
-| `claude-opus-4-6` | $15/M | $75/M | 200K |
-| `claude-sonnet-4-20250514` | $3/M | $15/M | 200K |
-| `claude-haiku-3-5-20241022` | $0.80/M | $4/M | 200K |
+```swift
+func streamMessage(
+    auth: AuthMode,
+    messages: [[String: Any]],
+    onDelta: @escaping (String) -> Void,
+    onComplete: @escaping (Usage) -> Void
+) async throws {
+    // Same request setup as above, with stream: true
+    var request = makeRequest(auth: auth, messages: messages, stream: true)
 
-With OAuth subscription: all models at **$0**.
+    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+    guard let httpResponse = response as? HTTPURLResponse,
+          httpResponse.statusCode == 200 else {
+        throw ClaudeError.invalidResponse
+    }
 
----
+    var totalUsage: Usage?
 
-## Tool Use (Agent Loop)
+    for try await line in bytes.lines {
+        guard line.hasPrefix("data: ") else { continue }
+        let json = String(line.dropFirst(6))
+        guard let data = json.data(using: .utf8),
+              let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let type = event["type"] as? String else { continue }
 
-To make Claude actually DO things (read files, write code, run commands),
-you need to provide tools and implement an agent loop.
-
-### Define tools
-
-```python
-tools = [
-    {
-        "name": "read_file",
-        "description": "Read the contents of a file",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path"}
-            },
-            "required": ["path"]
-        }
-    },
-    {
-        "name": "write_file",
-        "description": "Write content to a file",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path"},
-                "content": {"type": "string", "description": "File content"}
-            },
-            "required": ["path", "content"]
-        }
-    },
-    {
-        "name": "run_command",
-        "description": "Run a shell command",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "command": {"type": "string", "description": "Shell command"}
-            },
-            "required": ["command"]
+        switch type {
+        case "content_block_delta":
+            if let delta = event["delta"] as? [String: Any],
+               let text = delta["text"] as? String {
+                onDelta(text)
+            }
+        case "message_delta":
+            if let usage = event["usage"] as? [String: Any],
+               let outputTokens = usage["output_tokens"] as? Int {
+                totalUsage = Usage(inputTokens: 0, outputTokens: outputTokens)
+            }
+        case "message_start":
+            if let message = event["message"] as? [String: Any],
+               let usage = message["usage"] as? [String: Any],
+               let inputTokens = usage["input_tokens"] as? Int {
+                totalUsage = Usage(inputTokens: inputTokens, outputTokens: 0)
+            }
+        default:
+            break
         }
     }
-]
+
+    if let usage = totalUsage {
+        onComplete(usage)
+    }
+}
 ```
-
-### Agent loop
-
-```python
-messages = [{"role": "user", "content": task_prompt}]
-
-while True:
-    response = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=4096,
-        tools=tools,
-        messages=messages,
-    )
-
-    # Collect assistant response
-    messages.append({"role": "assistant", "content": response.content})
-
-    # Check if Claude wants to use tools
-    tool_uses = [b for b in response.content if b.type == "tool_use"]
-
-    if not tool_uses:
-        # No tool calls — Claude is done
-        break
-
-    # Execute each tool and collect results
-    tool_results = []
-    for tool_use in tool_uses:
-        result = execute_tool(tool_use.name, tool_use.input)
-        tool_results.append({
-            "type": "tool_result",
-            "tool_use_id": tool_use.id,
-            "content": result,
-        })
-
-    messages.append({"role": "user", "content": tool_results})
-
-def execute_tool(name: str, params: dict) -> str:
-    if name == "read_file":
-        return open(params["path"]).read()
-    elif name == "write_file":
-        with open(params["path"], "w") as f:
-            f.write(params["content"])
-        return f"Written {len(params['content'])} bytes to {params['path']}"
-    elif name == "run_command":
-        result = subprocess.run(params["command"], shell=True, capture_output=True, text=True)
-        return result.stdout + result.stderr
-```
-
-### Without tools (current Cawnex POC)
-
-```python
-# Single-shot: Claude generates text but can't execute anything
-response = client.messages.create(
-    model="claude-sonnet-4-20250514",
-    max_tokens=4096,
-    messages=[{"role": "user", "content": prompt}],
-    # No tools= parameter → Claude can only respond with text
-)
-```
-
-This is why the POC worker "imagines" code instead of writing it.
 
 ---
 
-## Cawnex Architecture
+## Real Execution Samples (from POC 5)
 
-### How Murder and Workers use the SDK
+### Murder → Planner Assignment
 
-```
-┌─────────────────────────────────────────────────┐
-│                  GitHub Issue                    │
-└──────────────────────┬──────────────────────────┘
-                       ▼
-┌─────────────────────────────────────────────────┐
-│  POST /murder  →  API Lambda                    │
-│  Creates blackboard entry (DynamoDB)            │
-└──────────────────────┬──────────────────────────┘
-                       ▼ (DynamoDB Stream)
-┌─────────────────────────────────────────────────┐
-│  Murder Lambda (judge)                          │
-│  SDK: auth_token + beta header ($0)             │
-│  Single-shot call: reads blackboard → decides   │
-│  Writes DECISION + TASK to blackboard           │
-└──────────────────────┬──────────────────────────┘
-                       ▼ (polling)
-┌─────────────────────────────────────────────────┐
-│  Local Worker (crow)                            │
-│  SDK: auth_token + beta header ($0)             │
-│  TODAY: single-shot (text only, no tools)       │
-│  NEXT:  agent loop with read/write/shell tools  │
-│  Writes REPORT to blackboard                    │
-└──────────────────────┬──────────────────────────┘
-                       ▼ (DynamoDB Stream)
-┌─────────────────────────────────────────────────┐
-│  Murder Lambda (judge again)                    │
-│  Reads report → assign next crow OR approve     │
-│  On approve → creates PR via GitHub API         │
-└─────────────────────────────────────────────────┘
+Murder reads the blackboard, judges via Claude, and assigns a planner crow:
+
+**Claude Input** (system + user prompt with blackboard state):
+- Input tokens: **337**
+- Output tokens: **4096** (max)
+- Cost: **$0.0625** (Sonnet pricing)
+- Latency: **~53s**
+
+**Murder Decision Output:**
+```json
+{
+  "action": "assign",
+  "crow": "planner",
+  "instructions": "Create a detailed plan for building the cawnex-design MCP server..."
+}
 ```
 
-### Environment Variables
-
-| Var | Where | Purpose |
-|-----|-------|---------|
-| `ANTHROPIC_AUTH_TOKEN` | Lambda + Worker | OAuth access token ($0) |
-| `ANTHROPIC_API_KEY` | Fallback | API key (costs money) |
-| `ANTHROPIC_REFRESH_TOKEN` | CI/scripts | For refreshing access tokens |
-| `GITHUB_TOKEN` | Lambda + Worker | GitHub API access |
-
-### Token Lifecycle
+### Blackboard Schema (DynamoDB)
 
 ```
-User clicks authorize URL
-        │
-        ▼
-  Auth code (60s TTL)
-        │
-        ▼ POST /oauth/token
-  Access token (8h TTL) + Refresh token (one-time)
-        │
-        ├──► Lambda (ANTHROPIC_AUTH_TOKEN env var)
-        ├──► Worker (ANTHROPIC_AUTH_TOKEN env var)
-        │
-        │  ... 8 hours later ...
-        │
-        ▼ POST /oauth/token (refresh)
-  New access token + New refresh token
-        │
-        ▼ Update Lambda env var
+PK: EXEC#{execution_id}
+SK: META                    → Execution metadata (status, repo, issue)
+SK: STEP#01#DECISION        → Murder's decision (assign crow, instructions)
+SK: STEP#01#TASK            → Task for worker (status: pending→running→completed)
+SK: STEP#01#REPORT          → Worker's report (output, files changed)
+SK: STEP#02#DECISION        → Next decision after reviewing report
+SK: STEP#02#TASK            → Next task...
+SK: RESULT                  → Final execution result
 ```
+
+### Task Lifecycle
+
+```
+pending → running → completed
+   ↑                    │
+   └── reset (if worker crashes without reporting)
+```
+
+### Sample Blackboard Items
+
+**META (execution metadata):**
+```json
+{
+  "PK": "EXEC#exec_47ed0c4d",
+  "SK": "META",
+  "status": "waiting_for_crow",
+  "repo": "eduardoaugustoes/cawnex",
+  "issue_number": 2,
+  "issue_title": "Build cawnex-design MCP server for .pen file operations",
+  "branch": "cawnex/exec_47ed0c4d"
+}
+```
+
+**STEP DECISION (Murder assigns crow):**
+```json
+{
+  "PK": "EXEC#exec_47ed0c4d",
+  "SK": "STEP#01#DECISION",
+  "action": "assign",
+  "crow": "planner",
+  "instructions": "Create a detailed plan for building the cawnex-design MCP server..."
+}
+```
+
+**STEP TASK (for worker pickup):**
+```json
+{
+  "PK": "EXEC#exec_47ed0c4d",
+  "SK": "STEP#01#TASK",
+  "status": "pending",
+  "crow": "planner",
+  "branch": "cawnex/exec_47ed0c4d",
+  "repo": "eduardoaugustoes/cawnex",
+  "issue_number": 2,
+  "instructions": "Create a detailed plan..."
+}
+```
+
+**STEP REPORT (worker output):**
+```json
+{
+  "PK": "EXEC#exec_47ed0c4d",
+  "SK": "STEP#01#REPORT",
+  "raw_output": "I'll create a detailed plan for building the cawnex-design MCP server...",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^latest",
+    "express": "^4.18.0",
+    "satori": "^0.10.0",
+    "puppeteer": "^21.0.0",
+    "node-canvas": "^2.11.0",
+    "ajv": "^8.12.0",
+    "uuid": "^9.0.0"
+  }
+}
+```
+
+---
+
+## Official SDKs
+
+| Language | Package | Install |
+|----------|---------|---------|
+| Python | `anthropic` | `pip install anthropic` |
+| TypeScript | `@anthropic-ai/sdk` | `npm install @anthropic-ai/sdk` |
+| Java | `com.anthropic:anthropic-java` | Maven/Gradle |
+| Go | `github.com/anthropics/anthropic-sdk-go` | `go get` |
+| Ruby | `anthropic` | `gem install anthropic` |
+| C# | `Anthropic` | NuGet |
+| PHP | `anthropic/anthropic-sdk-php` | Composer |
 
 ---
 
 ## Gotchas & Lessons Learned
 
-### 1. Beta header is mandatory for OAuth
-Without `anthropic-beta: oauth-2025-04-20`, the API returns:
-`"OAuth authentication is currently not supported."`
+1. **`api_key=None` is mandatory with OAuth** — Python SDK auto-reads `ANTHROPIC_API_KEY` env var; if set, it sends dual headers (`X-Api-Key` + `Authorization: Bearer`) and the API rejects it
 
-### 2. Dual header bug
-If both `api_key` and `auth_token` are set, the SDK sends both headers.
-The API rejects the `X-Api-Key` header with an OAuth token value.
-Always set `api_key=None` when using `auth_token`.
+2. **`anthropic-beta: oauth-2025-04-20` is required** — Without this header, API returns "OAuth authentication is currently not supported"
 
-### 3. `ANTHROPIC_API_KEY` env var auto-read
-The SDK reads `ANTHROPIC_API_KEY` from env automatically. If this var
-contains an OAuth token, it goes into `api_key` (wrong header).
-Use `ANTHROPIC_AUTH_TOKEN` instead — the SDK reads it into `auth_token`.
+3. **Refresh tokens are single-use** — Each refresh rotates the token; using the old one again returns an error. Store immediately.
 
-### 4. Refresh tokens are one-time use
-Each refresh invalidates the previous token. Don't refresh from multiple
-places (VPS + CI + Lambda) — they'll invalidate each other.
+4. **Refresh blocked from cloud IPs** — AWS Lambda, GitHub Actions get 403 from `console.anthropic.com` (Cloudflare). Only works from user devices or VPS.
 
-### 5. Cloudflare blocks token endpoint from cloud IPs
-`console.anthropic.com/v1/oauth/token` is blocked by Cloudflare from
-AWS Lambda and GitHub Actions runners. Refresh from a non-cloud IP (VPS, local).
+5. **Token endpoint is `console.anthropic.com`** — NOT `platform.claude.com` or `claude.ai`. Only `POST https://console.anthropic.com/v1/oauth/token` works.
 
-### 6. Token endpoint is NOT on `claude.ai`
-- ❌ `claude.ai/oauth/token` → 404
-- ❌ `platform.claude.com/v1/oauth/token` → "Invalid request format"
-- ✅ `console.anthropic.com/v1/oauth/token` → works
+6. **Auth URL uses `claude.ai`** — The authorize URL is `https://claude.ai/oauth/authorize`, different from the token endpoint domain.
 
-### 7. `state` parameter required in token exchange
-The token exchange body must include `state` (echoed from authorize callback).
-Missing it causes "Invalid request format".
+7. **max_tokens caps output** — Set appropriately; `4096` is usually enough for most tasks. Maximum is `8192` for current models.
 
-### 8. Lambda warm starts cache old code
-After updating Lambda code, existing warm instances may still run the old code.
-Force a cold start by updating an env var (e.g., `COLD=<timestamp>`).
-
----
-
-## References
-
-- [Python SDK docs](https://platform.claude.com/docs/en/api/sdks/python)
-- [Python SDK source](https://github.com/anthropics/anthropic-sdk-python)
-- [API overview](https://platform.claude.com/docs/en/api/overview)
-- [Client SDKs list](https://platform.claude.com/docs/en/api/client-sdks)
-- [SDK client source (_client.py)](https://github.com/anthropics/anthropic-sdk-python/blob/main/src/anthropic/_client.py)
-- [Tool use docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview)
+8. **Cost is zero with OAuth** — OAuth tokens from Claude Pro/Max subscriptions don't incur API charges. All inference is covered by the subscription.
