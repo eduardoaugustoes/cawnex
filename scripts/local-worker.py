@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-POC 5 — Local Crow Worker
+POC 5 -- Local Crow Worker
 
 Polls DynamoDB blackboard for pending TASK records.
 Executes them locally using Claude Code CLI (subscription, $0 cost).
@@ -82,7 +82,7 @@ def execute_task(task: dict, use_cli: bool = True) -> dict:
 ## Context
 - Repository: {repo}
 - Branch: {branch}
-- Issue: #{issue_number} — {issue_title}
+- Issue: #{issue_number} -- {issue_title}
 
 ## Available Tools
 You have access to: read files, write files, run shell commands, and git operations.
