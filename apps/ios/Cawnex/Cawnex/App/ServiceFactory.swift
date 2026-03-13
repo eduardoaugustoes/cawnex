@@ -14,4 +14,8 @@ struct ServiceFactory {
     func makeBacklogService() -> any BacklogService {
         InMemoryBacklogService(store: store)
     }
+
+    func makeDocumentService() -> any DocumentService {
+        InMemoryDocumentService()
+    }
 }
