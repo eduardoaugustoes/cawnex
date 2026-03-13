@@ -126,9 +126,22 @@ def create_worktree(repo_dir: str, execution_id: str, branch: str) -> str:
     # Prune stale worktrees
     run_git("git worktree prune", cwd=repo_dir)
 
-    # Create branch and worktree
-    run_git(f"git branch -D {branch}", cwd=repo_dir, check=False)  # clean slate
-    run_git(f"git worktree add {worktree_dir} -b {branch} origin/main", cwd=repo_dir)
+    # Fetch latest refs so we can see if the branch already exists remotely
+    run_git("git fetch origin", cwd=repo_dir)
+
+    # Check if branch exists remotely (previous crow already pushed)
+    remote_branch_exists = run_git(
+        f"git ls-remote --heads origin {branch}", cwd=repo_dir, check=False
+    ).strip()
+
+    run_git(f"git branch -D {branch}", cwd=repo_dir, check=False)  # clean local copy
+
+    if remote_branch_exists:
+        # Branch exists: checkout from remote (reviewer/fixer sees implementer's work)
+        run_git(f"git worktree add {worktree_dir} -b {branch} origin/{branch}", cwd=repo_dir)
+    else:
+        # New branch: start from main (first crow in the workflow)
+        run_git(f"git worktree add {worktree_dir} -b {branch} origin/main", cwd=repo_dir)
 
     # Mark worktree as safe directory
     run_git(f"git config --global --add safe.directory {worktree_dir}", check=False)
