@@ -163,19 +163,11 @@ export class Poc6WorkerStack extends cdk.Stack {
     });
 
     // ─────────────────────────────────────────────
-    // ECR — Docker image repository
+    // ECR — Import existing repository (created before CDK deploy)
     // ─────────────────────────────────────────────
-    const repository = new ecr.Repository(this, "WorkerRepo", {
-      repositoryName: `cawnex-poc6-worker-${stage}`,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      emptyOnDelete: true,
-      lifecycleRules: [
-        {
-          maxImageCount: 5,
-          description: "Keep last 5 images",
-        },
-      ],
-    });
+    const repository = ecr.Repository.fromRepositoryName(
+      this, "WorkerRepo", `cawnex-poc6-worker-${stage}`
+    );
 
     // ─────────────────────────────────────────────
     // Worker Lambda (Docker)

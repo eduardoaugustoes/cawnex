@@ -18,6 +18,7 @@ permissions:
 env:
   AWS_REGION: us-east-1
   STACK_NAME: poc6
+  ECR_REPO: cawnex-poc6-worker-dev
 
 jobs:
   deploy:
@@ -35,21 +36,20 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install CDK dependencies
-        run: cd infra && npm ci
-
-      - name: CDK Deploy (infra)
+      # Step 1: Create ECR repo + push image BEFORE CDK deploy
+      - name: Create ECR repository (if not exists)
         run: |
-          cd infra
-          npx cdk deploy --context stack=${{ env.STACK_NAME }} --context stage=dev --require-approval never 2>&1
+          aws ecr describe-repositories --repository-names ${{ env.ECR_REPO }} --region ${{ env.AWS_REGION }} 2>/dev/null || \
+          aws ecr create-repository --repository-name ${{ env.ECR_REPO }} --region ${{ env.AWS_REGION }} --no-cli-pager
 
       - name: Get ECR URI
         id: ecr
         run: |
           ECR_URI=$(aws ecr describe-repositories \
-            --repository-names cawnex-poc6-worker-dev \
+            --repository-names ${{ env.ECR_REPO }} \
             --query 'repositories[0].repositoryUri' \
-            --output text)
+            --output text \
+            --region ${{ env.AWS_REGION }})
           echo "uri=$ECR_URI" >> "$GITHUB_OUTPUT"
           echo "ECR URI: $ECR_URI"
 
@@ -64,19 +64,16 @@ jobs:
           docker tag cawnex-worker:latest ${{ steps.ecr.outputs.uri }}:latest
           docker push ${{ steps.ecr.outputs.uri }}:latest
 
-      - name: Update Lambda code
-        run: |
-          aws lambda update-function-code \
-            --function-name cawnex-poc6-worker-dev \
-            --image-uri ${{ steps.ecr.outputs.uri }}:latest \
-            --region ${{ env.AWS_REGION }}
+      # Step 2: CDK deploy (Lambda will find image in ECR)
+      - name: Install CDK dependencies
+        run: cd infra && npm ci
 
-      - name: Wait for Lambda update
+      - name: CDK Deploy (infra)
         run: |
-          aws lambda wait function-updated \
-            --function-name cawnex-poc6-worker-dev \
-            --region ${{ env.AWS_REGION }}
+          cd infra
+          npx cdk deploy --context stack=${{ env.STACK_NAME }} --context stage=dev --require-approval never 2>&1
 
+      # Step 3: Inject secrets
       - name: Inject secrets
         run: |
           # Try OAuth refresh for $0 subscription token; fall back to API key
