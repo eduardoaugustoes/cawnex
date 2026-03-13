@@ -78,6 +78,9 @@ def run_git(cmd: str, cwd: str = None, check: bool = True) -> str:
     """Run a shell command, return stdout."""
     env = os.environ.copy()
     env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_KEY_0"] = "safe.directory"
+    env["GIT_CONFIG_VALUE_0"] = "*"
     if GITHUB_TOKEN:
         env["GH_TOKEN"] = GITHUB_TOKEN
 
