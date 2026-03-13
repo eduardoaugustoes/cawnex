@@ -432,6 +432,15 @@ def lambda_handler(event: dict, context: Any):
 
             try:
                 # 3. Gather code context
+                # Debug: log worktree contents
+                wt_files = run_git("find . -maxdepth 3 -type f -not -path './.git/*' | head -20", cwd=worktree_dir, check=False)
+                wt_branch = run_git("git rev-parse --abbrev-ref HEAD", cwd=worktree_dir, check=False).strip()
+                wt_log = run_git("git log --oneline -3", cwd=worktree_dir, check=False).strip()
+                log_event(execution_id, "worktree_debug",
+                          crow=crow, branch=wt_branch,
+                          files_sample=wt_files[:500],
+                          recent_commits=wt_log[:300])
+
                 code_context = gather_code_context(worktree_dir)
                 log_event(execution_id, "code_context_gathered",
                           chars=len(code_context))
