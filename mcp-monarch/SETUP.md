@@ -112,11 +112,17 @@ This shows how the Monarch evaluates efficiency and makes spawning decisions.
 
 ## ❓ Troubleshooting
 
-**"No module named 'mcp'"**
-→ Make sure you're using the virtual environment: `source venv/bin/activate`
+**"No module named 'telegram'"**
+→ Fixed! Now using `./venv/bin/python` directly. Run `./start.sh` again.
 
 **"TELEGRAM_BOT_TOKEN required"**  
 → Get token from @BotFather and export it: `export TELEGRAM_BOT_TOKEN="..."`
+
+**Want to test without Telegram first?**
+→ Run: `./venv/bin/python test_launcher.py` for interactive demo
+
+**Still having import issues?**
+→ Test imports: `./venv/bin/python test_imports.py`
 
 **Bot doesn't respond**
 → Check token is correct and bot is started with `./start.sh`

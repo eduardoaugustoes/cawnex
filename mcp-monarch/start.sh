@@ -44,4 +44,5 @@ echo ""
 echo "Press Ctrl+C to stop"
 echo ""
 
-python3 launcher.py
+# Use the virtual environment's Python
+./venv/bin/python launcher.py
