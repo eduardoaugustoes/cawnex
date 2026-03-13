@@ -213,35 +213,36 @@ def gather_code_context(worktree_dir: str, max_files: int = 30) -> str:
     """Read key source files from worktree for Claude context."""
     context_parts = []
 
-    # Get file tree (exclude archive, node_modules, .git, .venv, __pycache__)
-    tree = run_git(
-        "find . -type f "
-        "-not -path './.git/*' -not -path './node_modules/*' "
-        "-not -path './.venv/*' -not -path './_archive/*' "
-        "-not -path './__pycache__/*' -not -path '*/__pycache__/*' "
-        "-not -name '*.pyc' "
-        "| sort | head -200",
-        cwd=worktree_dir, check=False
-    )
-    context_parts.append(f"## File Tree\n```\n{tree}\n```\n")
+    # Walk the directory tree using os.walk (not shell find — avoids EFS/NFS issues)
+    SKIP_DIRS = {".git", "node_modules", ".venv", "_archive", "__pycache__", ".mypy_cache"}
+    SKIP_EXTS = {".pyc", ".png", ".jpg", ".jpeg", ".gif", ".zip", ".lock", ".map", ".woff", ".ttf"}
+
+    all_files = []
+    for root, dirs, files in os.walk(worktree_dir):
+        # Prune directories we don't want to traverse
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        for f in files:
+            if os.path.splitext(f)[1] in SKIP_EXTS:
+                continue
+            rel = os.path.relpath(os.path.join(root, f), worktree_dir)
+            all_files.append(rel)
+
+    all_files.sort()
+    tree = "\n".join(all_files[:200])
+    context_parts.append(f"## File Tree ({len(all_files)} files)\n```\n{tree}\n```\n")
+
+    logger.info(json.dumps({
+        "event": "gather_context_walk",
+        "worktree_dir": worktree_dir,
+        "total_files": len(all_files),
+        "sample": all_files[:10],
+    }))
 
     # Read important files
-    priority_patterns = [
-        "README.md", "package.json", "pyproject.toml",
-        "*.py", "*.ts", "*.swift",
-    ]
-
     files_read = 0
-    for line in tree.split("\n"):
+    for filepath in all_files:
         if files_read >= max_files:
             break
-        filepath = line.strip()
-        if not filepath:
-            continue
-
-        # Skip binary/large files
-        if any(filepath.endswith(ext) for ext in [".png", ".jpg", ".zip", ".lock", ".map"]):
-            continue
 
         fullpath = os.path.join(worktree_dir, filepath)
         try:
