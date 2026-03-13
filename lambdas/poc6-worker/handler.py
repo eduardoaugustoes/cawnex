@@ -158,14 +158,38 @@ def create_worktree(repo_dir: str, execution_id: str, branch: str) -> str:
     ).strip()
 
     if remote_ref and "fatal" not in remote_ref:
-        # Branch exists: checkout from remote (reviewer/fixer sees implementer's work)
-        run_git(f"git worktree add {worktree_dir} -b {branch} origin/{branch}", cwd=repo_dir)
+        start_ref = f"origin/{branch}"
     else:
-        # New branch: start from main (first crow in the workflow)
-        run_git(f"git worktree add {worktree_dir} -b {branch} origin/main", cwd=repo_dir)
+        start_ref = "origin/main"
+
+    wt_cmd = f"git worktree add {worktree_dir} -b {branch} {start_ref}"
+    wt_output = run_git(wt_cmd, cwd=repo_dir)
 
     # Mark worktree as safe directory
     run_git(f"git config --global --add safe.directory {worktree_dir}", check=False)
+
+    # Debug: verify worktree health
+    wt_exists = os.path.exists(worktree_dir)
+    wt_git = os.path.exists(os.path.join(worktree_dir, ".git"))
+    wt_ls = os.listdir(worktree_dir) if wt_exists else []
+    wt_file_count = run_git("find . -maxdepth 1 -type f | wc -l", cwd=worktree_dir, check=False).strip()
+    wt_dir_count = run_git("find . -maxdepth 1 -type d | wc -l", cwd=worktree_dir, check=False).strip()
+    wt_total = run_git("find . -not -path './.git/*' -type f | wc -l", cwd=worktree_dir, check=False).strip()
+    wt_head = run_git("git rev-parse HEAD", cwd=worktree_dir, check=False).strip()
+    logger.info(json.dumps({
+        "event": "worktree_health",
+        "execution_id": execution_id,
+        "worktree_dir": worktree_dir,
+        "start_ref": start_ref,
+        "wt_cmd_output": wt_output[:200],
+        "dir_exists": wt_exists,
+        "git_exists": wt_git,
+        "ls_top": wt_ls[:20],
+        "files_depth1": wt_file_count,
+        "dirs_depth1": wt_dir_count,
+        "total_files": wt_total,
+        "head_sha": wt_head[:12],
+    }))
 
     # Copy git config to worktree
     run_git('git config user.email "cawnex-worker@cawnex.ai"', cwd=worktree_dir)
