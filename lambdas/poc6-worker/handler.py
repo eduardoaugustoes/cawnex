@@ -169,8 +169,16 @@ def gather_code_context(worktree_dir: str, max_files: int = 30) -> str:
     """Read key source files from worktree for Claude context."""
     context_parts = []
 
-    # Get file tree
-    tree = run_git("find . -type f -not -path './.git/*' -not -path './node_modules/*' -not -path './.venv/*' | head -100", cwd=worktree_dir, check=False)
+    # Get file tree (exclude archive, node_modules, .git, .venv, __pycache__)
+    tree = run_git(
+        "find . -type f "
+        "-not -path './.git/*' -not -path './node_modules/*' "
+        "-not -path './.venv/*' -not -path './_archive/*' "
+        "-not -path './__pycache__/*' -not -path '*/__pycache__/*' "
+        "-not -name '*.pyc' "
+        "| sort | head -200",
+        cwd=worktree_dir, check=False
+    )
     context_parts.append(f"## File Tree\n```\n{tree}\n```\n")
 
     # Read important files
