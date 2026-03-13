@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Generate Claude Desktop configuration for Monarch MCP server.
 This script creates the exact configuration needed for your system.

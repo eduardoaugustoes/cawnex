@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Simple test of Monarch functionality - no async needed.
 Tests the core functions that work with Claude Desktop.

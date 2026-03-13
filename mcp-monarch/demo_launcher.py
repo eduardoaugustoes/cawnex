@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Demo launcher for Monarch AI Society - works without Telegram token.
 Shows the agent spawning functionality interactively.
@@ -6,7 +7,6 @@ Shows the agent spawning functionality interactively.
 
 import os
 import sys
-import asyncio
 import logging
 from pathlib import Path
 
@@ -19,7 +19,7 @@ from monarch import monarch
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-async def demo_conversation():
+def demo_conversation():
     """Simulate a conversation with the Monarch."""
     
     print("🏰 Monarch AI Society Demo")
@@ -64,21 +64,32 @@ async def demo_conversation():
                 response = input(f"   🚀 Spawn {domain.replace('_', ' ').title()} Specialist? (y/n): ").lower().strip()
                 if response in ['y', 'yes']:
                     # Mock deploy for demo
-                    original_deploy = monarch._deploy_agent_lambda
+                    import time
                     
-                    async def instant_deploy(agent):
-                        print(f"   ⚡ Deploying {agent.name}...")
-                        await asyncio.sleep(0.5)
-                        agent.status = "active"
-                        print(f"   ✅ {agent.name} deployed!")
+                    print(f"   ⚡ Deploying {spawn_req.role}...")
+                    time.sleep(0.5)  # Simple sleep instead of async
+                    print(f"   ✅ {spawn_req.role} deployed!")
                     
-                    monarch._deploy_agent_lambda = instant_deploy
+                    # Create agent manually for demo
+                    from monarch import Agent
+                    from datetime import datetime, timezone
+                    import uuid
                     
-                    agent = await monarch.spawn_agent(spawn_req)
+                    agent = Agent(
+                        id=f"demo_{len(monarch.agents) + 1}",
+                        name=f"{spawn_req.specialization.replace('_', ' ').title()} Specialist",
+                        role=spawn_req.role,
+                        specialization=spawn_req.specialization,
+                        monthly_budget=spawn_req.estimated_monthly_cost,
+                        skills=spawn_req.required_skills,
+                        status="active",
+                        created_at=datetime.now(timezone.utc)
+                    )
+                    
+                    monarch.agents[agent.id] = agent
+                    monarch.spent_this_month += spawn_req.estimated_monthly_cost
+                    
                     print(f"   🎉 Welcome {agent.name}!")
-                    
-                    # Restore
-                    monarch._deploy_agent_lambda = original_deploy
                     
                 else:
                     print(f"   ⏸️  Skipping {domain}")
@@ -106,7 +117,7 @@ async def demo_conversation():
         for rec in final_status['recommendations']:
             print(f"     • {rec}")
 
-async def simulate_claude_interaction():
+def simulate_claude_interaction():
     """Simulate Claude Desktop interaction."""
     
     print("\n🖥️  Claude Desktop Integration Demo")
@@ -166,9 +177,9 @@ def main():
         choice = input("\nEnter choice (1/2/3): ").strip()
         
         if choice == "1":
-            asyncio.run(demo_conversation())
+            demo_conversation()
         elif choice == "2":
-            asyncio.run(simulate_claude_interaction())
+            simulate_claude_interaction()
         elif choice == "3":
             status = monarch.get_society_status()
             print(f"\n👑 Monarch Status:")
