@@ -15,6 +15,10 @@ struct ServiceFactory {
         InMemoryBacklogService(store: store)
     }
 
+    func makeMilestoneService() -> any MilestoneService {
+        InMemoryMilestoneService(store: store)
+    }
+
     func makeDocumentService() -> any DocumentService {
         InMemoryDocumentService()
     }
@@ -41,5 +45,13 @@ struct ServiceFactory {
 
     func makeSkillsService() -> any SkillsService {
         InMemorySkillsService(store: store)
+    }
+
+    func makeCreditsService() -> any CreditsService {
+        InMemoryCreditsService(store: store)
+    }
+
+    func makeNotificationService() -> any NotificationService {
+        InMemoryNotificationService()
     }
 }
