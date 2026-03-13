@@ -52,12 +52,12 @@ jobs:
 
       - name: CDK Synth (validate)
         working-directory: infra
-        run: npx cdk synth CawnexPoc1-${{ inputs.stage }} --context stage=${{ inputs.stage }}
+        run: npx cdk synth CawnexPoc1-${{ inputs.stage }} --context stage=${{ inputs.stage }} --context stack=poc1
 
       - name: CDK Diff (preview changes)
         if: inputs.action == 'deploy'
         working-directory: infra
-        run: npx cdk diff CawnexPoc1-${{ inputs.stage }} --context stage=${{ inputs.stage }} || true
+        run: npx cdk diff CawnexPoc1-${{ inputs.stage }} --context stage=${{ inputs.stage }} --context stack=poc1 || true
 
       - name: CDK Deploy
         if: inputs.action == 'deploy'
@@ -65,6 +65,7 @@ jobs:
         run: |
           npx cdk deploy CawnexPoc1-${{ inputs.stage }} \
             --context stage=${{ inputs.stage }} \
+            --context stack=poc1 \
             --require-approval never \
             --outputs-file ../poc1-outputs.json
 
@@ -91,6 +92,7 @@ jobs:
         run: |
           npx cdk destroy CawnexPoc1-${{ inputs.stage }} \
             --context stage=${{ inputs.stage }} \
+            --context stack=poc1 \
             --force
 
       - name: Summary

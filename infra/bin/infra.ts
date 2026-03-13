@@ -7,14 +7,18 @@ import { Poc1CrowStack } from "../lib/poc1-crow-stack";
 const app = new cdk.App();
 
 const stage = (app.node.tryGetContext("stage") as "dev" | "staging" | "prod") ?? "dev";
+const stack = app.node.tryGetContext("stack") as string | undefined;
 
 const env = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
   region: process.env.CDK_DEFAULT_REGION ?? "us-east-1",
 };
 
-// Production stack (not deployed yet)
-new CawnexStack(app, `Cawnex-${stage}`, { stage, env });
+// Only instantiate requested stack (avoids asset validation errors for unbuilt stacks)
+if (!stack || stack === "main") {
+  new CawnexStack(app, `Cawnex-${stage}`, { stage, env });
+}
 
-// POC 1 — MCP Crow on Lambda
-new Poc1CrowStack(app, `CawnexPoc1-${stage}`, { stage, env });
+if (!stack || stack === "poc1") {
+  new Poc1CrowStack(app, `CawnexPoc1-${stage}`, { stage, env });
+}
