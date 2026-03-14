@@ -17,9 +17,9 @@ struct AppConfiguration {
 
     static let dev = AppConfiguration(
         cognitoRegion: "us-east-1",
-        cognitoUserPoolId: "", // Set after first cdk deploy
-        cognitoClientId: "",   // Set after first cdk deploy
-        apiBaseUrl: ""         // Set after first cdk deploy (CloudFront URL)
+        cognitoUserPoolId: "us-east-1_38Ay7DArT",
+        cognitoClientId: "53ne6uhf0hln8bc75pp61kbdpj",
+        apiBaseUrl: "https://d1elid9twwevj2.cloudfront.net"
     )
 
     static let staging = AppConfiguration(
