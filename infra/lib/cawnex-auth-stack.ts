@@ -171,11 +171,8 @@ export class CawnexAuthStack extends cdk.Stack {
     
     this.table.grantWriteData(postConfirmationFn);
 
-    // Attach trigger to user pool
-    this.userPool.addTrigger(
-      cognito.UserPoolOperation.POST_CONFIRMATION,
-      postConfirmationFn
-    );
+    // Note: Trigger attachment will be done manually via AWS CLI after deployment
+    // to avoid circular dependency: UserPool → Lambda → IAM permissions → UserPool
 
     // Export DynamoDB table name and ARN for MainStack
     new cdk.CfnOutput(this, "TableName", {

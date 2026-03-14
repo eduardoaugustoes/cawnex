@@ -115,6 +115,15 @@ jobs:
           echo "ios-client-id=$IOS_CLIENT_ID" >> $GITHUB_OUTPUT
           echo "api-url=$API_URL" >> $GITHUB_OUTPUT
       
+      - name: Setup PostConfirmation Trigger
+        run: |
+          if [ -f "scripts/setup-post-confirmation-trigger.sh" ]; then
+            chmod +x scripts/setup-post-confirmation-trigger.sh
+            ./scripts/setup-post-confirmation-trigger.sh ${{ env.STAGE }}
+          else
+            echo "⚠️  PostConfirmation setup script not found, skipping trigger setup"
+          fi
+      
       - name: Health Check
         run: |
           API_URL="${{ steps.outputs.outputs.api-url }}"
