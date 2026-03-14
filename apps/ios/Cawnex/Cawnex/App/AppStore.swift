@@ -5,13 +5,15 @@ final class AppStore {
     var projects: [Project] = []
     var currentUser: User?
 
-    func seedData() {
-        currentUser = User(
-            id: "u1",
-            name: "Eduardo",
-            email: "eduardo@cawnex.io"
-        )
+    func setUser(from session: AuthSession) {
+        currentUser = User(session: session)
+    }
 
+    func clearUser() {
+        currentUser = nil
+    }
+
+    func seedData() {
         projects = [
             Project(
                 id: "1",

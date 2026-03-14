@@ -2,6 +2,15 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var router = AppRouter()
+    @State private var store = AppStore()
+    @State private var authService: any AuthService = {
+        #if DEBUG
+        if AppConfiguration.current.cognitoClientId.isEmpty {
+            return InMemoryAuthService()
+        }
+        #endif
+        return CognitoAuthService()
+    }()
 
     var body: some View {
         ZStack {
@@ -10,17 +19,62 @@ struct ContentView: View {
 
             switch router.currentRoute {
             case .splash:
-                SplashScreen(onFinished: router.splashFinished)
+                SplashScreen(onFinished: { router.splashFinished(authService: authService) })
                     .transition(.opacity)
+
+            case .checking:
+                // Brief loading state while checking Keychain
+                ProgressView()
+                    .tint(CawnexColors.primaryLight)
+
             case .signIn:
-                SignInScreen(onSignIn: router.signedIn)
-                    .transition(.opacity)
+                SignInScreen(
+                    viewModel: SignInViewModel(
+                        authService: authService,
+                        onSignedIn: { session in
+                            store.setUser(from: session)
+                            store.seedData()
+                            router.signedIn()
+                        },
+                        onNeedsConfirmation: { email in
+                            router.needsConfirmation(email: email)
+                        }
+                    ),
+                    onSignUp: router.showSignUp
+                )
+                .transition(.opacity)
+
+            case .signUp:
+                SignUpScreen(
+                    viewModel: SignUpViewModel(
+                        authService: authService,
+                        onConfirmationRequired: { email in
+                            router.needsConfirmation(email: email)
+                        }
+                    ),
+                    onBackToSignIn: router.showSignIn
+                )
+                .transition(.opacity)
+
+            case .confirmEmail(let email):
+                ConfirmEmailScreen(
+                    viewModel: ConfirmEmailViewModel(
+                        email: email,
+                        authService: authService,
+                        onConfirmed: {
+                            router.showSignIn()
+                        }
+                    ),
+                    onBackToSignIn: router.showSignIn
+                )
+                .transition(.opacity)
+
             case .main:
                 MainTabView()
                     .transition(.opacity)
             }
         }
-        .animation(router.currentRoute == .main ? nil : .easeInOut(duration: 0.3), value: router.currentRoute)
+        .animation(.easeInOut(duration: 0.3), value: router.currentRoute)
     }
 }
 

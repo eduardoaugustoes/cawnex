@@ -1,11 +1,8 @@
 import SwiftUI
 
 struct SignInScreen: View {
-    @State private var email = ""
-    @State private var password = ""
-    @State private var passwordVisible = false
-
-    var onSignIn: () -> Void
+    @Bindable var viewModel: SignInViewModel
+    var onSignUp: () -> Void
 
     var body: some View {
         ZStack {
@@ -51,6 +48,14 @@ struct SignInScreen: View {
         VStack(spacing: CawnexSpacing.lg) {
             emailField
             passwordField
+
+            if let error = viewModel.errorMessage {
+                Text(error)
+                    .font(CawnexTypography.caption)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
+
             signInButton
         }
     }
@@ -67,7 +72,7 @@ struct SignInScreen: View {
                     .foregroundStyle(CawnexColors.mutedForeground)
                     .frame(width: 18, height: 18)
 
-                TextField("", text: $email, prompt: Text("your@email.com").foregroundStyle(Color(hex: 0x475569)))
+                TextField("", text: $viewModel.email, prompt: Text("your@email.com").foregroundStyle(Color(hex: 0x475569)))
                     .font(CawnexTypography.body)
                     .foregroundStyle(CawnexColors.cardForeground)
                     .textContentType(.emailAddress)
@@ -87,7 +92,8 @@ struct SignInScreen: View {
     }
 
     private var passwordField: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        @State var passwordVisible = false
+        return VStack(alignment: .leading, spacing: 6) {
             Text("Password")
                 .font(CawnexTypography.captionMedium)
                 .foregroundStyle(CawnexColors.mutedForeground)
@@ -100,9 +106,9 @@ struct SignInScreen: View {
 
                 Group {
                     if passwordVisible {
-                        TextField("", text: $password, prompt: Text("••••••••").foregroundStyle(Color(hex: 0x475569)))
+                        TextField("", text: $viewModel.password, prompt: Text("••••••••").foregroundStyle(Color(hex: 0x475569)))
                     } else {
-                        SecureField("", text: $password, prompt: Text("••••••••").foregroundStyle(Color(hex: 0x475569)))
+                        SecureField("", text: $viewModel.password, prompt: Text("••••••••").foregroundStyle(Color(hex: 0x475569)))
                     }
                 }
                 .font(CawnexTypography.body)
@@ -129,15 +135,23 @@ struct SignInScreen: View {
     }
 
     private var signInButton: some View {
-        Button(action: onSignIn) {
-            Text("Sign In")
-                .font(CawnexTypography.sectionTitle)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(CawnexColors.primaryLight)
-                .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
+        Button(action: viewModel.signIn) {
+            Group {
+                if viewModel.isLoading {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Text("Sign In")
+                        .font(CawnexTypography.sectionTitle)
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(viewModel.canSignIn ? CawnexColors.primaryLight : CawnexColors.primaryLight.opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
         }
+        .disabled(!viewModel.canSignIn)
     }
 
     // MARK: - Divider
@@ -160,7 +174,7 @@ struct SignInScreen: View {
 
     private var appleSignIn: some View {
         Button {
-            onSignIn()
+            // Apple Sign In — Goal 3, not wired yet
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "apple.logo")
@@ -184,9 +198,7 @@ struct SignInScreen: View {
             Text("Don't have an account?")
                 .font(CawnexTypography.caption)
                 .foregroundStyle(CawnexColors.mutedForeground)
-            Button {
-                // TBD: registration flow
-            } label: {
+            Button(action: onSignUp) {
                 Text("Sign Up")
                     .font(CawnexTypography.captionBold)
                     .foregroundStyle(CawnexColors.primaryLight)
@@ -196,5 +208,12 @@ struct SignInScreen: View {
 }
 
 #Preview {
-    SignInScreen(onSignIn: {})
+    SignInScreen(
+        viewModel: SignInViewModel(
+            authService: InMemoryAuthService(),
+            onSignedIn: { _ in },
+            onNeedsConfirmation: { _ in }
+        ),
+        onSignUp: {}
+    )
 }
