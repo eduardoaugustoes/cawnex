@@ -24,7 +24,23 @@ class MonarchTelegramBot:
     def __init__(self, token: str):
         self.token = token
         self.application = Application.builder().token(token).build()
+        # Authorized user ID - only this user can control the Monarch
+        self.authorized_user_id = 844996980  # Eduardo's Telegram ID
         self.setup_handlers()
+    
+    def is_authorized(self, user_id: int) -> bool:
+        """Check if user is authorized to use the bot."""
+        return user_id == self.authorized_user_id
+    
+    async def unauthorized_response(self, update: Update):
+        """Send response to unauthorized users."""
+        await update.message.reply_text(
+            "🔒 **Unauthorized Access**\n\n"
+            "This AI Monarch is private and can only be controlled by its owner.\n\n"
+            "If you want your own AI society, you can create one at:\n"
+            "https://github.com/eduardoaugustoes/cawnex",
+            parse_mode='Markdown'
+        )
     
     def setup_handlers(self):
         """Setup command and message handlers."""
@@ -41,6 +57,11 @@ class MonarchTelegramBot:
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command."""
+        # Check authorization
+        if not self.is_authorized(update.effective_user.id):
+            await self.unauthorized_response(update)
+            return
+            
         welcome_msg = f"""
 👑 **Welcome to the Monarch AI Society**
 
@@ -64,6 +85,11 @@ Active agents: {len(monarch.agents)}
     
     async def vision_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show the Monarch's vision."""
+        # Check authorization
+        if not self.is_authorized(update.effective_user.id):
+            await self.unauthorized_response(update)
+            return
+            
         vision_text = f"""
 👑 **Monarch Vision**
 
@@ -85,6 +111,11 @@ This vision guides every decision and agent spawn.
     
     async def society_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show society status."""
+        # Check authorization
+        if not self.is_authorized(update.effective_user.id):
+            await self.unauthorized_response(update)
+            return
+            
         status = monarch.get_society_status()
         
         status_text = f"""
@@ -111,6 +142,11 @@ This vision guides every decision and agent spawn.
     
     async def agents_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """List all agents."""
+        # Check authorization
+        if not self.is_authorized(update.effective_user.id):
+            await self.unauthorized_response(update)
+            return
+            
         agents = monarch.list_agents()
         
         if not agents:
@@ -133,6 +169,11 @@ This vision guides every decision and agent spawn.
     
     async def spawn_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle spawn agent command."""
+        # Check authorization
+        if not self.is_authorized(update.effective_user.id):
+            await self.unauthorized_response(update)
+            return
+            
         if not context.args:
             await update.message.reply_text(
                 "Please specify a specialization: `/spawn api_development` or `/spawn testing`\n\n"
@@ -177,6 +218,11 @@ Total agents: {len(monarch.agents)}
     
     async def workload_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show workload analysis."""
+        # Check authorization
+        if not self.is_authorized(update.effective_user.id):
+            await self.unauthorized_response(update)
+            return
+            
         workload = monarch.assess_workload()
         
         workload_text = f"""
@@ -199,6 +245,11 @@ Total agents: {len(monarch.agents)}
     
     async def chat_with_monarch(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle general chat messages."""
+        # Check authorization
+        if not self.is_authorized(update.effective_user.id):
+            await self.unauthorized_response(update)
+            return
+            
         user_message = update.message.text
         
         # Simple keyword-based responses (could be enhanced with LLM)
