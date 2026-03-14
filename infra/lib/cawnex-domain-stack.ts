@@ -44,7 +44,7 @@ export class CawnexDomainStack extends cdk.Stack {
       
       // Output nameservers for registrar configuration
       new cdk.CfnOutput(this, "NameServers", {
-        value: this.hostedZone.hostedZoneNameServers?.join(", ") || "",
+        value: cdk.Fn.join(", ", this.hostedZone.hostedZoneNameServers || []),
         description: "Configure these nameservers at your domain registrar",
       });
     }
