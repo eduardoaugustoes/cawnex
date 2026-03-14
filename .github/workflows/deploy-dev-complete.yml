@@ -1,0 +1,205 @@
+name: 🚀 Deploy Dev + Update iOS Config (Complete)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - "apps/api/**" 
+      - "apps/worker/**"
+      - "lambdas/auth-post-confirmation/**"
+
+permissions:
+  id-token: write
+  contents: write
+
+concurrency:
+  group: deploy-dev-complete
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  STAGE: dev
+
+jobs:
+  build-api:
+    name: Build API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: apps/api/requirements.txt
+      
+      - name: Build API dist
+        run: cd apps/api && make build
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-dist
+          path: apps/api/dist/
+          retention-days: 1
+
+  deploy-infrastructure:
+    name: Deploy Infrastructure
+    needs: build-api
+    runs-on: ubuntu-latest
+    outputs:
+      user-pool-id: ${{ steps.outputs.outputs.user-pool-id }}
+      ios-client-id: ${{ steps.outputs.outputs.ios-client-id }}
+      api-url: ${{ steps.outputs.outputs.api-url }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/download-artifact@v4
+        with:
+          name: api-dist
+          path: apps/api/dist/
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: infra/package-lock.json
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Install CDK dependencies
+        run: cd infra && npm ci
+      
+      - name: Deploy Stack
+        run: |
+          cd infra
+          npx cdk deploy Cawnex-${{ env.STAGE }} \
+            --context stage=${{ env.STAGE }} \
+            --context stack=main \
+            --require-approval never \
+            --outputs-file ../deploy-outputs.json
+      
+      - name: Extract Outputs
+        id: outputs
+        run: |
+          STACK_NAME="Cawnex-${{ env.STAGE }}"
+          
+          USER_POOL_ID=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
+            --output text)
+          
+          IOS_CLIENT_ID=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`iOSClientId`].OutputValue' \
+            --output text)
+          
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
+            --output text)
+          
+          echo "user-pool-id=$USER_POOL_ID" >> $GITHUB_OUTPUT
+          echo "ios-client-id=$IOS_CLIENT_ID" >> $GITHUB_OUTPUT
+          echo "api-url=$API_URL" >> $GITHUB_OUTPUT
+      
+      - name: Health Check
+        run: |
+          API_URL="${{ steps.outputs.outputs.api-url }}"
+          echo "Testing API: $API_URL/health"
+          curl -sf "${API_URL}/health" && echo "✅ Health check passed" || echo "::warning::Health check failed"
+
+  update-ios-config:
+    name: Update iOS Configuration
+    needs: deploy-infrastructure
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Update iOS Configuration
+        run: |
+          CONFIG_FILE="apps/ios/Cawnex/Cawnex/Core/Config/AppConfiguration.swift"
+          
+          # Create new dev configuration block
+          cat > temp_config.txt << EOF
+          static let dev = AppConfiguration(
+              cognitoRegion: "us-east-1",
+              cognitoUserPoolId: "${{ needs.deploy-infrastructure.outputs.user-pool-id }}",
+              cognitoClientId: "${{ needs.deploy-infrastructure.outputs.ios-client-id }}",
+              apiBaseUrl: "${{ needs.deploy-infrastructure.outputs.api-url }}"
+          )
+          EOF
+          
+          # Replace the dev configuration block
+          awk '
+          /static let dev = AppConfiguration\(/ {
+              print "    static let dev = AppConfiguration("
+              print "        cognitoRegion: \"us-east-1\","
+              print "        cognitoUserPoolId: \"${{ needs.deploy-infrastructure.outputs.user-pool-id }}\","
+              print "        cognitoClientId: \"${{ needs.deploy-infrastructure.outputs.ios-client-id }}\","
+              print "        apiBaseUrl: \"${{ needs.deploy-infrastructure.outputs.api-url }}\""
+              print "    )"
+              skip_block = 1
+              next
+          }
+          skip_block && /^    \)/ {
+              skip_block = 0
+              next
+          }
+          !skip_block {
+              print
+          }
+          ' $CONFIG_FILE > temp_file && mv temp_file $CONFIG_FILE
+          
+          echo "✅ Updated dev configuration"
+      
+      - name: Commit Changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add apps/ios/Cawnex/Cawnex/Core/Config/AppConfiguration.swift
+            git commit -m "chore: auto-update iOS dev config
+            
+            UserPoolId: ${{ needs.deploy-infrastructure.outputs.user-pool-id }}
+            iOSClientId: ${{ needs.deploy-infrastructure.outputs.ios-client-id }}
+            ApiUrl: ${{ needs.deploy-infrastructure.outputs.api-url }}"
+            
+            git push
+          fi
+
+  summary:
+    name: Deployment Summary
+    needs: [deploy-infrastructure, update-ios-config]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Summary
+        run: |
+          echo "## 🚀 Dev Deployment Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Infrastructure Deployed ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- **UserPoolId:** \`${{ needs.deploy-infrastructure.outputs.user-pool-id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **iOSClientId:** \`${{ needs.deploy-infrastructure.outputs.ios-client-id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **ApiUrl:** ${{ needs.deploy-infrastructure.outputs.api-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### iOS App Ready 📱" >> $GITHUB_STEP_SUMMARY
+          echo "The iOS app configuration has been automatically updated." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Open \`apps/ios/Cawnex.xcodeproj\` in Xcode" >> $GITHUB_STEP_SUMMARY
+          echo "2. Build and run the app" >> $GITHUB_STEP_SUMMARY
+          echo "3. Test user signup and login" >> $GITHUB_STEP_SUMMARY
