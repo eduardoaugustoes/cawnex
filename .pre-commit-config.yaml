@@ -1,0 +1,179 @@
+# Cawnex Ultra-Strict Pre-commit Hooks
+# Enforces quality standards before every commit
+
+repos:
+  # ================================
+  # GENERAL CODE QUALITY
+  # ================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # File integrity checks
+      - id: check-added-large-files
+        args: ['--maxkb=1024']  # Max 1MB files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      
+      # Content validation
+      - id: check-yaml
+        args: ['--strict']
+      - id: check-json
+        args: ['--strict']
+      - id: check-toml
+      - id: check-xml
+      
+      # Code cleanliness
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      
+      # Security
+      - id: debug-statements
+      - id: detect-private-key
+
+  # ================================
+  # PYTHON ULTRA-STRICT QUALITY
+  # ================================
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+      - id: black
+        language_version: python3.12
+        args: [--line-length=88]
+        files: ^apps/api/
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black", "--line-length=88"]
+        files: ^apps/api/
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: 
+          - --max-line-length=88
+          - --max-complexity=10
+          - --ignore=E203,W503
+        files: ^apps/api/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        args: [--strict, --show-error-codes]
+        files: ^apps/api/src/
+        additional_dependencies:
+          - types-requests
+          - types-pyyaml
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: [-r, --skip, B101]
+        files: ^apps/api/src/
+
+  # ================================
+  # TYPESCRIPT ULTRA-STRICT QUALITY
+  # ================================
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.57.0
+    hooks:
+      - id: eslint
+        files: \.(ts|js)$
+        exclude: node_modules/
+        args: 
+          - --fix
+          - --max-warnings=0
+        additional_dependencies:
+          - '@typescript-eslint/eslint-plugin@^7.0.0'
+          - '@typescript-eslint/parser@^7.0.0'
+          - 'eslint-plugin-import@^2.29.0'
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        files: \.(ts|js|json|md|yml|yaml)$
+        exclude: node_modules/
+
+  # ================================
+  # DEPENDENCY SECURITY SCANNING
+  # ================================
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.2
+    hooks:
+      - id: python-safety-dependencies-check
+        files: requirements.*\.txt$
+
+  # ================================
+  # COMMIT MESSAGE VALIDATION
+  # ================================
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.1.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: 
+          - --optional-scopes
+          - --strict
+          - --types
+          - feat,fix,docs,style,refactor,perf,test,build,ci,chore
+
+  # ================================
+  # SECRETS DETECTION
+  # ================================
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package.lock.json
+
+  # ================================
+  # DOCKERFILE LINTING
+  # ================================
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        files: Dockerfile.*
+
+  # ================================
+  # CUSTOM QUALITY CONTROL
+  # ================================
+  - repo: local
+    hooks:
+      - id: cawnex-quality-control
+        name: 🔒 Cawnex Ultra-Strict Quality Control
+        entry: ./scripts/quality-control.sh --quick
+        language: script
+        always_run: true
+        pass_filenames: false
+        stages: [pre-push]
+
+  # ================================
+  # PERFORMANCE CHECKS
+  # ================================
+  - repo: local
+    hooks:
+      - id: python-complexity-check
+        name: 🔍 Python Complexity Check
+        entry: bash -c 'find apps/api/src -name "*.py" -exec radon cc {} + | grep -E "^[A-F]" && exit 1 || exit 0'
+        language: system
+        files: ^apps/api/.*\.py$
+        
+  - repo: local
+    hooks:
+      - id: typescript-complexity-check
+        name: 🔍 TypeScript Complexity Check
+        entry: bash -c 'npx eslint infra --rule "complexity: [error, 10]" --quiet'
+        language: system
+        files: ^infra/.*\.ts$

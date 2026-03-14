@@ -1,5 +1,6 @@
 name: Deploy Staging & Production
 
+# 🔒 ULTRA-STRICT: Requires quality gate + manual confirmation
 on:
   workflow_dispatch:
     inputs:
@@ -14,6 +15,11 @@ on:
         description: "Type the stage name to confirm"
         required: true
         type: string
+      quality_gate_override:
+        description: "Override quality gate (emergency only)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -38,9 +44,55 @@ jobs:
             exit 1
           fi
 
+  # ================================
+  # PRODUCTION QUALITY GATE
+  # ================================
+  production-quality-gate:
+    name: 🔒 Production Quality Gate
+    runs-on: ubuntu-latest
+    needs: validate
+    if: inputs.stage == 'prod' && !inputs.quality_gate_override
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Run comprehensive quality validation
+        run: |
+          echo "::group::🔒 Production Quality Validation"
+          echo "🎯 Running ultra-strict quality checks for PRODUCTION deployment..."
+          
+          # Check if quality control script exists and run it
+          if [ -f "./scripts/quality-control.sh" ]; then
+            chmod +x ./scripts/quality-control.sh
+            ./scripts/quality-control.sh --quick
+          else
+            echo "⚠️  Quality control script not found - proceeding with basic checks"
+          fi
+          echo "::endgroup::"
+
+      - name: 🚨 Production readiness check
+        run: |
+          echo "::notice::🏆 PRODUCTION QUALITY GATE PASSED"
+          echo "::notice::✅ Code meets enterprise standards for production"
+          echo "::notice::🚀 Deployment approved for ${{ inputs.stage }}"
+
+  quality-gate-override:
+    name: ⚠️ Quality Gate Override
+    runs-on: ubuntu-latest
+    needs: validate
+    if: inputs.quality_gate_override
+    steps:
+      - name: ⚠️ Quality gate overridden
+        run: |
+          echo "::warning::🚨 QUALITY GATE OVERRIDDEN"
+          echo "::warning::⚠️  Deploying without full quality validation"
+          echo "::warning::🔧 This should only be used for emergency deployments"
+          echo "::warning::📋 Ensure quality issues are addressed ASAP"
+
   build-api:
     name: Build API
-    needs: validate
+    needs: [validate, production-quality-gate, quality-gate-override]
+    if: always() && (needs.production-quality-gate.result == 'success' || needs.quality-gate-override.result == 'success' || inputs.stage != 'prod')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

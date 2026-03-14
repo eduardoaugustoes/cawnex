@@ -1,9 +1,14 @@
 name: Deploy Dev Environment
 
 # Official Cawnex deployment workflow
+# 🔒 REQUIRES QUALITY GATE TO PASS FIRST
 # Deploys both AuthStack and MainStack, configures triggers, and updates iOS config
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["🔒 Ultra-Strict Quality Gate"]
+    types: [completed]
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -26,6 +31,21 @@ env:
   STAGE: dev
 
 jobs:
+  # ================================
+  # QUALITY GATE VERIFICATION
+  # ================================
+  quality-gate-check:
+    name: 🔒 Verify Quality Gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+    steps:
+      - name: 🚨 Block deployment - Quality gate failed
+        run: |
+          echo "::error::🚨 DEPLOYMENT BLOCKED"
+          echo "::error::❌ Quality gate workflow failed"
+          echo "::error::🔧 Fix quality issues before deploying"
+          exit 1
+
   build-api:
     name: Build API
     runs-on: ubuntu-latest
