@@ -119,7 +119,7 @@ npx cdk deploy Cawnex-dev --context stage=dev
 
 ### **GitHub Actions:**
 1. **Go to:** https://github.com/eduardoaugustoes/cawnex/actions
-2. **Run:** "🚀 Deploy Dev + Update iOS Config (Complete)"
+2. **Run:** "🚀 Deploy Dev"
 3. **Result:** Both stacks deployed automatically + iOS config updated
 
 ### **Stack Management:**

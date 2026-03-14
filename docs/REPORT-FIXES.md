@@ -7,7 +7,7 @@
 ## 🔍 **Issues Identified:**
 
 ### **1. Workflow Conflict (Critical)** 🚨
-**Problem:** `deploy-dev.yml` and `deploy-dev-complete.yml` both triggered on same Git paths
+**Problem:** `deploy-dev.yml` and `deploy-dev-complete.yml` (now renamed to main `deploy-dev.yml`) both triggered on same Git paths
 - **Risk:** Parallel deployments causing resource conflicts
 - **Impact:** Deployment failures and inconsistent state
 
@@ -49,7 +49,7 @@ on:
 
 **Result:** 
 - ✅ No more parallel deployment conflicts
-- ✅ `deploy-dev-complete.yml` is single source of truth
+- ✅ `deploy-dev.yml` (main workflow) is single source of truth
 - ✅ Legacy workflow preserved but disabled by default
 
 ### **2. Stack Output Reference Fix**
@@ -162,7 +162,7 @@ static let dev = AppConfiguration(
 4. ✅ **Tested** - validated patterns handle real file formats correctly
 
 ### **Next Steps:**
-1. **Test deployment:** Run `Deploy Dev + Update iOS Config (Complete)` workflow
+1. **Test deployment:** Run `🚀 Deploy Dev` workflow
 2. **Verify iOS config:** Check that real values are populated in `AppConfiguration.swift`
 3. **Build iOS app:** Open in Xcode and test full auth flow
 4. **Monitor:** First deployment will validate all fixes end-to-end
