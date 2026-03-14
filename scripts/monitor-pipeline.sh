@@ -14,16 +14,16 @@ ATTEMPT=1
 check_latest_runs() {
     echo "📊 Checking latest workflow runs (attempt $ATTEMPT/$MAX_ATTEMPTS)..."
 
-    # Get the latest runs for each workflow
-    QUALITY_GATE=$(gh run list --workflow="🔒 Ultra-Strict Quality Gate" --limit 1 --json status,conclusion --jq '.[0].conclusion // .[0].status')
-    DEPLOY_DEV=$(gh run list --workflow="Deploy Dev Environment" --limit 1 --json status,conclusion --jq '.[0].conclusion // .[0].status')
+    # Get the latest runs for the consolidated workflow
+    MAIN_PIPELINE=$(gh run list --workflow="🚀 Main CI/CD Pipeline" --limit 1 --json status,conclusion --jq '.[0].conclusion // .[0].status')
+    UTILITIES=$(gh run list --workflow="🔧 Utilities & Manual Operations" --limit 1 --json status,conclusion --jq '.[0].conclusion // .[0].status' 2>/dev/null || echo "none")
 
-    echo "  🔒 Quality Gate: $QUALITY_GATE"
-    echo "  🚀 Deploy Dev: $DEPLOY_DEV"
+    echo "  🚀 Main Pipeline: $MAIN_PIPELINE"
+    echo "  🔧 Utilities: $UTILITIES"
 
-    # Check if both workflows have completed successfully
-    if [ "$QUALITY_GATE" = "success" ] && [ "$DEPLOY_DEV" = "success" ]; then
-        echo "✅ ALL WORKFLOWS COMPLETED SUCCESSFULLY!"
+    # Check if main pipeline completed successfully
+    if [ "$MAIN_PIPELINE" = "success" ]; then
+        echo "✅ MAIN PIPELINE COMPLETED SUCCESSFULLY!"
         echo ""
         echo "🎉 Pipeline is fully operational:"
         echo "  ✅ Quality Gate: PASSED"
@@ -32,37 +32,24 @@ check_latest_runs() {
         return 0
     fi
 
-    # Check if any workflow failed (ignore in_progress, queued, or empty status)
-    if [ "$QUALITY_GATE" = "failure" ] || [ "$DEPLOY_DEV" = "failure" ]; then
-        # Only report failure if both workflows are completed
-        QUALITY_STATUS=$(gh run list --workflow="🔒 Ultra-Strict Quality Gate" --limit 1 --json status,conclusion --jq '.[0].status // "unknown"')
-        DEPLOY_STATUS=$(gh run list --workflow="Deploy Dev Environment" --limit 1 --json status,conclusion --jq '.[0].status // "unknown"')
+    # Check if main pipeline failed
+    if [ "$MAIN_PIPELINE" = "failure" ]; then
+        echo "❌ MAIN PIPELINE FAILURE DETECTED!"
+        echo ""
+        echo "Failed workflow:"
+        echo "  ❌ Main Pipeline: FAILED"
+        echo ""
+        echo "🔍 Checking logs for details..."
 
-        # Don't fail if quality gate is still running
-        if [ "$QUALITY_STATUS" = "in_progress" ] || [ "$QUALITY_STATUS" = "queued" ]; then
-            echo "⏳ Quality Gate still running, not failing yet..."
-        else
-            echo "❌ WORKFLOW FAILURE DETECTED!"
-            echo ""
-            echo "Failed workflows:"
-            [ "$QUALITY_GATE" = "failure" ] && echo "  ❌ Quality Gate: FAILED"
-            [ "$DEPLOY_DEV" = "failure" ] && echo "  ❌ Deploy Dev: FAILED"
-            echo ""
-            echo "🔍 Checking logs for details..."
-
-            # Show recent failed runs
-            gh run list --limit 5 --json status,conclusion,name,url
-            return 1
-        fi
+        # Show recent failed runs
+        gh run list --limit 3 --json status,conclusion,name,url
+        return 1
     fi
 
     # Still in progress
-    echo "⏳ Workflows still running..."
-    if [ "$QUALITY_GATE" = "in_progress" ] || [ -z "$QUALITY_GATE" ]; then
-        echo "  🔄 Quality Gate: IN PROGRESS"
-    fi
-    if [ "$DEPLOY_DEV" = "in_progress" ] || [ -z "$DEPLOY_DEV" ]; then
-        echo "  🔄 Deploy Dev: IN PROGRESS"
+    echo "⏳ Main pipeline still running..."
+    if [ "$MAIN_PIPELINE" = "in_progress" ] || [ "$MAIN_PIPELINE" = "queued" ] || [ -z "$MAIN_PIPELINE" ]; then
+        echo "  🔄 Main Pipeline: IN PROGRESS"
     fi
 
     return 2  # Still waiting

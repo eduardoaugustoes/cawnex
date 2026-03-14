@@ -123,11 +123,10 @@ jobs:
           echo "::group::Swift Build"
           xcodebuild clean build \
             -scheme Cawnex \
-            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
+            -destination 'platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder' \
             -configuration Debug \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
-            OTHER_SWIFT_FLAGS="-warnings-as-errors" \
-            | xcpretty
+            OTHER_SWIFT_FLAGS="-warnings-as-errors"
           echo "::endgroup::"
 
   # ================================
