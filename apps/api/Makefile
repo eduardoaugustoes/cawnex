@@ -3,9 +3,33 @@
 .PHONY: help install dev-install type-check lint format test security clean build
 .DEFAULT_GOAL := help
 
-# Variables
-PYTHON := venv/bin/python
-PIP := venv/bin/pip
+# Variables - CI-aware paths
+ifeq ($(CI),true)
+    # In CI environment, use globally installed tools
+    PYTHON := python
+    PIP := pip
+    MYPY := mypy
+    BLACK := black
+    ISORT := isort
+    FLAKE8 := flake8
+    BANDIT := bandit
+    PYTEST := pytest
+    PIP_AUDIT := pip-audit
+    PRECOMMIT := pre-commit
+else
+    # Local development, use venv
+    PYTHON := venv/bin/python
+    PIP := venv/bin/pip
+    MYPY := venv/bin/mypy
+    BLACK := venv/bin/black
+    ISORT := venv/bin/isort
+    FLAKE8 := venv/bin/flake8
+    BANDIT := venv/bin/bandit
+    PYTEST := venv/bin/pytest
+    PIP_AUDIT := venv/bin/pip-audit
+    PRECOMMIT := venv/bin/pre-commit
+endif
+
 SRC_DIR := src
 TEST_DIR := tests
 VENV_DIR := venv
@@ -27,12 +51,12 @@ dev-install: ## Install development dependencies
 # ================================
 type-check: ## Run MyPy type checking (STRICT)
 	@echo "🔍 Running MyPy type checking..."
-	$(VENV_DIR)/bin/mypy $(SRC_DIR) --strict --show-error-codes --pretty
+	$(MYPY) $(SRC_DIR) --strict --show-error-codes --pretty
 	@echo "✅ Type checking passed!"
 
 type-check-report: ## Generate MyPy type checking HTML report
 	@echo "📊 Generating MyPy HTML report..."
-	$(VENV_DIR)/bin/mypy $(SRC_DIR) --strict --html-report mypy-report
+	$(MYPY) $(SRC_DIR) --strict --html-report mypy-report
 	@echo "📄 Report generated at: mypy-report/index.html"
 
 # ================================
@@ -40,16 +64,16 @@ type-check-report: ## Generate MyPy type checking HTML report
 # ================================
 lint: ## Run all linters (flake8, bandit, etc.)
 	@echo "🔍 Running Flake8 linting..."
-	$(VENV_DIR)/bin/flake8 $(SRC_DIR) --max-line-length=88 --max-complexity=10
+	$(FLAKE8) $(SRC_DIR) --max-line-length=88 --max-complexity=10
 	@echo "🔒 Running Bandit security checks..."
-	$(VENV_DIR)/bin/bandit -r $(SRC_DIR) -f json -o bandit-report.json
+	$(BANDIT) -r $(SRC_DIR) -f json -o bandit-report.json
 	@echo "✅ All linting passed!"
 
 lint-fix: ## Auto-fix linting issues where possible
 	@echo "🔧 Running isort..."
-	$(VENV_DIR)/bin/isort $(SRC_DIR) $(TEST_DIR)
+	$(ISORT) $(SRC_DIR) $(TEST_DIR)
 	@echo "🔧 Running Black..."
-	$(VENV_DIR)/bin/black $(SRC_DIR) $(TEST_DIR)
+	$(BLACK) $(SRC_DIR) $(TEST_DIR)
 	@echo "✅ Auto-fixing complete!"
 
 # ================================
@@ -57,14 +81,14 @@ lint-fix: ## Auto-fix linting issues where possible
 # ================================
 format: ## Format code with Black and sort imports with isort
 	@echo "📝 Formatting code..."
-	$(VENV_DIR)/bin/black $(SRC_DIR) $(TEST_DIR) --line-length=88
-	$(VENV_DIR)/bin/isort $(SRC_DIR) $(TEST_DIR) --profile black
+	$(BLACK) $(SRC_DIR) $(TEST_DIR) --line-length=88
+	$(ISORT) $(SRC_DIR) $(TEST_DIR) --profile black
 	@echo "✅ Formatting complete!"
 
 format-check: ## Check if code is properly formatted
 	@echo "📝 Checking code formatting..."
-	$(VENV_DIR)/bin/black $(SRC_DIR) $(TEST_DIR) --check --line-length=88
-	$(VENV_DIR)/bin/isort $(SRC_DIR) $(TEST_DIR) --check-only --profile black
+	$(BLACK) $(SRC_DIR) $(TEST_DIR) --check --line-length=88
+	$(ISORT) $(SRC_DIR) $(TEST_DIR) --check-only --profile black
 	@echo "✅ Code is properly formatted!"
 
 # ================================
@@ -72,17 +96,17 @@ format-check: ## Check if code is properly formatted
 # ================================
 test: ## Run tests with coverage (min 80%)
 	@echo "🧪 Running tests with coverage..."
-	$(VENV_DIR)/bin/pytest --cov=$(SRC_DIR) --cov-report=term-missing --cov-fail-under=80
+	$(PYTEST) --cov=$(SRC_DIR) --cov-report=term-missing --cov-fail-under=80
 	@echo "✅ All tests passed!"
 
 test-fast: ## Run tests without coverage
 	@echo "🧪 Running fast tests..."
-	$(VENV_DIR)/bin/pytest -x -v
+	$(PYTEST) -x -v
 	@echo "✅ Fast tests passed!"
 
 test-report: ## Generate HTML test coverage report
 	@echo "📊 Generating test coverage report..."
-	$(VENV_DIR)/bin/pytest --cov=$(SRC_DIR) --cov-report=html
+	$(PYTEST) --cov=$(SRC_DIR) --cov-report=html
 	@echo "📄 Report generated at: htmlcov/index.html"
 
 # ================================
@@ -90,9 +114,9 @@ test-report: ## Generate HTML test coverage report
 # ================================
 security: ## Run security checks
 	@echo "🔒 Running security checks..."
-	$(VENV_DIR)/bin/bandit -r $(SRC_DIR) -f json -o bandit-report.json
+	$(BANDIT) -r $(SRC_DIR) -f json -o bandit-report.json
 	@echo "🔍 Checking for known vulnerabilities..."
-	$(VENV_DIR)/bin/pip-audit
+	$(PIP_AUDIT)
 	@echo "✅ Security checks passed!"
 
 # ================================
@@ -109,18 +133,26 @@ ci: quality ## Run CI pipeline (same as quality)
 # ================================
 dev: ## Start development server
 	@echo "🚀 Starting development server..."
+ifeq ($(CI),true)
+	@echo "⚠️  Development server not available in CI environment"
+else
 	$(VENV_DIR)/bin/uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+endif
 
 dev-debug: ## Start development server with debug logging
 	@echo "🐛 Starting development server with debug..."
+ifeq ($(CI),true)
+	@echo "⚠️  Development server not available in CI environment"
+else
 	$(VENV_DIR)/bin/uvicorn src.main:app --reload --host 0.0.0.0 --port 8000 --log-level debug
+endif
 
 # ================================
 # BUILD & DEPLOYMENT
 # ================================
 build: quality ## Build distribution (after quality checks)
 	@echo "📦 Building distribution..."
-	python -m build
+	$(PYTHON) -m build
 	@echo "✅ Build complete!"
 
 build-lambda: ## Build for AWS Lambda deployment
@@ -155,10 +187,14 @@ clean: ## Clean build artifacts and cache
 # ================================
 pre-commit: ## Run pre-commit hooks on all files
 	@echo "🔍 Running pre-commit hooks..."
-	$(VENV_DIR)/bin/pre-commit run --all-files
+	$(PRECOMMIT) run --all-files
 	@echo "✅ Pre-commit hooks passed!"
 
 install-hooks: ## Install pre-commit hooks
 	@echo "🪝 Installing pre-commit hooks..."
-	$(VENV_DIR)/bin/pre-commit install
+ifeq ($(CI),true)
+	@echo "⚠️  Pre-commit hooks not installed in CI environment"
+else
+	$(PRECOMMIT) install
 	@echo "✅ Hooks installed!"
+endif

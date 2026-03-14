@@ -42,7 +42,7 @@ jobs:
           cache-dependency-path: apps/api/requirements.txt
 
       - name: Build API dist (required by CDK synth)
-        run: cd apps/api && make build
+        run: cd apps/api && make build-lambda
 
       - name: CDK synth
         run: |

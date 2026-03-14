@@ -60,7 +60,7 @@ jobs:
           cache-dependency-path: apps/api/requirements.txt
 
       - name: Build API dist
-        run: cd apps/api && make build
+        run: cd apps/api && make build-lambda
 
       - uses: actions/upload-artifact@v4
         with:
