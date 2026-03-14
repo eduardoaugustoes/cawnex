@@ -19,11 +19,46 @@ export class CawnexAuthStack extends cdk.Stack {
   
   /** Web Client — exported for cross-stack references */
   public readonly webClient: cognito.UserPoolClient;
+  
+  /** DynamoDB Table — shared between auth and app */
+  public readonly table: dynamodb.Table;
 
   constructor(scope: Construct, id: string, props: CawnexAuthStackProps) {
     super(scope, id, props);
 
     const { stage } = props;
+
+    // ─────────────────────────────────────────────
+    // DynamoDB — Single-table design, multi-tenant
+    // ─────────────────────────────────────────────
+    this.table = new dynamodb.Table(this, "MainTable", {
+      tableName: `cawnex-${stage}`,
+      partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "SK", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecovery: true,
+      removalPolicy:
+        stage === "prod"
+          ? cdk.RemovalPolicy.RETAIN
+          : cdk.RemovalPolicy.DESTROY,
+      timeToLiveAttribute: "ttl",
+    });
+
+    // GSI1: Query by type within tenant (e.g., all projects for tenant)
+    this.table.addGlobalSecondaryIndex({
+      indexName: "GSI1",
+      partitionKey: { name: "GSI1PK", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "GSI1SK", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    // GSI2: Cross-tenant queries (admin), status lookups
+    this.table.addGlobalSecondaryIndex({
+      indexName: "GSI2",
+      partitionKey: { name: "GSI2PK", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "GSI2SK", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
 
     // ─────────────────────────────────────────────
     // Cognito User Pool — Multi-tenant SaaS
@@ -119,20 +154,22 @@ export class CawnexAuthStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(10),
         architecture: lambda.Architecture.ARM_64,
         environment: {
-          // TABLE_NAME will be passed from main stack via parameter
+          TABLE_NAME: this.table.tableName,
           STAGE: stage,
         },
         logRetention: logs.RetentionDays.ONE_MONTH,
       }
     );
 
-    // Grant permissions to update user attributes
+    // Grant permissions to update user attributes and write to DynamoDB
     postConfirmationFn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["cognito-idp:AdminUpdateUserAttributes"],
         resources: [this.userPool.userPoolArn],
       })
     );
+    
+    this.table.grantWriteData(postConfirmationFn);
 
     // Attach trigger to user pool
     this.userPool.addTrigger(
@@ -140,11 +177,17 @@ export class CawnexAuthStack extends cdk.Stack {
       postConfirmationFn
     );
 
-    // Export Lambda function ARN for main stack to grant DynamoDB access
-    new cdk.CfnOutput(this, "PostConfirmationFnArn", {
-      value: postConfirmationFn.functionArn,
-      exportName: `CawnexAuthStack-${stage}-PostConfirmationFnArn`,
-      description: "Post-confirmation Lambda function ARN",
+    // Export DynamoDB table name and ARN for MainStack
+    new cdk.CfnOutput(this, "TableName", {
+      value: this.table.tableName,
+      exportName: `CawnexAuthStack-${stage}-TableName`,
+      description: "DynamoDB table name",
+    });
+
+    new cdk.CfnOutput(this, "TableArn", {
+      value: this.table.tableArn,
+      exportName: `CawnexAuthStack-${stage}-TableArn`,
+      description: "DynamoDB table ARN",
     });
 
     // ─────────────────────────────────────────────

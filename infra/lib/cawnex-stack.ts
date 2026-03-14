@@ -26,35 +26,14 @@ export class CawnexStack extends cdk.Stack {
     const stage = props.stage;
 
     // ─────────────────────────────────────────────
-    // DynamoDB — Single-table design, multi-tenant
+    // Import DynamoDB table from AuthStack
     // ─────────────────────────────────────────────
-    const table = new dynamodb.Table(this, "MainTable", {
-      tableName: `cawnex-${stage}`,
-      partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "SK", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      pointInTimeRecovery: true,
-      removalPolicy:
-        stage === "prod"
-          ? cdk.RemovalPolicy.RETAIN
-          : cdk.RemovalPolicy.DESTROY,
-      timeToLiveAttribute: "ttl",
-    });
-
-    // GSI1: Query by type within tenant (e.g., all projects for tenant)
-    table.addGlobalSecondaryIndex({
-      indexName: "GSI1",
-      partitionKey: { name: "GSI1PK", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "GSI1SK", type: dynamodb.AttributeType.STRING },
-      projectionType: dynamodb.ProjectionType.ALL,
-    });
-
-    // GSI2: Cross-tenant queries (admin), status lookups
-    table.addGlobalSecondaryIndex({
-      indexName: "GSI2",
-      partitionKey: { name: "GSI2PK", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "GSI2SK", type: dynamodb.AttributeType.STRING },
-      projectionType: dynamodb.ProjectionType.ALL,
+    const tableName = cdk.Fn.importValue(`CawnexAuthStack-${stage}-TableName`);
+    const tableArn = cdk.Fn.importValue(`CawnexAuthStack-${stage}-TableArn`);
+    
+    const table = dynamodb.Table.fromTableAttributes(this, "MainTable", {
+      tableName,
+      tableArn,
     });
 
     // ─────────────────────────────────────────────
@@ -118,7 +97,7 @@ export class CawnexStack extends cdk.Stack {
       architecture: lambda.Architecture.ARM_64,
       environment: {
         STAGE: stage,
-        TABLE_NAME: table.tableName,
+        TABLE_NAME: tableName,
         BUCKET_NAME: artifactsBucket.bucketName,
         QUEUE_URL: taskQueue.queueUrl,
         USER_POOL_ID: userPoolId,
@@ -223,7 +202,7 @@ export class CawnexStack extends cdk.Stack {
       }),
       environment: {
         STAGE: stage,
-        TABLE_NAME: table.tableName,
+        TABLE_NAME: tableName,
         BUCKET_NAME: artifactsBucket.bucketName,
         QUEUE_URL: taskQueue.queueUrl,
       },
@@ -297,23 +276,8 @@ export class CawnexStack extends cdk.Stack {
       value: taskQueue.queueUrl,
     });
 
-    // ─────────────────────────────────────────────
-    // Grant DynamoDB access to PostConfirmation Lambda (from AuthStack)
-    // ─────────────────────────────────────────────
-    const postConfirmationFnArn = cdk.Fn.importValue(`CawnexAuthStack-${stage}-PostConfirmationFnArn`);
-    const postConfirmationFn = lambda.Function.fromFunctionArn(
-      this,
-      "PostConfirmationFn",
-      postConfirmationFnArn
-    );
-
-    table.grantWriteData(postConfirmationFn);
-    
-    // Update Lambda environment with table name via CDK custom resource
-    new cdk.CfnOutput(this, "PostConfirmationTableName", {
-      value: table.tableName,
-      description: "DynamoDB table name for PostConfirmation Lambda",
-    });
+    // Note: PostConfirmation Lambda is handled entirely in AuthStack
+    // including DynamoDB permissions and table access
 
     // ─────────────────────────────────────────────
     // Outputs
