@@ -168,35 +168,20 @@ export class CawnexDomainStack extends cdk.Stack {
     });
 
     // ─────────────────────────────────────────────
-    // SES Configuration Set (for tracking/analytics)
+    // SES Configuration Set (simplified for compatibility)
     // ─────────────────────────────────────────────
     const configSet = new ses.ConfigurationSet(this, "EmailConfigSet", {
       configurationSetName: `cawnex-${stage}`,
       sendingEnabled: true,
     });
 
-    // Email sending reputation tracking
-    configSet.addEventDestination("ReputationTracking", {
-      destination: ses.EventDestination.cloudWatchDimensions([
-        {
-          name: "MessageTag",
-          defaultValue: "EmailSending",
-          source: ses.DimensionSource.MESSAGE_TAG,
-        },
-      ]),
-      events: [
-        ses.EmailSendingEvent.SEND,
-        ses.EmailSendingEvent.REJECT,
-        ses.EmailSendingEvent.BOUNCE,
-        ses.EmailSendingEvent.COMPLAINT,
-        ses.EmailSendingEvent.DELIVERY,
-      ],
-    });
-
     new cdk.CfnOutput(this, "SESConfigSetName", {
       value: configSet.configurationSetName,
       exportName: `CawnexDomainStack-${stage}-SESConfigSetName`,
-      description: "SES Configuration Set for email tracking",
+      description: "SES Configuration Set for email sending",
     });
+
+    // Note: CloudWatch monitoring can be added later via AWS Console if needed
+    // The complex event destination API varies across CDK versions
   }
 }
