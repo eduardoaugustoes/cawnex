@@ -11,6 +11,7 @@ on:
       - "apps/api/**" 
       - "apps/worker/**"
       - "lambdas/auth-post-confirmation/**"
+      - ".github/workflows/1-deploy-dev.yml"
 
 permissions:
   id-token: write
