@@ -1,0 +1,26 @@
+name: "Setup Infra"
+description: "Setup Node, install CDK deps, configure AWS OIDC"
+inputs:
+  aws-role-arn:
+    description: "AWS IAM role ARN for OIDC"
+    required: true
+  aws-region:
+    description: "AWS region"
+    default: "us-east-1"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+        cache: "npm"
+        cache-dependency-path: infra/package-lock.json
+
+    - run: cd infra && npm ci
+      shell: bash
+
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-arn }}
+        aws-region: ${{ inputs.aws-region }}

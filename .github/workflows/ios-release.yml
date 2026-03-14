@@ -1,0 +1,105 @@
+name: iOS Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "Build number (defaults to run number)"
+        required: false
+        type: string
+
+jobs:
+  release:
+    name: Archive + TestFlight
+    runs-on: macos-latest
+    timeout-minutes: 30
+    environment: ios-release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Xcode derived data
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: xcode-${{ runner.os }}-${{ hashFiles('apps/ios/Cawnex/**/*.swift', 'apps/ios/Cawnex/Cawnex.xcodeproj/project.pbxproj') }}
+          restore-keys: xcode-${{ runner.os }}-
+
+      - name: Resolve build number
+        id: build
+        run: |
+          if [ -n "${{ inputs.build_number }}" ]; then
+            echo "number=${{ inputs.build_number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install signing credentials
+        env:
+          P12_BASE64: ${{ secrets.APPLE_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
+          PROVISION_PROFILE_BASE64: ${{ secrets.APPLE_PROVISION_PROFILE_BASE64 }}
+        run: |
+          CERT_PATH=$RUNNER_TEMP/certificate.p12
+          PP_PATH=$RUNNER_TEMP/profile.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          echo -n "$P12_BASE64" | base64 --decode -o $CERT_PATH
+          echo -n "$PROVISION_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+
+          security create-keychain -p "" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "" $KEYCHAIN_PATH
+          security import $CERT_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Install App Store Connect API key
+        env:
+          API_KEY_P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
+          API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+        run: |
+          mkdir -p ~/.private_keys
+          echo -n "$API_KEY_P8" > ~/.private_keys/AuthKey_${API_KEY_ID}.p8
+
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -project apps/ios/Cawnex/Cawnex.xcodeproj \
+            -scheme Cawnex \
+            -archivePath $RUNNER_TEMP/Cawnex.xcarchive \
+            -destination 'generic/platform=iOS' \
+            CURRENT_PROJECT_VERSION=${{ steps.build.outputs.number }} \
+            -quiet
+
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/Cawnex.xcarchive \
+            -exportOptionsPlist apps/ios/Cawnex/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/export
+
+      - name: Upload to TestFlight
+        run: |
+          xcrun altool --upload-app \
+            -f $RUNNER_TEMP/export/Cawnex.ipa \
+            -t ios \
+            --apiKey ${{ secrets.APPSTORE_API_KEY_ID }} \
+            --apiIssuer ${{ secrets.APPSTORE_API_ISSUER }}
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cawnex-${{ steps.build.outputs.number }}.ipa
+          path: $RUNNER_TEMP/export/*.ipa
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## iOS Release" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build**: ${{ steps.build.outputs.number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

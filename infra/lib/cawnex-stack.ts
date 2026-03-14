@@ -161,6 +161,7 @@ export class CawnexStack extends cdk.Stack {
     const iosClient = userPool.addClient("iOSClient", {
       userPoolClientName: `cawnex-ios-${stage}`,
       authFlows: {
+        userPassword: true,
         userSrp: true,
       },
       oAuth: {

@@ -1,0 +1,44 @@
+name: iOS CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/ios/**"
+      - ".github/workflows/ios-ci.yml"
+
+concurrency:
+  group: ios-ci-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build + Contract Tests
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Xcode derived data
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: xcode-${{ runner.os }}-${{ hashFiles('apps/ios/Cawnex/**/*.swift', 'apps/ios/Cawnex/Cawnex.xcodeproj/project.pbxproj') }}
+          restore-keys: xcode-${{ runner.os }}-
+
+      - name: Build and test
+        run: |
+          xcodebuild test \
+            -project apps/ios/Cawnex/Cawnex.xcodeproj \
+            -scheme Cawnex \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -resultBundlePath TestResults.xcresult \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: TestResults.xcresult
