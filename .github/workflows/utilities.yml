@@ -10,8 +10,8 @@ on:
         type: choice
         options:
           - update-ios-config
+          - ios-quality-check
           - destroy-stacks
-          - setup-quality-hooks
           - deploy-staging
           - deploy-production
 
@@ -47,6 +47,47 @@ jobs:
           git add apps/ios/Cawnex/Cawnex/Core/Config/
           git commit -m "feat: update iOS configuration from deployed infrastructure" || echo "No changes to commit"
           git push
+
+  ios-quality-check:
+    name: 📱 iOS Quality Check (Manual Only)
+    runs-on: macos-latest
+    if: github.event.inputs.operation == 'ios-quality-check'
+    timeout-minutes: 20
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🍎 Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.4"
+
+      - name: 🔍 Swift Build & Test
+        working-directory: apps/ios/Cawnex
+        run: |
+          echo "::group::Swift Build & Quality Check"
+          echo "💰 Note: This uses expensive macOS runners - run only when needed"
+
+          # List available simulators for debugging
+          xcrun simctl list devices available
+
+          # Build with any available iOS simulator
+          xcodebuild clean build \
+            -scheme Cawnex \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -configuration Debug \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            OTHER_SWIFT_FLAGS="-warnings-as-errors" || \
+          xcodebuild clean build \
+            -scheme Cawnex \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            OTHER_SWIFT_FLAGS="-warnings-as-errors"
+          echo "::endgroup::"
+
+          echo "✅ iOS quality check completed successfully"
+          echo "💡 Tip: Only run this when iOS code changes to save costs"
 
   destroy-stacks:
     name: 🗑️ Destroy AWS Stacks

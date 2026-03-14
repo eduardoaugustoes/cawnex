@@ -104,30 +104,8 @@ jobs:
           npm run format:check
           echo "::endgroup::"
 
-  ios-quality:
-    name: 📱 iOS Quality
-    runs-on: macos-latest
-    timeout-minutes: 20
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🍎 Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "16.4"
-
-      - name: 🔍 Swift Build & Test
-        working-directory: apps/ios/Cawnex
-        run: |
-          echo "::group::Swift Build"
-          xcodebuild clean build \
-            -scheme Cawnex \
-            -destination 'platform=iOS Simulator,id=dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder' \
-            -configuration Debug \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
-            OTHER_SWIFT_FLAGS="-warnings-as-errors"
-          echo "::endgroup::"
+  # iOS quality moved to utilities.yml for manual execution only
+  # Reason: MacOS runners cost 10x more than Ubuntu - not cost-effective for automated quality gate
 
   # ================================
   # DEPLOYMENT - Only runs after quality gate passes
@@ -135,7 +113,7 @@ jobs:
   deploy-dev:
     name: 🚀 Deploy to Development
     runs-on: ubuntu-latest
-    needs: [python-quality, typescript-quality, ios-quality]
+    needs: [python-quality, typescript-quality]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: development
     timeout-minutes: 20
@@ -208,7 +186,7 @@ jobs:
   quality-summary:
     name: 📊 Quality Gate Summary
     runs-on: ubuntu-latest
-    needs: [python-quality, typescript-quality, ios-quality]
+    needs: [python-quality, typescript-quality]
     if: always()
     steps:
       - name: 📊 Generate Report
@@ -230,21 +208,20 @@ jobs:
             echo "| ⚡ TypeScript | ❌ FAILED | Check logs for details |" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if [ "${{ needs.ios-quality.result }}" == "success" ]; then
-            echo "| 📱 iOS Swift | ✅ PASSED | Build, Warnings as Errors |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| 📱 iOS Swift | ❌ FAILED | Check logs for details |" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💰 **Cost Optimization:** iOS quality moved to manual utilities workflow" >> $GITHUB_STEP_SUMMARY
+          echo "📱 Run iOS checks manually when needed (macOS runners cost 10x more)" >> $GITHUB_STEP_SUMMARY
 
       - name: 🚨 Fail if Quality Gate Failed
-        if: needs.python-quality.result != 'success' || needs.typescript-quality.result != 'success' || needs.ios-quality.result != 'success'
+        if: needs.python-quality.result != 'success' || needs.typescript-quality.result != 'success'
         run: |
           echo "::error::🚨 QUALITY GATE FAILED"
           echo "::error::❌ Fix quality issues before merging"
           exit 1
 
       - name: ✅ Quality Gate Success
-        if: needs.python-quality.result == 'success' && needs.typescript-quality.result == 'success' && needs.ios-quality.result == 'success'
+        if: needs.python-quality.result == 'success' && needs.typescript-quality.result == 'success'
         run: |
-          echo "::notice::🏆 ALL QUALITY CHECKS PASSED!"
-          echo "::notice::✨ Code meets enterprise standards"
+          echo "::notice::🏆 CORE QUALITY CHECKS PASSED!"
+          echo "::notice::✨ Backend & Infrastructure ready for deployment"
+          echo "::notice::💰 Cost-optimized: iOS checks available in utilities workflow"
