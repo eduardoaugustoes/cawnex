@@ -4,7 +4,19 @@ __pycache__/
 *.egg-info/
 dist/
 .venv/
+venv/
+env/
+ENV/
 *.egg
+
+# Python Virtual Environments (all common patterns)
+**/venv/
+**/env/
+**/.venv/
+**/.env/
+**/ENV/
+**/virtualenv/
+**/mypy_cache/
 
 # Environment
 .env
