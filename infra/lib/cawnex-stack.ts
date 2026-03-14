@@ -124,38 +124,7 @@ export class CawnexStack extends cdk.Stack {
           : cdk.RemovalPolicy.DESTROY,
     });
 
-    // Post-confirmation trigger — creates tenant on first sign-up
-    const postConfirmationFn = new lambda.Function(
-      this,
-      "PostConfirmationFn",
-      {
-        functionName: `cawnex-post-confirmation-${stage}`,
-        runtime: lambda.Runtime.PYTHON_3_12,
-        handler: "handler.handler",
-        code: lambda.Code.fromAsset("../lambdas/auth-post-confirmation"),
-        memorySize: 128,
-        timeout: cdk.Duration.seconds(10),
-        architecture: lambda.Architecture.ARM_64,
-        environment: {
-          TABLE_NAME: table.tableName,
-          STAGE: stage,
-        },
-        logRetention: logs.RetentionDays.ONE_MONTH,
-      }
-    );
-
-    table.grantWriteData(postConfirmationFn);
-    postConfirmationFn.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["cognito-idp:AdminUpdateUserAttributes"],
-        resources: [userPool.userPoolArn],
-      })
-    );
-
-    userPool.addTrigger(
-      cognito.UserPoolOperation.POST_CONFIRMATION,
-      postConfirmationFn
-    );
+    // Post-confirmation trigger will be added AFTER API setup to avoid circular dependency
 
     // iOS app client
     const iosClient = userPool.addClient("iOSClient", {
@@ -394,6 +363,44 @@ export class CawnexStack extends cdk.Stack {
       value: taskQueue.queueUrl,
     });
 
+    // ─────────────────────────────────────────────
+    // Post-confirmation Lambda — added AFTER API setup to avoid circular dependency
+    // ─────────────────────────────────────────────
+    const postConfirmationFn = new lambda.Function(
+      this,
+      "PostConfirmationFn",
+      {
+        functionName: `cawnex-post-confirmation-${stage}`,
+        runtime: lambda.Runtime.PYTHON_3_12,
+        handler: "handler.handler",
+        code: lambda.Code.fromAsset("../lambdas/auth-post-confirmation"),
+        memorySize: 128,
+        timeout: cdk.Duration.seconds(10),
+        architecture: lambda.Architecture.ARM_64,
+        environment: {
+          TABLE_NAME: table.tableName,
+          STAGE: stage,
+        },
+        logRetention: logs.RetentionDays.ONE_MONTH,
+      }
+    );
+
+    table.grantWriteData(postConfirmationFn);
+    postConfirmationFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["cognito-idp:AdminUpdateUserAttributes"],
+        resources: [userPool.userPoolArn],
+      })
+    );
+
+    userPool.addTrigger(
+      cognito.UserPoolOperation.POST_CONFIRMATION,
+      postConfirmationFn
+    );
+
+    // ─────────────────────────────────────────────
+    // Outputs
+    // ─────────────────────────────────────────────
     new cdk.CfnOutput(this, "UserPoolId", {
       value: userPool.userPoolId,
     });
