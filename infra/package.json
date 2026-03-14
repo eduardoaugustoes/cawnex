@@ -8,7 +8,12 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "type-check": "tsc --noEmit",
+    "lint:fix": "echo 'No linter configured yet'"
+  },
+  "lint-staged": {
+    "*.ts": "bash -c 'npx tsc --noEmit'"
   },
   "devDependencies": {
     "@types/jest": "^30",

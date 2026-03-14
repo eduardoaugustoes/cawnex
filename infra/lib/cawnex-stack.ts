@@ -7,6 +7,7 @@ import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigatewayv2";
 import * as apigwIntegrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
+import * as apigwAuthorizers from "aws-cdk-lib/aws-apigatewayv2-authorizers";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as logs from "aws-cdk-lib/aws-logs";
@@ -103,6 +104,12 @@ export class CawnexStack extends cdk.Stack {
       selfSignUpEnabled: true,
       signInAliases: { email: true },
       autoVerify: { email: true },
+      standardAttributes: {
+        fullname: { required: false, mutable: true },
+      },
+      customAttributes: {
+        tenant_id: new cognito.StringAttribute({ mutable: true }),
+      },
       passwordPolicy: {
         minLength: 8,
         requireLowercase: true,
@@ -116,6 +123,39 @@ export class CawnexStack extends cdk.Stack {
           ? cdk.RemovalPolicy.RETAIN
           : cdk.RemovalPolicy.DESTROY,
     });
+
+    // Post-confirmation trigger — creates tenant on first sign-up
+    const postConfirmationFn = new lambda.Function(
+      this,
+      "PostConfirmationFn",
+      {
+        functionName: `cawnex-post-confirmation-${stage}`,
+        runtime: lambda.Runtime.PYTHON_3_12,
+        handler: "handler.handler",
+        code: lambda.Code.fromAsset("../lambdas/auth-post-confirmation"),
+        memorySize: 128,
+        timeout: cdk.Duration.seconds(10),
+        architecture: lambda.Architecture.ARM_64,
+        environment: {
+          TABLE_NAME: table.tableName,
+          STAGE: stage,
+        },
+        logRetention: logs.RetentionDays.ONE_MONTH,
+      }
+    );
+
+    table.grantWriteData(postConfirmationFn);
+    postConfirmationFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["cognito-idp:AdminUpdateUserAttributes"],
+        resources: [userPool.userPoolArn],
+      })
+    );
+
+    userPool.addTrigger(
+      cognito.UserPoolOperation.POST_CONFIRMATION,
+      postConfirmationFn
+    );
 
     // iOS app client
     const iosClient = userPool.addClient("iOSClient", {
@@ -203,13 +243,34 @@ export class CawnexStack extends cdk.Stack {
       },
     });
 
+    // JWT authorizer — validates Cognito tokens, extracts tenant_id
+    const jwtAuthorizer = new apigwAuthorizers.HttpJwtAuthorizer(
+      "CognitoAuthorizer",
+      `https://cognito-idp.${this.region}.amazonaws.com/${userPool.userPoolId}`,
+      {
+        jwtAudience: [iosClient.userPoolClientId, webClient.userPoolClientId],
+        identitySource: ["$request.header.Authorization"],
+      }
+    );
+
+    const apiIntegration = new apigwIntegrations.HttpLambdaIntegration(
+      "ApiIntegration",
+      apiFunction
+    );
+
+    // Health endpoint — no auth required (monitoring, deployment checks)
+    httpApi.addRoutes({
+      path: "/health",
+      methods: [apigw.HttpMethod.GET],
+      integration: apiIntegration,
+    });
+
+    // All other routes — JWT required
     httpApi.addRoutes({
       path: "/{proxy+}",
       methods: [apigw.HttpMethod.ANY],
-      integration: new apigwIntegrations.HttpLambdaIntegration(
-        "ApiIntegration",
-        apiFunction
-      ),
+      integration: apiIntegration,
+      authorizer: jwtAuthorizer,
     });
 
     // ─────────────────────────────────────────────
@@ -338,6 +399,21 @@ export class CawnexStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, "CognitoDomain", {
       value: userPoolDomain.domainName,
+    });
+
+    new cdk.CfnOutput(this, "iOSClientId", {
+      value: iosClient.userPoolClientId,
+      description: "Cognito iOS app client ID",
+    });
+
+    new cdk.CfnOutput(this, "WebClientId", {
+      value: webClient.userPoolClientId,
+      description: "Cognito Web app client ID",
+    });
+
+    new cdk.CfnOutput(this, "Region", {
+      value: this.region,
+      description: "AWS region for SDK configuration",
     });
   }
 }
