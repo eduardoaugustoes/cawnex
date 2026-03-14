@@ -9,14 +9,8 @@ on:
     workflows: ["🔒 Ultra-Strict Quality Gate"]
     types: [completed]
     branches: [main]
-  push:
-    branches: [main]
-    paths:
-      - "infra/**"
-      - "apps/api/**"
-      - "apps/worker/**"
-      - "lambdas/auth-post-confirmation/**"
-      - ".github/workflows/1-deploy-dev.yml"
+  # Removed push trigger to prevent duplicate runs
+  # Deployment now only happens after quality gate passes
 
 permissions:
   id-token: write
@@ -37,18 +31,24 @@ jobs:
   quality-gate-check:
     name: 🔒 Verify Quality Gate
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+    if: github.event_name == 'workflow_run'
     steps:
-      - name: 🚨 Block deployment - Quality gate failed
+      - name: 🔍 Check Quality Gate Result
         run: |
-          echo "::error::🚨 DEPLOYMENT BLOCKED"
-          echo "::error::❌ Quality gate workflow failed"
-          echo "::error::🔧 Fix quality issues before deploying"
-          exit 1
+          echo "Quality Gate Conclusion: ${{ github.event.workflow_run.conclusion }}"
+          if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+            echo "::error::🚨 DEPLOYMENT BLOCKED"
+            echo "::error::❌ Quality gate workflow failed"
+            echo "::error::🔧 Fix quality issues before deploying"
+            exit 1
+          fi
+          echo "✅ Quality gate passed, proceeding with deployment"
 
   build-api:
     name: Build API
     runs-on: ubuntu-latest
+    needs: [quality-gate-check]
+    if: always() && (needs.quality-gate-check.result == 'success' || github.event_name == 'workflow_dispatch')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

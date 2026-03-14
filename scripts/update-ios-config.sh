@@ -68,65 +68,72 @@ echo "   ApiUrl: $API_URL"
 cp "$CONFIG_FILE" "${CONFIG_FILE}.backup"
 echo "📋 Backed up original to ${CONFIG_FILE}.backup"
 
-# Create the new configuration block
-NEW_CONFIG="    static let $STAGE = AppConfiguration(
-        cognitoRegion: \"us-east-1\",
-        cognitoUserPoolId: \"$USER_POOL_ID\",
-        cognitoClientId: \"$IOS_CLIENT_ID\",
-        apiBaseUrl: \"$API_URL\"
-    )"
+# Map stage to environment case
+case $STAGE in
+    dev|development)
+        echo "🔄 Updating development environment configuration..."
 
-# Determine the start marker for the stage
-START_MARKER="static let $STAGE = AppConfiguration("
+        # Update development userPoolId
+        sed -i 's|return ".*"  // Development User Pool|return "'"$USER_POOL_ID"'"  // Development User Pool|g' "$CONFIG_FILE"
 
-# Create a temporary file for the updated configuration
-TEMP_FILE=$(mktemp)
+        # Update development clientId
+        sed -i 's|return ".*"  // Development iOS Client|return "'"$IOS_CLIENT_ID"'"  // Development iOS Client|g' "$CONFIG_FILE"
 
-# Process the file
-awk -v stage="$STAGE" -v new_config="$NEW_CONFIG" '
-BEGIN { in_block = 0; found = 0 }
-/static let '"$STAGE"' = AppConfiguration\(/ {
-    print new_config
-    in_block = 1
-    found = 1
-    next
-}
-in_block && /^    \)/ {
-    in_block = 0
-    next
-}
-!in_block {
-    print
-}
-END {
-    if (!found) {
-        print "❌ Could not find " stage " configuration block to update" > "/dev/stderr"
+        # Update development apiBaseURL
+        sed -i 's|return ".*"  // Development API|return "'"$API_URL"'"  // Development API|g' "$CONFIG_FILE"
+        ;;
+    staging)
+        echo "🔄 Updating staging environment configuration..."
+
+        # Update staging userPoolId (uses dev for now)
+        sed -i 's|return ".*"  // Staging uses dev for now|return "'"$USER_POOL_ID"'"  // Staging uses dev for now|g' "$CONFIG_FILE"
+
+        # Update staging clientId (uses dev for now)
+        sed -i 's|return ".*"  // Staging uses dev for now|return "'"$IOS_CLIENT_ID"'"  // Staging uses dev for now|g' "$CONFIG_FILE"
+
+        # Update staging apiBaseURL
+        sed -i 's|return ".*"  // Staging API|return "'"$API_URL"'"  // Staging API|g' "$CONFIG_FILE"
+        ;;
+    prod|production)
+        echo "🔄 Updating production environment configuration..."
+
+        # Update production userPoolId
+        sed -i 's|return ".*"  // Production User Pool|return "'"$USER_POOL_ID"'"  // Production User Pool|g' "$CONFIG_FILE"
+
+        # Update production clientId
+        sed -i 's|return ".*"  // Production iOS Client|return "'"$IOS_CLIENT_ID"'"  // Production iOS Client|g' "$CONFIG_FILE"
+
+        # Update production apiBaseURL
+        sed -i 's|return ".*"  // Production API|return "'"$API_URL"'"  // Production API|g' "$CONFIG_FILE"
+        ;;
+    *)
+        echo "❌ Unknown stage: $STAGE"
         exit 1
-    }
-}
-' "$CONFIG_FILE" > "$TEMP_FILE"
+        ;;
+esac
 
-# Check if awk succeeded
-if [ $? -ne 0 ]; then
-    echo "❌ Failed to update configuration"
-    rm "$TEMP_FILE"
+# Validate that the updates were applied
+if ! grep -q "$USER_POOL_ID" "$CONFIG_FILE"; then
+    echo "❌ Failed to update User Pool ID"
+    cp "${CONFIG_FILE}.backup" "$CONFIG_FILE"
     exit 1
 fi
 
-# Replace the original file
-mv "$TEMP_FILE" "$CONFIG_FILE"
+if ! grep -q "$IOS_CLIENT_ID" "$CONFIG_FILE"; then
+    echo "❌ Failed to update iOS Client ID"
+    cp "${CONFIG_FILE}.backup" "$CONFIG_FILE"
+    exit 1
+fi
 
-echo "✅ Updated $CONFIG_FILE"
+if ! grep -q "$API_URL" "$CONFIG_FILE"; then
+    echo "❌ Failed to update API URL"
+    cp "${CONFIG_FILE}.backup" "$CONFIG_FILE"
+    exit 1
+fi
+
+echo "✅ Updated $CONFIG_FILE for $STAGE environment"
 echo ""
 echo "🎉 iOS app is now configured for $STAGE environment!"
-echo ""
-echo "Next steps:"
-echo "1. Open the iOS project in Xcode"
-echo "2. Build and run the app"
-echo "3. The app will now connect to the deployed $STAGE infrastructure"
-echo ""
-echo "To restore the original configuration:"
-echo "   cp ${CONFIG_FILE}.backup $CONFIG_FILE"
 
 # Additional verification for GitHub Actions
 if [ "$FROM_ENV" = "--from-env" ]; then
