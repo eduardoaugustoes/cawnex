@@ -94,20 +94,23 @@ jobs:
       - name: Extract Outputs
         id: outputs
         run: |
-          STACK_NAME="Cawnex-${{ env.STAGE }}"
+          # Get auth outputs from AuthStack
+          AUTH_STACK_NAME="CawnexAuthStack-${{ env.STAGE }}"
+          MAIN_STACK_NAME="Cawnex-${{ env.STAGE }}"
           
           USER_POOL_ID=$(aws cloudformation describe-stacks \
-            --stack-name $STACK_NAME \
+            --stack-name $AUTH_STACK_NAME \
             --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
             --output text)
           
           IOS_CLIENT_ID=$(aws cloudformation describe-stacks \
-            --stack-name $STACK_NAME \
+            --stack-name $AUTH_STACK_NAME \
             --query 'Stacks[0].Outputs[?OutputKey==`iOSClientId`].OutputValue' \
             --output text)
           
+          # Get API URL from MainStack
           API_URL=$(aws cloudformation describe-stacks \
-            --stack-name $STACK_NAME \
+            --stack-name $MAIN_STACK_NAME \
             --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
             --output text)
           
@@ -143,40 +146,21 @@ jobs:
       
       - name: Update iOS Configuration
         run: |
-          CONFIG_FILE="apps/ios/Cawnex/Cawnex/Core/Config/AppConfiguration.swift"
-          
-          # Create new dev configuration block
-          cat > temp_config.txt << EOF
-          static let dev = AppConfiguration(
-              cognitoRegion: "us-east-1",
-              cognitoUserPoolId: "${{ needs.deploy-infrastructure.outputs.user-pool-id }}",
-              cognitoClientId: "${{ needs.deploy-infrastructure.outputs.ios-client-id }}",
-              apiBaseUrl: "${{ needs.deploy-infrastructure.outputs.api-url }}"
-          )
-          EOF
-          
-          # Replace the dev configuration block
-          awk '
-          /static let dev = AppConfiguration\(/ {
-              print "    static let dev = AppConfiguration("
-              print "        cognitoRegion: \"us-east-1\","
-              print "        cognitoUserPoolId: \"${{ needs.deploy-infrastructure.outputs.user-pool-id }}\","
-              print "        cognitoClientId: \"${{ needs.deploy-infrastructure.outputs.ios-client-id }}\","
-              print "        apiBaseUrl: \"${{ needs.deploy-infrastructure.outputs.api-url }}\""
-              print "    )"
-              skip_block = 1
-              next
-          }
-          skip_block && /^    \)/ {
-              skip_block = 0
-              next
-          }
-          !skip_block {
-              print
-          }
-          ' $CONFIG_FILE > temp_file && mv temp_file $CONFIG_FILE
-          
-          echo "✅ Updated dev configuration"
+          # Use the consolidated shell script instead of inline logic
+          if [ -f "scripts/update-ios-config.sh" ]; then
+            chmod +x scripts/update-ios-config.sh
+            
+            # Set environment variables for the script to use
+            export CAWNEX_USER_POOL_ID="${{ needs.deploy-infrastructure.outputs.user-pool-id }}"
+            export CAWNEX_IOS_CLIENT_ID="${{ needs.deploy-infrastructure.outputs.ios-client-id }}"
+            export CAWNEX_API_URL="${{ needs.deploy-infrastructure.outputs.api-url }}"
+            
+            # Run script with environment variables instead of AWS CLI calls
+            ./scripts/update-ios-config.sh ${{ env.STAGE }} --from-env
+          else
+            echo "❌ iOS config update script not found"
+            exit 1
+          fi
       
       - name: Commit Changes
         run: |

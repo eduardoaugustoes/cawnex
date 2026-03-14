@@ -4,16 +4,10 @@
 set -e
 
 STAGE=${1:-dev}
-STACK_NAME="Cawnex-$STAGE"
+FROM_ENV=${2}
 CONFIG_FILE="apps/ios/Cawnex/Cawnex/Core/Config/AppConfiguration.swift"
 
 echo "📱 Updating iOS configuration for $STAGE environment..."
-
-# Check if AWS CLI is available
-if ! command -v aws &> /dev/null; then
-    echo "❌ AWS CLI is required but not installed"
-    exit 1
-fi
 
 # Check if the config file exists
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -21,23 +15,40 @@ if [ ! -f "$CONFIG_FILE" ]; then
     exit 1
 fi
 
-echo "🔍 Getting stack outputs from $STACK_NAME..."
+# Get configuration values - either from environment or AWS CLI
+if [ "$FROM_ENV" = "--from-env" ]; then
+    echo "🔍 Using configuration from environment variables..."
+    USER_POOL_ID="$CAWNEX_USER_POOL_ID"
+    IOS_CLIENT_ID="$CAWNEX_IOS_CLIENT_ID"
+    API_URL="$CAWNEX_API_URL"
+else
+    echo "🔍 Getting stack outputs from AWS..."
+    
+    # Check if AWS CLI is available
+    if ! command -v aws &> /dev/null; then
+        echo "❌ AWS CLI is required but not installed"
+        exit 1
+    fi
 
-# Get outputs from deployed stack
-USER_POOL_ID=$(aws cloudformation describe-stacks \
-    --stack-name "$STACK_NAME" \
-    --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
-    --output text)
+    # Get outputs from deployed stacks
+    AUTH_STACK_NAME="CawnexAuthStack-$STAGE"
+    MAIN_STACK_NAME="Cawnex-$STAGE"
+    
+    USER_POOL_ID=$(aws cloudformation describe-stacks \
+        --stack-name "$AUTH_STACK_NAME" \
+        --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
+        --output text)
 
-IOS_CLIENT_ID=$(aws cloudformation describe-stacks \
-    --stack-name "$STACK_NAME" \
-    --query 'Stacks[0].Outputs[?OutputKey==`iOSClientId`].OutputValue' \
-    --output text)
+    IOS_CLIENT_ID=$(aws cloudformation describe-stacks \
+        --stack-name "$AUTH_STACK_NAME" \
+        --query 'Stacks[0].Outputs[?OutputKey==`iOSClientId`].OutputValue' \
+        --output text)
 
-API_URL=$(aws cloudformation describe-stacks \
-    --stack-name "$STACK_NAME" \
-    --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
-    --output text)
+    API_URL=$(aws cloudformation describe-stacks \
+        --stack-name "$MAIN_STACK_NAME" \
+        --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
+        --output text)
+fi
 
 # Validate outputs
 if [ -z "$USER_POOL_ID" ] || [ -z "$IOS_CLIENT_ID" ] || [ -z "$API_URL" ]; then
@@ -116,3 +127,12 @@ echo "3. The app will now connect to the deployed $STAGE infrastructure"
 echo ""
 echo "To restore the original configuration:"
 echo "   cp ${CONFIG_FILE}.backup $CONFIG_FILE"
+
+# Additional verification for GitHub Actions
+if [ "$FROM_ENV" = "--from-env" ]; then
+    echo ""
+    echo "✅ Configuration updated from environment variables:"
+    echo "   UserPoolId: $USER_POOL_ID"
+    echo "   iOSClientId: $IOS_CLIENT_ID" 
+    echo "   ApiUrl: $API_URL"
+fi

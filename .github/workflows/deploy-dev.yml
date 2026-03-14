@@ -1,14 +1,23 @@
 name: Deploy Dev
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "infra/**"
-      - "apps/api/**"
-      - "apps/worker/**"
-      - "lambdas/auth-post-confirmation/**"
-      - ".github/workflows/deploy-dev.yml"
+  # Disabled to avoid conflict with deploy-dev-complete.yml
+  # Use deploy-dev-complete.yml for all deployments
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'LEGACY' to use this deprecated workflow"
+        required: true
+        type: string
+
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - "infra/**"
+  #     - "apps/api/**"
+  #     - "apps/worker/**"
+  #     - "lambdas/auth-post-confirmation/**"
+  #     - ".github/workflows/deploy-dev.yml"
 
 permissions:
   id-token: write
@@ -23,8 +32,22 @@ env:
   STAGE: dev
 
 jobs:
+  validate:
+    name: Validate Legacy Usage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "LEGACY" ]; then
+            echo "::error::This workflow is deprecated. Use 'Deploy Dev + Update iOS Config (Complete)' instead."
+            echo "::error::If you really need this legacy workflow, type 'LEGACY' in the confirm input."
+            exit 1
+          fi
+          echo "::warning::Using deprecated workflow. Consider migrating to deploy-dev-complete.yml"
+  
   build-api:
     name: Build API
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
