@@ -181,21 +181,18 @@ On each MCP tool call:
 ### Steps
 
 1. Set up CDK stack: `poc1-mcp-crow`
-
    - Lambda function (Python 3.12, 1GB memory, 5-min timeout)
    - API Gateway v2 HTTP API (single route: `POST /mcp`)
    - S3 bucket for session state
    - IAM roles
 
 2. Implement MCP server in Lambda handler:
-
    - `initialize` → return server capabilities
    - `tools/list` → return 3 tools above
    - `tools/call` → dispatch to tool implementations
    - Session load/save on S3
 
 3. Implement tools:
-
    - `read_file` → GitHub API `GET /repos/{owner}/{repo}/contents/{path}`
    - `write_file` → GitHub API `PUT /repos/{owner}/{repo}/contents/{path}`
    - `create_pull_request` → GitHub API `POST /repos/{owner}/{repo}/pulls`
@@ -347,18 +344,15 @@ table.update_item(
 ### Steps
 
 1. CDK stack: `poc2-blackboard`
-
    - DynamoDB table with Streams enabled (NEW_AND_OLD_IMAGES)
    - Lambda function (Murder stub — logs received events)
    - Event source mapping with filter criteria
 
 2. Implement Murder stub:
-
    - Logs: which PK/SK triggered it, event type
    - Writes to a "received events" table or CloudWatch for verification
 
 3. Test script:
-
    - Write META record → verify Murder triggered
    - Write EVENT records (10x) → verify Murder NOT triggered
    - Write TASK record → verify Murder NOT triggered
@@ -528,13 +522,11 @@ async def call_crow(crow_url: str, tool_name: str, arguments: dict):
 ### Steps
 
 1. Extend CDK stack to include Murder Lambda
-
    - Permissions: DynamoDB read/write, invoke API GW (crow endpoint)
    - Event source: DynamoDB Streams (with filters from POC 2)
    - Environment: crow MCP endpoint URL, Anthropic API key (from Secrets Manager)
 
 2. Implement Murder Lambda:
-
    - Event handler: parse DynamoDB Stream event → determine what changed
    - State reader: load full execution state from blackboard
    - Decision engine: call Claude with blackboard state → get decision
@@ -542,7 +534,6 @@ async def call_crow(crow_url: str, tool_name: str, arguments: dict):
    - State writer: write decision + result to blackboard (with conditional write)
 
 3. Extend crow from POC 1:
-
    - Add `plan_implementation` tool (Planner skill)
    - Add `review_code` tool (Reviewer skill)
    - Keep `read_file`, `write_file`, `create_pull_request`

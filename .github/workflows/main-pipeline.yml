@@ -123,7 +123,7 @@ jobs:
           echo "::group::Swift Build"
           xcodebuild clean build \
             -scheme Cawnex \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5' \
+            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
             -configuration Debug \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             OTHER_SWIFT_FLAGS="-warnings-as-errors" \

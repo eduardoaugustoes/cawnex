@@ -121,7 +121,6 @@
 
 - StatusBar
 - Scroll Content
-
   - **Header:** "Murders" title + "+ New" button (→ S41)
   - **Your Murders section:**
     - **Murder Card** (repeated):
@@ -170,7 +169,6 @@
 
 - StatusBar
 - Scroll Content
-
   - **Header:** "Skills" title + "+ New Skill" button (→ S51)
   - Description: "Skills define what crows can do. Attach skills to murders to shape their capabilities."
   - **Filter Chips:** All (active) | Dev | Editorial | Social | Custom
@@ -397,7 +395,6 @@
 - StatusBar
 - NavBarModal (Cancel / New Murder / Save)
 - Scroll Content (20px sides, 28px section gaps)
-
   - **IDENTITY section:**
     - Name field
     - Type picker (Dev | Editorial | Social | Infra | Data | Custom)
@@ -420,7 +417,6 @@
     - Visual chain: Step 1 → Step 2 → Step 3 → Step 4
 
   _(scrolled variation S41 continues below)_
-
   - **QUALITY GATES section:**
     - Card with toggle rows:
       - CI must pass (on)
@@ -474,7 +470,6 @@
 - StatusBar
 - NavBarModal (Cancel / New Skill / Save)
 - Scroll Content (20px sides, 28px section gaps)
-
   - **IDENTITY section:**
     - Name field (slug: `read-file`)
     - Display Name field ("Read File")
@@ -493,7 +488,6 @@
       - Idempotent (on) — "Safe to retry"
 
   _(scrolled variation S51 continues below)_
-
   - **SECURITY & PERMISSIONS section:**
     - Card with:
       - Permission Level picker (Read/Write/Admin) + colored badge
@@ -967,7 +961,6 @@
 - StatusBar
 - NavBarBack (← PR Review)
 - Scroll Content (12px top, 20px sides)
-
   - **PR Header Card:**
     - Title: "Add input validation for user registration endpoint"
     - Branch: `feat/input-validation`
@@ -1001,7 +994,6 @@
       - "What would break if I merge?"
 
   _(scrolled variation S34 continues below)_
-
   - More Plan vs Execution steps (Step 3 — Reviewer)
   - **AI Conversation:**
     - User bubble (purple): "Why was the error handler refactored? That wasn't in the plan."
