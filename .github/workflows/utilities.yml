@@ -1,0 +1,168 @@
+name: 🔧 Utilities & Manual Operations
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Operation to perform"
+        required: true
+        default: "update-ios-config"
+        type: choice
+        options:
+          - update-ios-config
+          - destroy-stacks
+          - setup-quality-hooks
+          - deploy-staging
+          - deploy-production
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  update-ios-config:
+    name: 📱 Update iOS Configuration
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'update-ios-config'
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: 📱 Update iOS Configuration from AWS
+        run: |
+          chmod +x scripts/update-ios-config.sh
+          ./scripts/update-ios-config.sh dev
+
+      - name: 💾 Commit Updated Configuration
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add apps/ios/Cawnex/Cawnex/Core/Config/
+          git commit -m "feat: update iOS configuration from deployed infrastructure" || echo "No changes to commit"
+          git push
+
+  destroy-stacks:
+    name: 🗑️ Destroy AWS Stacks
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'destroy-stacks'
+    environment: production
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ⚡ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: ⚙️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: 🗑️ Destroy Stacks
+        working-directory: infra
+        run: |
+          npm ci
+          echo "⚠️ WARNING: This will destroy ALL AWS resources!"
+          echo "Destroying in 10 seconds... (Cancel with Ctrl+C if needed)"
+          sleep 10
+          npx cdk destroy --all --force
+
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'deploy-staging'
+    environment: staging
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: ⚡ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build API
+        working-directory: apps/api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+          make build-lambda
+
+      - name: ⚙️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: 🏗️ Deploy to Staging
+        working-directory: infra
+        run: |
+          npm ci
+          npx cdk bootstrap --context stage=staging
+          npx cdk deploy --all --context stage=staging --require-approval never
+
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'deploy-production'
+    environment: production
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: ⚡ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build API
+        working-directory: apps/api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+          make build-lambda
+
+      - name: ⚙️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: 🚀 Deploy to Production
+        working-directory: infra
+        run: |
+          npm ci
+          npx cdk bootstrap --context stage=production
+          npx cdk deploy --all --context stage=production --require-approval never
