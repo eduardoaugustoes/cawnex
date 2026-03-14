@@ -1,4 +1,4 @@
-name: 🗑️ Destroy Cawnex POC Stacks
+name: Destroy Stacks
 
 on:
   workflow_dispatch:

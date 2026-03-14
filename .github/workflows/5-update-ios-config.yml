@@ -1,4 +1,4 @@
-name: 📱 Update iOS Configuration
+name: Update iOS Configuration
 
 on:
   workflow_dispatch:

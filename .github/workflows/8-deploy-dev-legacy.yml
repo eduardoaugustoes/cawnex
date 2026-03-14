@@ -1,4 +1,4 @@
-name: 🗂️ Deploy Dev (Legacy - Deprecated)
+name: Deploy Dev (Legacy - Deprecated)
 
 on:
   # Disabled to avoid conflict with deploy-dev.yml (main workflow)

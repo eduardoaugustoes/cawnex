@@ -1,4 +1,4 @@
-name: 🚀 Deploy Dev
+name: Deploy Dev Environment
 
 # Official Cawnex deployment workflow
 # Deploys both AuthStack and MainStack, configures triggers, and updates iOS config
