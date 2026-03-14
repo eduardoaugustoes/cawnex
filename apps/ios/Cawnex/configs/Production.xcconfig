@@ -1,0 +1,28 @@
+// Cawnex Production Configuration
+
+// API Configuration
+API_BASE_URL = https://api.cawnex.ai
+
+// AWS Cognito Configuration  
+USER_POOL_ID = us-east-1_6LT5eHiBs
+CLIENT_ID = 7tqajln8jr6iim3oraln4ate6e
+COGNITO_DOMAIN = cawnex-prod
+AWS_REGION = us-east-1
+
+// App Identification
+BUNDLE_ID_SUFFIX = 
+APP_DISPLAY_NAME = Cawnex
+
+// Feature Flags
+ENABLE_DEBUG_MENU = NO
+ENABLE_ANALYTICS = YES  
+ENABLE_CRASH_REPORTING = YES
+
+// Build Settings
+CODE_SIGN_IDENTITY = iPhone Distribution
+PROVISIONING_PROFILE_SPECIFIER = 
+
+// Security
+ENABLE_BITCODE = NO
+SWIFT_OPTIMIZATION_LEVEL = -O
+SWIFT_COMPILATION_MODE = wholemodule

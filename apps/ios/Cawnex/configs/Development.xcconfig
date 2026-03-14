@@ -1,0 +1,23 @@
+// Cawnex Development Configuration
+
+// API Configuration
+API_BASE_URL = https://duwcxc2tb2.execute-api.us-east-1.amazonaws.com/
+
+// AWS Cognito Configuration  
+USER_POOL_ID = us-east-1_38Ay7DArT
+CLIENT_ID = 3qp8f80mhfvcgk0k8v7f2qhhg
+COGNITO_DOMAIN = cawnex-dev
+AWS_REGION = us-east-1
+
+// App Identification
+BUNDLE_ID_SUFFIX = .dev
+APP_DISPLAY_NAME = Cawnex Dev
+
+// Feature Flags
+ENABLE_DEBUG_MENU = YES
+ENABLE_ANALYTICS = NO
+ENABLE_CRASH_REPORTING = NO
+
+// Build Settings
+CODE_SIGN_IDENTITY = iPhone Developer
+PROVISIONING_PROFILE_SPECIFIER = 
