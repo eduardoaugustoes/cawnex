@@ -1,0 +1,45 @@
+# Cache directories
+**/.mypy_cache/
+**/__pycache__/
+**/node_modules/
+**/venv/
+**/.venv/
+**/dist/
+**/coverage/
+**/build/
+
+# Build outputs
+**/cdk.out/
+**/.next/
+**/out/
+**/lib/
+**/tmp/
+
+# OS & IDE files
+.DS_Store
+*.log
+.env*
+.vscode/
+.idea/
+
+# Test reports
+**/htmlcov/
+**/bandit-report.json
+**/test-results/
+**/.pytest_cache/
+
+# Auto-generated files
+**/package-lock.json
+**/yarn.lock
+**/.eslintcache
+**/tsconfig.tsbuildinfo
+
+# AWS & CDK
+**/cdk.context.json
+**/cdk.out/
+**/.cdk.staging/
+
+# Specific large/auto-generated files
+apps/api/venv/
+mcp-monarch/venv/
+.venv/
