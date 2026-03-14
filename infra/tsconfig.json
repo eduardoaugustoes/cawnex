@@ -1,32 +1,36 @@
 {
+  "extends": "../tsconfig.base.json",
+  "display": "Cawnex Infrastructure - CDK TypeScript Configuration",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "lib": [
-      "es2022"
-    ],
-    "declaration": true,
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": false,
-    "inlineSourceMap": true,
-    "inlineSources": true,
-    "experimentalDecorators": true,
-    "strictPropertyInitialization": false,
-    "skipLibCheck": true,
-    "typeRoots": [
-      "./node_modules/@types"
-    ]
+    // Override base config for CDK-specific needs
+    "lib": ["ES2022"],                          // CDK doesn't need DOM types
+    "noUnusedLocals": false,                    // CDK constructs may have unused variables
+    "noUnusedParameters": false,                // CDK construct parameters often unused
+    "strictPropertyInitialization": false,     // CDK constructs init properties differently
+    "skipLibCheck": true,                       // CDK has many type conflicts
+    "experimentalDecorators": true,             // CDK uses decorators
+    "typeRoots": ["./node_modules/@types"],
+    "outDir": "./dist",
+    "rootDir": ".",                             // CDK uses root as source
+    
+    // CDK-specific settings
+    "resolveJsonModule": true,
+    "allowJs": false,                           // Pure TypeScript for infrastructure
+    "checkJs": false,
+    "composite": false                          // CDK doesn't need project references
   },
+  "include": [
+    "bin/**/*",
+    "lib/**/*"
+  ],
   "exclude": [
     "node_modules",
-    "cdk.out"
-  ]
+    "cdk.out",
+    "dist",
+    "**/*.test.ts",
+    "**/*.d.ts"
+  ],
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
+  }
 }

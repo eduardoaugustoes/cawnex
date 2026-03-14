@@ -1,23 +1,73 @@
-// Cawnex Development Configuration
+#include "Shared.xcconfig"
 
-// API Configuration
+// Cawnex Development Configuration - ULTRA STRICT
+
+// ================================
+// API CONFIGURATION
+// ================================
 API_BASE_URL = https://duwcxc2tb2.execute-api.us-east-1.amazonaws.com/
+API_TIMEOUT = 30.0
+API_RETRIES = 3
 
-// AWS Cognito Configuration  
+// ================================
+// AWS COGNITO CONFIGURATION  
+// ================================
 USER_POOL_ID = us-east-1_38Ay7DArT
 CLIENT_ID = 3qp8f80mhfvcgk0k8v7f2qhhg
 COGNITO_DOMAIN = cawnex-dev
 AWS_REGION = us-east-1
 
-// App Identification
+// ================================
+// APP IDENTIFICATION
+// ================================
 BUNDLE_ID_SUFFIX = .dev
 APP_DISPLAY_NAME = Cawnex Dev
+PRODUCT_BUNDLE_IDENTIFIER = com.cawnex.app.dev
 
-// Feature Flags
+// ================================
+// FEATURE FLAGS
+// ================================
 ENABLE_DEBUG_MENU = YES
 ENABLE_ANALYTICS = NO
 ENABLE_CRASH_REPORTING = NO
+ENABLE_LOGGING = YES
+ENABLE_PERFORMANCE_MONITORING = YES
 
-// Build Settings
+// ================================
+// DEVELOPMENT BUILD SETTINGS
+// ================================
 CODE_SIGN_IDENTITY = iPhone Developer
 PROVISIONING_PROFILE_SPECIFIER = 
+
+// Development-specific optimization
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) DEBUG DEVELOPMENT
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) DEBUG=1 DEVELOPMENT=1
+
+// Enable all debugging features
+ENABLE_TESTABILITY = YES
+SWIFT_ENABLE_LIBRARY_EVOLUTION = NO
+
+// ================================
+// STRICT DEVELOPMENT CHECKS
+// ================================
+
+// Extra strict warnings for development
+SWIFT_TREAT_WARNINGS_AS_ERRORS = YES
+GCC_TREAT_WARNINGS_AS_ERRORS = YES
+
+// Enable runtime checks (performance impact acceptable in dev)
+ENABLE_UNDEFINED_BEHAVIOR_SANITIZER = YES
+ENABLE_ADDRESS_SANITIZER = YES
+
+// Fast compilation for development iteration
+SWIFT_COMPILATION_MODE = singlefile
+SWIFT_OPTIMIZATION_LEVEL = -Onone
+
+// Debug symbol generation
+DEBUG_INFORMATION_FORMAT = dwarf
+
+// ================================
+// LOGGING LEVELS
+// ================================
+LOG_LEVEL = DEBUG
+VERBOSE_LOGGING = YES

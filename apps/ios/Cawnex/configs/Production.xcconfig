@@ -1,28 +1,110 @@
-// Cawnex Production Configuration
+#include "Shared.xcconfig"
 
-// API Configuration
+// Cawnex Production Configuration - ULTRA STRICT
+
+// ================================
+// API CONFIGURATION
+// ================================
 API_BASE_URL = https://api.cawnex.ai
+API_TIMEOUT = 30.0
+API_RETRIES = 3
 
-// AWS Cognito Configuration  
+// ================================
+// AWS COGNITO CONFIGURATION  
+// ================================
 USER_POOL_ID = us-east-1_6LT5eHiBs
 CLIENT_ID = 7tqajln8jr6iim3oraln4ate6e
 COGNITO_DOMAIN = cawnex-prod
 AWS_REGION = us-east-1
 
-// App Identification
+// ================================
+// APP IDENTIFICATION
+// ================================
 BUNDLE_ID_SUFFIX = 
 APP_DISPLAY_NAME = Cawnex
+PRODUCT_BUNDLE_IDENTIFIER = com.cawnex.app
 
-// Feature Flags
+// ================================
+// FEATURE FLAGS
+// ================================
 ENABLE_DEBUG_MENU = NO
 ENABLE_ANALYTICS = YES  
 ENABLE_CRASH_REPORTING = YES
+ENABLE_LOGGING = NO
+ENABLE_PERFORMANCE_MONITORING = YES
 
-// Build Settings
+// ================================
+// PRODUCTION BUILD SETTINGS
+// ================================
 CODE_SIGN_IDENTITY = iPhone Distribution
 PROVISIONING_PROFILE_SPECIFIER = 
 
-// Security
-ENABLE_BITCODE = NO
-SWIFT_OPTIMIZATION_LEVEL = -O
+// Production-specific optimizations
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) RELEASE PRODUCTION
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) NDEBUG=1 PRODUCTION=1
+
+// Disable debugging features for production
+ENABLE_TESTABILITY = NO
+SWIFT_ENABLE_LIBRARY_EVOLUTION = NO
+
+// ================================
+// PRODUCTION OPTIMIZATIONS
+// ================================
+
+// Maximum optimization for production
 SWIFT_COMPILATION_MODE = wholemodule
+SWIFT_OPTIMIZATION_LEVEL = -O
+
+// Symbol stripping for smaller binary
+STRIP_INSTALLED_PRODUCT = YES
+COPY_PHASE_STRIP = YES
+
+// Debug symbol format for crash symbolication
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+
+// ================================
+// SECURITY & HARDENING
+// ================================
+
+// Enable all security features for production
+ENABLE_HARDENED_RUNTIME = YES
+ENABLE_BITCODE = NO  // Not supported by Xcode 14+
+
+// Code signing
+CODE_SIGN_STYLE = Automatic
+
+// ================================
+// STRICT PRODUCTION VALIDATION
+// ================================
+
+// Ultra-strict compilation - zero warnings allowed
+SWIFT_TREAT_WARNINGS_AS_ERRORS = YES
+GCC_TREAT_WARNINGS_AS_ERRORS = YES
+
+// Validate the built product
+VALIDATE_PRODUCT = YES
+
+// Disable runtime sanitizers for performance
+ENABLE_UNDEFINED_BEHAVIOR_SANITIZER = NO
+ENABLE_ADDRESS_SANITIZER = NO
+ENABLE_THREAD_SANITIZER = NO
+
+// ================================
+// LOGGING LEVELS
+// ================================
+LOG_LEVEL = ERROR
+VERBOSE_LOGGING = NO
+
+// ================================
+// APP STORE OPTIMIZATION
+// ================================
+
+// Optimize for App Store distribution
+SKIP_INSTALL = NO
+INSTALL_PATH = $(LOCAL_APPS_DIR)
+
+// Asset catalog optimization
+ASSETCATALOG_COMPILER_OPTIMIZATION = space
+
+// Deployment postprocessing
+DEPLOYMENT_POSTPROCESSING = YES

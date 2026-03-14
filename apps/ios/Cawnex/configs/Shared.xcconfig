@@ -1,0 +1,153 @@
+// Cawnex Shared Configuration - ULTRA STRICT Swift Settings
+// This file contains compiler settings shared across all environments
+
+// ================================
+// SWIFT COMPILER - ULTRA STRICT
+// ================================
+
+// Language Version
+SWIFT_VERSION = 5.10
+
+// Compilation Modes
+SWIFT_COMPILATION_MODE[config=Debug] = singlefile
+SWIFT_COMPILATION_MODE[config=Release] = wholemodule
+
+// Optimization Levels  
+SWIFT_OPTIMIZATION_LEVEL[config=Debug] = -Onone
+SWIFT_OPTIMIZATION_LEVEL[config=Release] = -O
+
+// ================================
+// STRICT WARNINGS & ERRORS
+// ================================
+
+// Treat warnings as errors (ULTRA STRICT)
+SWIFT_TREAT_WARNINGS_AS_ERRORS = YES
+
+// Enable all warnings
+WARNING_CFLAGS = -Wall -Wextra -Wpedantic -Werror
+
+// Swift-specific warnings
+SWIFT_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES
+SWIFT_WARN_UNREACHABLE_CODE = YES
+
+// Undefined behavior sanitizer (Debug only)
+ENABLE_UNDEFINED_BEHAVIOR_SANITIZER[config=Debug] = YES
+ENABLE_UNDEFINED_BEHAVIOR_SANITIZER[config=Release] = NO
+
+// Address sanitizer (Debug only - catches memory issues)
+ENABLE_ADDRESS_SANITIZER[config=Debug] = YES  
+ENABLE_ADDRESS_SANITIZER[config=Release] = NO
+
+// Thread sanitizer (Debug only - catches concurrency issues)
+ENABLE_THREAD_SANITIZER[config=Debug] = NO  // Conflicts with Address Sanitizer
+ENABLE_THREAD_SANITIZER[config=Release] = NO
+
+// ================================
+// CODE GENERATION
+// ================================
+
+// Debug Information
+DEBUG_INFORMATION_FORMAT[config=Debug] = dwarf
+DEBUG_INFORMATION_FORMAT[config=Release] = dwarf-with-dsym
+
+// Symbol Stripping
+STRIP_INSTALLED_PRODUCT[config=Debug] = NO
+STRIP_INSTALLED_PRODUCT[config=Release] = YES
+
+COPY_PHASE_STRIP[config=Debug] = NO
+COPY_PHASE_STRIP[config=Release] = YES
+
+// ================================
+// STRICT TYPE CHECKING
+// ================================
+
+// Enable strict concurrency checking
+SWIFT_STRICT_CONCURRENCY = complete
+
+// Enable upcoming language features for strict checking
+SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE = YES
+SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES
+SWIFT_UPCOMING_FEATURE_BARE_SLASH_REGEX_LITERALS = YES
+SWIFT_UPCOMING_FEATURE_FORWARD_TRAILING_CLOSURES = YES
+
+// ================================
+// SECURITY & HARDENING
+// ================================
+
+// Enable all security features
+ENABLE_HARDENED_RUNTIME = YES
+ENABLE_LIBRARY_EVOLUTION = NO  // Keep binary compatibility disabled for stricter checks
+
+// Code signing
+CODE_SIGN_STYLE = Automatic
+
+// ================================
+// DEPLOYMENT
+// ================================
+
+// Minimum iOS version
+IPHONEOS_DEPLOYMENT_TARGET = 17.0
+
+// Supported platforms  
+SUPPORTED_PLATFORMS = iphoneos iphonesimulator
+
+// Device families (iPhone only)
+TARGETED_DEVICE_FAMILY = 1
+
+// ================================
+// BUILD PERFORMANCE
+// ================================
+
+// Parallel compilation
+SWIFT_COMPILATION_MODE_FOR_SPEED = wholemodule
+
+// Build active architecture only (Debug)
+ONLY_ACTIVE_ARCH[config=Debug] = YES
+ONLY_ACTIVE_ARCH[config=Release] = NO
+
+// ================================
+// STATIC ANALYSIS
+// ================================
+
+// Enable static analyzer
+RUN_CLANG_STATIC_ANALYZER = YES
+
+// Analyzer settings
+CLANG_STATIC_ANALYZER_MODE = deep
+CLANG_STATIC_ANALYZER_MODE_ACTION_deep = true
+
+// Enable additional static analyzer checks
+CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES
+CLANG_ANALYZER_NONNULL = YES  
+CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE
+CLANG_ANALYZER_SECURITY_FLOATLOOPCOUNTER = YES
+CLANG_ANALYZER_SECURITY_INSECUREAPI_RAND = YES
+CLANG_ANALYZER_SECURITY_INSECUREAPI_STRCPY = YES
+
+// ================================
+// SWIFT PACKAGE MANAGER
+// ================================
+
+// Package resolution
+SWIFT_PACKAGE_MANAGER_BUILD_SETTINGS = $(inherited)
+
+// ================================
+// VALIDATION & QUALITY
+// ================================
+
+// Validate built products
+VALIDATE_PRODUCT = YES
+
+// Enable module verifier
+SWIFT_ENABLE_LIBRARY_EVOLUTION = NO
+SWIFT_SERIALIZE_DEBUGGING_OPTIONS = NO
+
+// ================================
+// PREPROCESSOR DEFINITIONS
+// ================================
+
+// Debug configuration
+GCC_PREPROCESSOR_DEFINITIONS[config=Debug] = $(inherited) DEBUG=1 STRICT_MODE=1
+
+// Release configuration  
+GCC_PREPROCESSOR_DEFINITIONS[config=Release] = $(inherited) NDEBUG=1 RELEASE=1
