@@ -75,12 +75,19 @@ jobs:
       - name: Install CDK dependencies
         run: cd infra && npm ci
       
-      - name: Deploy Stack
+      - name: Deploy Auth Stack
+        run: |
+          cd infra
+          npx cdk deploy CawnexAuthStack-${{ env.STAGE }} \
+            --context stage=${{ env.STAGE }} \
+            --require-approval never \
+            --outputs-file ../auth-outputs.json
+      
+      - name: Deploy Main Stack
         run: |
           cd infra
           npx cdk deploy Cawnex-${{ env.STAGE }} \
             --context stage=${{ env.STAGE }} \
-            --context stack=main \
             --require-approval never \
             --outputs-file ../deploy-outputs.json
       

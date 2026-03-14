@@ -92,9 +92,13 @@ jobs:
       - name: CDK deploy
         run: |
           cd infra
+          npx cdk deploy CawnexAuthStack-${{ inputs.stage }} \
+            --context stage=${{ inputs.stage }} \
+            --require-approval never \
+            --outputs-file ../auth-outputs.json
+          
           npx cdk deploy Cawnex-${{ inputs.stage }} \
             --context stage=${{ inputs.stage }} \
-            --context stack=main \
             --require-approval never \
             --outputs-file ../deploy-outputs.json
 

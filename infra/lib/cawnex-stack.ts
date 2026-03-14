@@ -97,79 +97,13 @@ export class CawnexStack extends cdk.Stack {
     });
 
     // ─────────────────────────────────────────────
-    // Cognito — Auth (Apple Sign In + email/password)
+    // Import Cognito resources from AuthStack
     // ─────────────────────────────────────────────
-    const userPool = new cognito.UserPool(this, "UserPool", {
-      userPoolName: `cawnex-${stage}`,
-      selfSignUpEnabled: true,
-      signInAliases: { email: true },
-      autoVerify: { email: true },
-      standardAttributes: {
-        fullname: { required: false, mutable: true },
-      },
-      customAttributes: {
-        tenant_id: new cognito.StringAttribute({ mutable: true }),
-      },
-      passwordPolicy: {
-        minLength: 8,
-        requireLowercase: true,
-        requireUppercase: false,
-        requireDigits: true,
-        requireSymbols: false,
-      },
-      accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
-      removalPolicy:
-        stage === "prod"
-          ? cdk.RemovalPolicy.RETAIN
-          : cdk.RemovalPolicy.DESTROY,
-    });
-
-    // Post-confirmation trigger will be added AFTER API setup to avoid circular dependency
-
-    // iOS app client
-    const iosClient = userPool.addClient("iOSClient", {
-      userPoolClientName: `cawnex-ios-${stage}`,
-      authFlows: {
-        userPassword: true,
-        userSrp: true,
-      },
-      oAuth: {
-        flows: { authorizationCodeGrant: true },
-        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
-        callbackUrls: ["cawnex://auth/callback"],
-        logoutUrls: ["cawnex://auth/logout"],
-      },
-      supportedIdentityProviders: [
-        cognito.UserPoolClientIdentityProvider.COGNITO,
-        // Apple Sign In added after identity provider config
-      ],
-    });
-
-    // Web dashboard client
-    const webClient = userPool.addClient("WebClient", {
-      userPoolClientName: `cawnex-web-${stage}`,
-      authFlows: {
-        userSrp: true,
-      },
-      oAuth: {
-        flows: { authorizationCodeGrant: true },
-        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
-        callbackUrls: [
-          stage === "prod"
-            ? "https://app.cawnex.ai/auth/callback"
-            : "http://localhost:5173/auth/callback",
-        ],
-        logoutUrls: [
-          stage === "prod"
-            ? "https://app.cawnex.ai/auth/logout"
-            : "http://localhost:5173/auth/logout",
-        ],
-      },
-    });
-
-    const userPoolDomain = userPool.addDomain("Domain", {
-      cognitoDomain: { domainPrefix: `cawnex-${stage}` },
-    });
+    const userPoolId = cdk.Fn.importValue(`CawnexAuthStack-${stage}-UserPoolId`);
+    const userPoolArn = cdk.Fn.importValue(`CawnexAuthStack-${stage}-UserPoolArn`);
+    const iosClientId = cdk.Fn.importValue(`CawnexAuthStack-${stage}-iOSClientId`);
+    const webClientId = cdk.Fn.importValue(`CawnexAuthStack-${stage}-WebClientId`);
+    const cognitoDomain = cdk.Fn.importValue(`CawnexAuthStack-${stage}-CognitoDomain`);
 
     // ─────────────────────────────────────────────
     // Lambda — API (FastAPI via Mangum)
@@ -187,8 +121,8 @@ export class CawnexStack extends cdk.Stack {
         TABLE_NAME: table.tableName,
         BUCKET_NAME: artifactsBucket.bucketName,
         QUEUE_URL: taskQueue.queueUrl,
-        // USER_POOL_ID and USER_POOL_CLIENT_ID removed temporarily to avoid circular dependency
-        // These will need to be added via environment variable updates after deployment
+        USER_POOL_ID: userPoolId,
+        USER_POOL_CLIENT_ID: webClientId,
       },
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
@@ -213,6 +147,16 @@ export class CawnexStack extends cdk.Stack {
       },
     });
 
+    // JWT authorizer — validates Cognito tokens, extracts tenant_id
+    const jwtAuthorizer = new apigwAuthorizers.HttpJwtAuthorizer(
+      "CognitoAuthorizer",
+      `https://cognito-idp.${this.region}.amazonaws.com/${userPoolId}`,
+      {
+        jwtAudience: [iosClientId, webClientId],
+        identitySource: ["$request.header.Authorization"],
+      }
+    );
+
     const apiIntegration = new apigwIntegrations.HttpLambdaIntegration(
       "ApiIntegration",
       apiFunction
@@ -225,13 +169,12 @@ export class CawnexStack extends cdk.Stack {
       integration: apiIntegration,
     });
 
-    // All other routes — TEMPORARILY no auth to avoid circular dependency
-    // TODO: Add JWT authorizer in a separate CDK stack or after deployment
+    // All other routes — JWT required
     httpApi.addRoutes({
       path: "/{proxy+}",
       methods: [apigw.HttpMethod.ANY],
       integration: apiIntegration,
-      // authorizer: jwtAuthorizer, // TODO: Enable after fixing circular dependency
+      authorizer: jwtAuthorizer,
     });
 
     // ─────────────────────────────────────────────
@@ -355,70 +298,48 @@ export class CawnexStack extends cdk.Stack {
     });
 
     // ─────────────────────────────────────────────
-    // Post-confirmation Lambda — added AFTER API setup to avoid circular dependency
+    // Grant DynamoDB access to PostConfirmation Lambda (from AuthStack)
     // ─────────────────────────────────────────────
-    const postConfirmationFn = new lambda.Function(
+    const postConfirmationFnArn = cdk.Fn.importValue(`CawnexAuthStack-${stage}-PostConfirmationFnArn`);
+    const postConfirmationFn = lambda.Function.fromFunctionArn(
       this,
       "PostConfirmationFn",
-      {
-        functionName: `cawnex-post-confirmation-${stage}`,
-        runtime: lambda.Runtime.PYTHON_3_12,
-        handler: "handler.handler",
-        code: lambda.Code.fromAsset("../lambdas/auth-post-confirmation"),
-        memorySize: 128,
-        timeout: cdk.Duration.seconds(10),
-        architecture: lambda.Architecture.ARM_64,
-        environment: {
-          TABLE_NAME: table.tableName,
-          STAGE: stage,
-        },
-        logRetention: logs.RetentionDays.ONE_MONTH,
-      }
+      postConfirmationFnArn
     );
 
     table.grantWriteData(postConfirmationFn);
-    postConfirmationFn.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["cognito-idp:AdminUpdateUserAttributes"],
-        resources: [userPool.userPoolArn],
-      })
-    );
-
-    userPool.addTrigger(
-      cognito.UserPoolOperation.POST_CONFIRMATION,
-      postConfirmationFn
-    );
+    
+    // Update Lambda environment with table name via CDK custom resource
+    new cdk.CfnOutput(this, "PostConfirmationTableName", {
+      value: table.tableName,
+      description: "DynamoDB table name for PostConfirmation Lambda",
+    });
 
     // ─────────────────────────────────────────────
     // Outputs
     // ─────────────────────────────────────────────
     new cdk.CfnOutput(this, "UserPoolId", {
-      value: userPool.userPoolId,
+      value: userPoolId,
       description: "Cognito User Pool ID",
     });
 
     new cdk.CfnOutput(this, "CognitoDomain", {
-      value: userPoolDomain.domainName,
+      value: cognitoDomain,
     });
 
     new cdk.CfnOutput(this, "iOSClientId", {
-      value: iosClient.userPoolClientId,
+      value: iosClientId,
       description: "Cognito iOS app client ID",
     });
 
     new cdk.CfnOutput(this, "WebClientId", {
-      value: webClient.userPoolClientId,
+      value: webClientId,
       description: "Cognito Web app client ID",
     });
 
     new cdk.CfnOutput(this, "Region", {
       value: this.region,
       description: "AWS region for SDK configuration",
-    });
-
-    new cdk.CfnOutput(this, "PostDeploymentNotes", {
-      value: "IMPORTANT: API currently has NO AUTHENTICATION due to circular dependency. Add JWT authorizer manually after deployment.",
-      description: "Manual steps required after deployment",
     });
   }
 }
