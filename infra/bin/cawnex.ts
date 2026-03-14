@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib";
 import { CawnexDomainStack } from "../lib/cawnex-domain-stack";
+import { CawnexDomainCloudflareStack } from "../lib/cawnex-domain-cloudflare-stack";
 import { CawnexAuthStack } from "../lib/cawnex-auth-stack";
 import { CawnexStack } from "../lib/cawnex-stack";
 
@@ -12,6 +13,7 @@ const stage = (app.node.tryGetContext("stage") || "dev") as "dev" | "staging" | 
 // Get domain configuration from context (optional)
 const domainName = app.node.tryGetContext("domainName") as string | undefined;
 const hostedZoneId = app.node.tryGetContext("hostedZoneId") as string | undefined;
+const useCloudflare = app.node.tryGetContext("cloudflare") === "true";
 
 // Environment configuration
 const env = {
@@ -20,22 +22,33 @@ const env = {
 };
 
 // Deploy Domain Stack first (if domain is configured)
-let domainStack: CawnexDomainStack | undefined;
+let domainStack: CawnexDomainStack | CawnexDomainCloudflareStack | undefined;
 if (domainName) {
-  domainStack = new CawnexDomainStack(app, `CawnexDomainStack-${stage}`, {
-    domainName,
-    hostedZoneId,
-    stage,
-    env,
-    description: `Cawnex Domain Stack (${stage}) - ${domainName}`,
-  });
+  if (useCloudflare) {
+    // Cloudflare-managed DNS (SES only, no Route53)
+    domainStack = new CawnexDomainCloudflareStack(app, `CawnexCloudflareStack-${stage}`, {
+      domainName,
+      stage,
+      env,
+      description: `Cawnex Cloudflare Stack (${stage}) - ${domainName}`,
+    });
+  } else {
+    // Full AWS management (Route53 + SES + SSL)
+    domainStack = new CawnexDomainStack(app, `CawnexDomainStack-${stage}`, {
+      domainName,
+      hostedZoneId,
+      stage,
+      env,
+      description: `Cawnex Domain Stack (${stage}) - ${domainName}`,
+    });
+  }
 }
 
 // Deploy Auth Stack second (independent, but may reference domain)
 const authStack = new CawnexAuthStack(app, `CawnexAuthStack-${stage}`, {
   stage,
-  domainName: domainStack?.node.tryGetContext("domainName") || domainName,
-  sesIdentityArn: domainStack?.sesIdentity.emailIdentityArn,
+  domainName: domainName,
+  sesIdentityArn: domainStack?.sesIdentity?.emailIdentityArn,
   env,
   description: `Cawnex Authentication Stack (${stage})`,
 });
