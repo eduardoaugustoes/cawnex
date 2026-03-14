@@ -162,12 +162,39 @@ jobs:
           echo "::endgroup::"
 
       - name: 📱 Update iOS Configuration
-        env:
-          CAWNEX_USER_POOL_ID: ${{ secrets.DEV_USER_POOL_ID }}
-          CAWNEX_IOS_CLIENT_ID: ${{ secrets.DEV_IOS_CLIENT_ID }}
-          CAWNEX_API_URL: ${{ secrets.DEV_API_URL }}
         run: |
           chmod +x scripts/update-ios-config.sh
+
+          # Extract outputs from deployed CloudFormation stacks
+          AUTH_STACK_NAME="CawnexAuthStack-dev"
+          MAIN_STACK_NAME="Cawnex-dev"
+
+          USER_POOL_ID=$(aws cloudformation describe-stacks \
+            --stack-name $AUTH_STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
+            --output text)
+
+          IOS_CLIENT_ID=$(aws cloudformation describe-stacks \
+            --stack-name $AUTH_STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`iOSClientId`].OutputValue' \
+            --output text)
+
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name $MAIN_STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
+            --output text)
+
+          # Set environment variables for script
+          export CAWNEX_USER_POOL_ID="$USER_POOL_ID"
+          export CAWNEX_IOS_CLIENT_ID="$IOS_CLIENT_ID"
+          export CAWNEX_API_URL="$API_URL"
+
+          echo "Extracted values:"
+          echo "  UserPoolId: $USER_POOL_ID"
+          echo "  iOSClientId: $IOS_CLIENT_ID"
+          echo "  ApiUrl: $API_URL"
+
+          # Run script with extracted values
           ./scripts/update-ios-config.sh dev --from-env
 
       - name: 📊 Deployment Summary
