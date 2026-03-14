@@ -261,22 +261,30 @@ Total agents: {len(monarch.agents)}
         """Generate Monarch response to user message."""
         message_lower = message.lower()
         
-        if any(word in message_lower for word in ['status', 'how', 'progress']):
-            status = monarch.get_society_status()
-            return f"Currently managing {status['total_agents']} agents with ${monarch.monthly_budget - monarch.spent_this_month:.2f} budget remaining. Our progress toward '{monarch.vision['primary']}' continues."
+        # Specific project requests
+        if any(word in message_lower for word in ['build', 'create', 'develop', 'dashboard', 'website', 'app']):
+            return f"🏗️ Interesting project idea! I can help you build that.\n\nTo create software efficiently, I might need to spawn specialist agents. Let me analyze what kind of expertise we'd need:\n\n• **Web Development**: Frontend dashboard creation\n• **Backend Systems**: User management, CSV imports\n• **Mobile Development**: Parent notification app\n\nShould I assess if we need specialist agents for this project? Use `/workload` to see current bottlenecks or `/spawn <specialization>` to create specialists."
         
-        elif any(word in message_lower for word in ['spawn', 'create', 'new agent']):
+        elif any(word in message_lower for word in ['status', 'how', 'progress', 'doing']):
+            status = monarch.get_society_status()
+            return f"📊 **Society Status:**\n• Agents: {status['total_agents']}\n• Budget: ${monarch.monthly_budget - monarch.spent_this_month:.2f}/${monarch.monthly_budget:.2f} remaining\n• Vision: {monarch.vision['primary']}\n\nReady to tackle new projects efficiently!"
+        
+        elif any(word in message_lower for word in ['spawn', 'hire', 'need', 'specialist']):
             workload = monarch.assess_workload()
-            return f"I'm monitoring {workload['current_tasks']} tasks. Current bottlenecks: {', '.join(workload['bottlenecks'])}. Use `/spawn <specialization>` if you want me to create a specialist."
+            return f"🤖 **Agent Analysis:**\n• Current tasks: {workload['current_tasks']}\n• Bottlenecks: {', '.join(workload['bottlenecks'])}\n\nUse `/spawn <specialization>` for:\n• `api_development`\n• `ui_implementation` \n• `testing`\n• `devops`\n• `security`"
         
         elif any(word in message_lower for word in ['vision', 'goal', 'purpose']):
-            return f"My vision remains clear: *{monarch.vision['primary']}*. Every agent I spawn serves this purpose. Every decision aligns with our principles."
+            return f"🎯 **Our Vision:**\n*{monarch.vision['primary']}*\n\nEvery project serves this purpose. Every agent I spawn aligns with these principles. How can we advance this vision together?"
         
-        elif any(word in message_lower for word in ['budget', 'cost', 'money']):
-            return f"Budget management is crucial. Current allocation: ${monarch.spent_this_month:.2f}/${monarch.monthly_budget:.2f}. I only spawn agents when ROI justifies the cost."
+        elif any(word in message_lower for word in ['budget', 'cost', 'money', 'price']):
+            return f"💰 **Budget Management:**\n• Allocated: ${monarch.spent_this_month:.2f}/${monarch.monthly_budget:.2f}\n• Remaining: ${monarch.monthly_budget - monarch.spent_this_month:.2f}\n\nI only spawn agents when ROI analysis justifies the investment. Efficiency over expense!"
+        
+        elif any(word in message_lower for word in ['help', 'what', 'can you']):
+            return f"👑 **I can help you:**\n• **Plan projects** efficiently\n• **Spawn specialist agents** when needed\n• **Manage development** with AI coordination\n• **Build software** from your ideas\n\nTell me what you want to build, and I'll determine the best approach!"
         
         else:
-            return f"I hear you. As Monarch, I'm always evaluating how to better serve our vision: '{monarch.vision['primary']}'. What specific aspect would you like to discuss?"
+            # Avoid generic responses that could loop
+            return f"🤔 Tell me more about what you'd like to accomplish. I can help you:\n\n• Build software projects\n• Manage development teams (AI agents)\n• Assess project needs\n• Plan efficient execution\n\nWhat's your specific goal?"
 
     async def start_bot(self):
         """Start the Telegram bot."""
