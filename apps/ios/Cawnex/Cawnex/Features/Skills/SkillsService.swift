@@ -17,7 +17,8 @@ final class InMemorySkillsService: SkillsService {
             skills: [
                 Skill(
                     id: "sk1",
-                    name: "TypeScript CRUD",
+                    name: "typescript-crud",
+                    displayName: "TypeScript CRUD",
                     icon: "curlybraces",
                     category: .dev,
                     description: "Generate REST CRUD endpoints with validation, error handling, and OpenAPI docs for any entity.",
@@ -26,7 +27,8 @@ final class InMemorySkillsService: SkillsService {
                 ),
                 Skill(
                     id: "sk2",
-                    name: "Jest Unit Tests",
+                    name: "jest-unit-tests",
+                    displayName: "Jest Unit Tests",
                     icon: "flask.fill",
                     category: .dev,
                     description: "Write comprehensive Jest unit tests following TDD methodology with jest-mock-extended.",
@@ -35,7 +37,8 @@ final class InMemorySkillsService: SkillsService {
                 ),
                 Skill(
                     id: "sk3",
-                    name: "Chapter Writer",
+                    name: "chapter-writer",
+                    displayName: "Chapter Writer",
                     icon: "pencil.line",
                     category: .editorial,
                     description: "Draft book chapters from outline, maintaining voice consistency and narrative arc across the manuscript.",
@@ -44,7 +47,8 @@ final class InMemorySkillsService: SkillsService {
                 ),
                 Skill(
                     id: "sk4",
-                    name: "Social Post Creator",
+                    name: "social-post-creator",
+                    displayName: "Social Post Creator",
                     icon: "square.and.arrow.up",
                     category: .social,
                     description: "Create platform-optimized social media posts with hooks, CTAs, and hashtag strategies for engagement.",

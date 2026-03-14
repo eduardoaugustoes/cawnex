@@ -27,6 +27,7 @@ final class CreateSkillViewModel {
         return Skill(
             id: UUID().uuidString,
             name: name.trimmingCharacters(in: .whitespaces),
+            displayName: resolvedDisplay,
             icon: icon,
             category: category,
             description: description.trimmingCharacters(in: .whitespaces),

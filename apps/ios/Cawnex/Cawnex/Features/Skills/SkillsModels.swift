@@ -24,11 +24,16 @@ enum SkillCategory: String, Equatable, CaseIterable, Hashable {
 struct Skill: Identifiable, Equatable {
     let id: String
     let name: String
+    let displayName: String
     let icon: String
     let category: SkillCategory
     let description: String
     let usedBy: String
     let useCount: Int
+    
+    var effectiveDisplayName: String {
+        displayName.isEmpty ? name : displayName
+    }
 }
 
 // MARK: - Marketplace Skill
