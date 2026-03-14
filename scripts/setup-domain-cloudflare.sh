@@ -28,6 +28,7 @@ cd "$(dirname "$0")/../infra"
 npx cdk deploy CawnexCloudflareStack-$STAGE \
     --context stage=$STAGE \
     --context domainName=$DOMAIN_NAME \
+    --context cloudflare=true \
     --require-approval never
 
 # Get SES DKIM tokens
