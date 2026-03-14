@@ -5,7 +5,7 @@ struct ContentView: View {
     @State private var store = AppStore()
     @State private var authService: any AuthService = {
         #if DEBUG
-        if AppConfiguration.current.cognitoClientId.isEmpty {
+        if AppConfiguration.clientId.isEmpty {
             return InMemoryAuthService()
         }
         #endif

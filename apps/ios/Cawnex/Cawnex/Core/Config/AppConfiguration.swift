@@ -83,6 +83,11 @@ struct AppConfiguration {
     static var cognitoDomain: String { environment.cognitoDomain }
     static var environmentName: String { environment.description }
     
+    // MARK: - Computed Properties
+    static var cognitoEndpoint: String {
+        return "https://cognito-idp.\(region).amazonaws.com/"
+    }
+    
     // MARK: - App Information
     static let appName = "Cawnex"
     static let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.cawnex.app"
