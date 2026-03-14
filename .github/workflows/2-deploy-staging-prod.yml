@@ -84,23 +84,54 @@ jobs:
           cd infra
           echo "## CDK Diff (${{ inputs.stage }})" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          npx cdk diff Cawnex-${{ inputs.stage }} \
-            --context stage=${{ inputs.stage }} \
-            --context stack=main 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          if [ "${{ inputs.stage }}" = "prod" ]; then
+            npx cdk diff Cawnex-${{ inputs.stage }} \
+              --context stage=${{ inputs.stage }} \
+              --context domainName=cawnex.ai \
+              --context cloudflare=true \
+              --context stack=main 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          else
+            npx cdk diff Cawnex-${{ inputs.stage }} \
+              --context stage=${{ inputs.stage }} \
+              --context stack=main 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          fi
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: CDK deploy
+        env:
+          DOMAIN_NAME: ${{ inputs.stage == 'prod' && 'cawnex.ai' || '' }}
         run: |
           cd infra
-          npx cdk deploy CawnexAuthStack-${{ inputs.stage }} \
-            --context stage=${{ inputs.stage }} \
-            --require-approval never \
-            --outputs-file ../auth-outputs.json
           
-          npx cdk deploy Cawnex-${{ inputs.stage }} \
-            --context stage=${{ inputs.stage }} \
-            --require-approval never \
-            --outputs-file ../deploy-outputs.json
+          # Deploy Auth Stack
+          if [ "${{ inputs.stage }}" = "prod" ]; then
+            npx cdk deploy CawnexAuthStack-${{ inputs.stage }} \
+              --context stage=${{ inputs.stage }} \
+              --context domainName=cawnex.ai \
+              --context cloudflare=true \
+              --require-approval never \
+              --outputs-file ../auth-outputs.json
+          else
+            npx cdk deploy CawnexAuthStack-${{ inputs.stage }} \
+              --context stage=${{ inputs.stage }} \
+              --require-approval never \
+              --outputs-file ../auth-outputs.json
+          fi
+          
+          # Deploy Main Stack  
+          if [ "${{ inputs.stage }}" = "prod" ]; then
+            npx cdk deploy Cawnex-${{ inputs.stage }} \
+              --context stage=${{ inputs.stage }} \
+              --context domainName=cawnex.ai \
+              --context cloudflare=true \
+              --require-approval never \
+              --outputs-file ../deploy-outputs.json
+          else
+            npx cdk deploy Cawnex-${{ inputs.stage }} \
+              --context stage=${{ inputs.stage }} \
+              --require-approval never \
+              --outputs-file ../deploy-outputs.json
+          fi
 
       - name: Health check
         run: |
