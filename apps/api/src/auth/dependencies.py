@@ -6,7 +6,9 @@ By the time a request reaches Lambda, the token is already validated.
 We just extract claims from the Mangum-adapted request context.
 """
 
-from fastapi import Request, HTTPException
+from typing import Any, Dict
+
+from fastapi import HTTPException, Request
 
 from src.auth.tenant import TenantContext
 
@@ -18,18 +20,27 @@ async def get_tenant(request: Request) -> TenantContext:
       event["requestContext"]["authorizer"]["jwt"]["claims"]
 
     Mangum makes the raw event available via request.scope["aws.event"].
+
+    Args:
+        request: FastAPI request object containing AWS event context
+
+    Returns:
+        TenantContext with extracted tenant information
+
+    Raises:
+        HTTPException: If tenant_id is missing from JWT claims
     """
-    event = request.scope.get("aws.event", {})
-    claims = (
+    event: Dict[str, Any] = request.scope.get("aws.event", {})
+    claims: Dict[str, Any] = (
         event.get("requestContext", {})
         .get("authorizer", {})
         .get("jwt", {})
         .get("claims", {})
     )
 
-    tenant_id = claims.get("custom:tenant_id", "")
-    user_sub = claims.get("sub", "")
-    email = claims.get("email", "")
+    tenant_id: str = claims.get("custom:tenant_id", "")
+    user_sub: str = claims.get("sub", "")
+    email: str = claims.get("email", "")
 
     if not tenant_id:
         raise HTTPException(status_code=403, detail="Missing tenant context")

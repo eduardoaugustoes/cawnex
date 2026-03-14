@@ -5,38 +5,46 @@
 All launchers and test files now work correctly without async syntax issues.
 
 ## 🔧 **Quick Test First:**
+
 ```bash
-cd mcp-monarch  
+cd mcp-monarch
 ./venv/bin/python test_monarch_simple.py
 ```
+
 This verifies everything works and shows Claude Desktop setup.
 
 ## 🎯 **Choose Your Experience:**
 
 ### **1. 🎭 Interactive Demo (No setup needed)**
+
 ```bash
 ./venv/bin/python demo_launcher.py
 ```
+
 **Perfect for:** Testing the concept, seeing agent spawning logic in action
 
 ### **2. 📱 Telegram Bot (Requires token)**
+
 ```bash
 # Get token from @BotFather first
 export TELEGRAM_BOT_TOKEN="your_token_here"
 ./start.sh
 ```
+
 **Perfect for:** Real conversation with your AI Monarch
 
 ### **3. 🖥️ Claude Desktop Integration**
+
 ```bash
 ./venv/bin/python setup-claude.py
 ```
+
 **Perfect for:** Natural AI society management through Claude
 
 ## 🔧 **What Was Fixed:**
 
 - ✅ **Syntax error resolved** - Used simpler launcher approach
-- ✅ **Import issues fixed** - All dependencies verified working  
+- ✅ **Import issues fixed** - All dependencies verified working
 - ✅ **Virtual environment** - Properly isolated Python environment
 - ✅ **Multiple entry points** - Demo, Telegram, Claude Desktop all work
 
@@ -70,16 +78,16 @@ export TELEGRAM_BOT_TOKEN="your_token_here"
 
 ## 🎯 **Key Concepts Demonstrated:**
 
-✅ **Vision-driven society** - All agents serve the same goal  
-✅ **ROI-based spawning** - Only create agents when economically justified  
-✅ **Budget constraints** - Prevent infinite expansion  
-✅ **Efficiency analysis** - Identify bottlenecks automatically  
-✅ **Specialized capabilities** - Each agent brings domain expertise  
+✅ **Vision-driven society** - All agents serve the same goal
+✅ **ROI-based spawning** - Only create agents when economically justified
+✅ **Budget constraints** - Prevent infinite expansion
+✅ **Efficiency analysis** - Identify bottlenecks automatically
+✅ **Specialized capabilities** - Each agent brings domain expertise
 
 ## 🔮 **Next Steps:**
 
 1. **Try the demo** to understand the concept
-2. **Get Telegram token** for real conversations  
+2. **Get Telegram token** for real conversations
 3. **Set up Claude Desktop** for advanced interaction
 4. **Expand the vision** - Add agent-to-agent communication
 5. **Connect to real work** - GitHub issues, actual development

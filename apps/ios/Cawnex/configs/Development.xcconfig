@@ -10,7 +10,7 @@ API_TIMEOUT = 30.0
 API_RETRIES = 3
 
 // ================================
-// AWS COGNITO CONFIGURATION  
+// AWS COGNITO CONFIGURATION
 // ================================
 USER_POOL_ID = us-east-1_38Ay7DArT
 CLIENT_ID = 3qp8f80mhfvcgk0k8v7f2qhhg
@@ -37,7 +37,7 @@ ENABLE_PERFORMANCE_MONITORING = YES
 // DEVELOPMENT BUILD SETTINGS
 // ================================
 CODE_SIGN_IDENTITY = iPhone Developer
-PROVISIONING_PROFILE_SPECIFIER = 
+PROVISIONING_PROFILE_SPECIFIER =
 
 // Development-specific optimization
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) DEBUG DEVELOPMENT

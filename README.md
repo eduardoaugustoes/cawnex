@@ -6,7 +6,7 @@
 
 **Agent orchestration platform that turns a single issue into shipped, tested, documented code — without human intervention.**
 
-*One caw. Seven agents. Zero bottlenecks.*
+_One caw. Seven agents. Zero bottlenecks._
 
 ---
 
@@ -45,15 +45,15 @@ Issue created → Agents coordinate → Code shipped → Team notified
 
 ## 🐦 The 7 Agents
 
-| Agent | Role | What it does |
-|-------|------|-------------|
-| 🔍 **Refinement** | Analyst | Analyzes issues → generates full user stories with acceptance criteria and affected repos |
-| ⚙️ **Backend** | Engineer | Writes server code, APIs, database migrations, business logic |
-| 🖥️ **Frontend** | Engineer | Builds interfaces, components, and user experiences |
-| 📱 **Mobile** | Engineer | Implements features in iOS/Android applications |
-| ✅ **QA** | Reviewer | Validates code against acceptance criteria, approves or rejects PRs |
-| 📄 **Docs** | Writer | Auto-updates documentation after every code change |
-| 🔒 **Security** | Auditor | Scans for vulnerabilities, ensures conformity with best practices (SAST/DAST) |
+| Agent             | Role     | What it does                                                                              |
+| ----------------- | -------- | ----------------------------------------------------------------------------------------- |
+| 🔍 **Refinement** | Analyst  | Analyzes issues → generates full user stories with acceptance criteria and affected repos |
+| ⚙️ **Backend**    | Engineer | Writes server code, APIs, database migrations, business logic                             |
+| 🖥️ **Frontend**   | Engineer | Builds interfaces, components, and user experiences                                       |
+| 📱 **Mobile**     | Engineer | Implements features in iOS/Android applications                                           |
+| ✅ **QA**         | Reviewer | Validates code against acceptance criteria, approves or rejects PRs                       |
+| 📄 **Docs**       | Writer   | Auto-updates documentation after every code change                                        |
+| 🔒 **Security**   | Auditor  | Scans for vulnerabilities, ensures conformity with best practices (SAST/DAST)             |
 
 ## 🏗️ Architecture
 
@@ -122,28 +122,28 @@ Issue created → Agents coordinate → Code shipped → Team notified
 
 Your key. Your budget. Your rules. We handle the orchestration.
 
-| BYOL Mode | How it works | Best for |
-|-----------|-------------|----------|
-| **API Key** | Direct SDK calls, precise token tracking | Low-medium volume |
-| **Subscription** | Claude Code subprocess, unlimited | High volume / power users |
+| BYOL Mode        | How it works                             | Best for                  |
+| ---------------- | ---------------------------------------- | ------------------------- |
+| **API Key**      | Direct SDK calls, precise token tracking | Low-medium volume         |
+| **Subscription** | Claude Code subprocess, unlimited        | High volume / power users |
 
 ### Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **AI Engine** | BYOL — Claude SDK (primary), GPT-4, Gemini (user's key) |
-| **Backend** | Python 3.12 + FastAPI + SQLAlchemy (async) |
-| **Database** | PostgreSQL (multi-tenant) |
-| **Cache / Streams** | Redis (Streams for event bus, cache for state) |
-| **Web App** | React + Vite + TypeScript + shadcn/ui |
-| **iOS** | Swift + SwiftUI (full native) |
-| **Android** | Kotlin + Jetpack Compose (full native) |
-| **Issue Tracker** | GitHub Issues (webhook), Linear planned |
-| **Git** | GitHub (worktrees per agent) |
-| **API Contracts** | OpenAPI spec → generated clients (TS, Swift, Kotlin) |
-| **Package Mgmt** | uv (Python), pnpm (Node) |
-| **Infrastructure** | Docker Compose (MVP) → Kubernetes (scale) |
-| **Notifications** | Slack, GitHub, Email |
+| Layer               | Technology                                              |
+| ------------------- | ------------------------------------------------------- |
+| **AI Engine**       | BYOL — Claude SDK (primary), GPT-4, Gemini (user's key) |
+| **Backend**         | Python 3.12 + FastAPI + SQLAlchemy (async)              |
+| **Database**        | PostgreSQL (multi-tenant)                               |
+| **Cache / Streams** | Redis (Streams for event bus, cache for state)          |
+| **Web App**         | React + Vite + TypeScript + shadcn/ui                   |
+| **iOS**             | Swift + SwiftUI (full native)                           |
+| **Android**         | Kotlin + Jetpack Compose (full native)                  |
+| **Issue Tracker**   | GitHub Issues (webhook), Linear planned                 |
+| **Git**             | GitHub (worktrees per agent)                            |
+| **API Contracts**   | OpenAPI spec → generated clients (TS, Swift, Kotlin)    |
+| **Package Mgmt**    | uv (Python), pnpm (Node)                                |
+| **Infrastructure**  | Docker Compose (MVP) → Kubernetes (scale)               |
+| **Notifications**   | Slack, GitHub, Email                                    |
 
 ## 📁 Project Structure
 
@@ -277,36 +277,36 @@ $ cawnex roost
 
 ### Cawnex Vocabulary
 
-| Term | Meaning |
-|------|---------|
-| **Crows** | Agents — your AI workers |
-| **The Murder** | Orchestrator — coordinates everything |
-| **Nests** | Worktrees — isolated workspaces per agent |
-| **Caws** | Agent-to-agent messages |
-| **The Roost** | Dashboard — monitor everything |
-| **Fallen Crow** 💀 | Failed execution |
+| Term               | Meaning                                   |
+| ------------------ | ----------------------------------------- |
+| **Crows**          | Agents — your AI workers                  |
+| **The Murder**     | Orchestrator — coordinates everything     |
+| **Nests**          | Worktrees — isolated workspaces per agent |
+| **Caws**           | Agent-to-agent messages                   |
+| **The Roost**      | Dashboard — monitor everything            |
+| **Fallen Crow** 💀 | Failed execution                          |
 
 ## 💰 Real Numbers
 
-| Metric | Value |
-|--------|-------|
-| Cost per execution | ~$0.15 - $0.96 |
-| Cost per PR | ~$1.73 |
-| QA review duration | ~2m 48s |
-| Parallel vs sequential | 15 min vs 1h+ |
-| Equivalent team size | 20-30 engineers |
+| Metric                 | Value           |
+| ---------------------- | --------------- |
+| Cost per execution     | ~$0.15 - $0.96  |
+| Cost per PR            | ~$1.73          |
+| QA review duration     | ~2m 48s         |
+| Parallel vs sequential | 15 min vs 1h+   |
+| Equivalent team size   | 20-30 engineers |
 
 ## 🤔 Why Cawnex?
 
 ### Agents vs Skills
 
-| | Skill | Agent |
-|---|-------|-------|
-| **Changes** | What you **know** | **Who** does the work |
-| **Nature** | Packaged knowledge, passive | Autonomous entity with mission |
+|             | Skill                                      | Agent                                      |
+| ----------- | ------------------------------------------ | ------------------------------------------ |
+| **Changes** | What you **know**                          | **Who** does the work                      |
+| **Nature**  | Packaged knowledge, passive                | Autonomous entity with mission             |
 | **Analogy** | Excel — powerful, needs someone to open it | Analyst — uses Excel, decides when and how |
 
-> *Skills amplify capabilities. Agents replace the need for a human to execute a task.*
+> _Skills amplify capabilities. Agents replace the need for a human to execute a task._
 
 ### Key Lessons
 
@@ -317,6 +317,7 @@ $ cawnex roost
 ### Why the crow?
 
 Crows are one of nature's most intelligent animals:
+
 - 🧰 Use **tools** to solve problems
 - 🗣️ **Communicate** complex information to each other
 - 🤝 Work in **coordinated groups**
@@ -336,22 +337,22 @@ Simple, functional,     and sub-agent           old ones stay           Safe mig
 but fragile at scale.   support.                on CLI.                 no big bang.
 ```
 
-> *The most important lesson: start simple. The subprocess with regex worked in production for months before the migration to SDK.*
+> _The most important lesson: start simple. The subprocess with regex worked in production for months before the migration to SDK._
 
 ## 💰 Pricing
 
-| Tier | Price | Includes |
-|------|-------|---------|
-| **Free** | $0/mo | 20 executions, 1 repo, 2 agents |
-| **Pro** | $29/mo | Unlimited executions, 10 repos, 4 agents |
-| **Team** | $99/mo | Unlimited repos, 7 agents, multi-repo sync, 5 seats |
-| **Enterprise** | Custom | SSO, audit logs, SLA, on-prem |
+| Tier           | Price  | Includes                                            |
+| -------------- | ------ | --------------------------------------------------- |
+| **Free**       | $0/mo  | 20 executions, 1 repo, 2 agents                     |
+| **Pro**        | $29/mo | Unlimited executions, 10 repos, 4 agents            |
+| **Team**       | $99/mo | Unlimited repos, 7 agents, multi-repo sync, 5 seats |
+| **Enterprise** | Custom | SSO, audit logs, SLA, on-prem                       |
 
-*All tiers require BYOL. We charge for orchestration, not tokens.*
+_All tiers require BYOL. We charge for orchestration, not tokens._
 
 ## 🚀 Roadmap
 
-- [x] **Milestone 0 — "The Egg"** — Monorepo scaffold, DB models, Docker infra, first agent *(in progress)*
+- [x] **Milestone 0 — "The Egg"** — Monorepo scaffold, DB models, Docker infra, first agent _(in progress)_
 - [ ] **Phase 1 — "First Flight"** — Single agent, single repo, CLI proof (5 real issues → 3 merged PRs)
 - [ ] **Phase 2 — "The Murder"** — Full pipeline (Refine → Dev → QA → Docs), dashboard, BYOL multi-provider
 - [ ] **Phase 3 — "Migration"** — Multi-repo coordination, synchronized merges, GitHub App
@@ -366,7 +367,7 @@ MIT
 
 <div align="center">
 
-**🐦‍⬛ Cawnex** — *Coordinated Intelligence*
+**🐦‍⬛ Cawnex** — _Coordinated Intelligence_
 
 Built with obsession by humans and crows.
 

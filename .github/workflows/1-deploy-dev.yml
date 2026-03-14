@@ -13,7 +13,7 @@ on:
     branches: [main]
     paths:
       - "infra/**"
-      - "apps/api/**" 
+      - "apps/api/**"
       - "apps/worker/**"
       - "lambdas/auth-post-confirmation/**"
       - ".github/workflows/1-deploy-dev.yml"
@@ -56,10 +56,10 @@ jobs:
           python-version: "3.12"
           cache: "pip"
           cache-dependency-path: apps/api/requirements.txt
-      
+
       - name: Build API dist
         run: cd apps/api && make build
-      
+
       - uses: actions/upload-artifact@v4
         with:
           name: api-dist
@@ -74,30 +74,30 @@ jobs:
       user-pool-id: ${{ steps.outputs.outputs.user-pool-id }}
       ios-client-id: ${{ steps.outputs.outputs.ios-client-id }}
       api-url: ${{ steps.outputs.outputs.api-url }}
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/download-artifact@v4
         with:
           name: api-dist
           path: apps/api/dist/
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: infra/package-lock.json
-      
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Install CDK dependencies
         run: cd infra && npm ci
-      
+
       - name: Deploy Auth Stack
         run: |
           cd infra
@@ -105,7 +105,7 @@ jobs:
             --context stage=${{ env.STAGE }} \
             --require-approval never \
             --outputs-file ../auth-outputs.json
-      
+
       - name: Deploy Main Stack
         run: |
           cd infra
@@ -113,34 +113,34 @@ jobs:
             --context stage=${{ env.STAGE }} \
             --require-approval never \
             --outputs-file ../deploy-outputs.json
-      
+
       - name: Extract Outputs
         id: outputs
         run: |
           # Get auth outputs from AuthStack
           AUTH_STACK_NAME="CawnexAuthStack-${{ env.STAGE }}"
           MAIN_STACK_NAME="Cawnex-${{ env.STAGE }}"
-          
+
           USER_POOL_ID=$(aws cloudformation describe-stacks \
             --stack-name $AUTH_STACK_NAME \
             --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
             --output text)
-          
+
           IOS_CLIENT_ID=$(aws cloudformation describe-stacks \
             --stack-name $AUTH_STACK_NAME \
             --query 'Stacks[0].Outputs[?OutputKey==`iOSClientId`].OutputValue' \
             --output text)
-          
+
           # Get API URL from MainStack
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name $MAIN_STACK_NAME \
             --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
             --output text)
-          
+
           echo "user-pool-id=$USER_POOL_ID" >> $GITHUB_OUTPUT
           echo "ios-client-id=$IOS_CLIENT_ID" >> $GITHUB_OUTPUT
           echo "api-url=$API_URL" >> $GITHUB_OUTPUT
-      
+
       - name: Setup PostConfirmation Trigger
         run: |
           if [ -f "scripts/setup-post-confirmation-trigger.sh" ]; then
@@ -149,7 +149,7 @@ jobs:
           else
             echo "⚠️  PostConfirmation setup script not found, skipping trigger setup"
           fi
-      
+
       - name: Health Check
         run: |
           API_URL="${{ steps.outputs.outputs.api-url }}"
@@ -160,46 +160,46 @@ jobs:
     name: Update iOS Configuration
     needs: deploy-infrastructure
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Update iOS Configuration
         run: |
           # Use the consolidated shell script instead of inline logic
           if [ -f "scripts/update-ios-config.sh" ]; then
             chmod +x scripts/update-ios-config.sh
-            
+
             # Set environment variables for the script to use
             export CAWNEX_USER_POOL_ID="${{ needs.deploy-infrastructure.outputs.user-pool-id }}"
             export CAWNEX_IOS_CLIENT_ID="${{ needs.deploy-infrastructure.outputs.ios-client-id }}"
             export CAWNEX_API_URL="${{ needs.deploy-infrastructure.outputs.api-url }}"
-            
+
             # Run script with environment variables instead of AWS CLI calls
             ./scripts/update-ios-config.sh ${{ env.STAGE }} --from-env
           else
             echo "❌ iOS config update script not found"
             exit 1
           fi
-      
+
       - name: Commit Changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          
+
           if git diff --quiet; then
             echo "No changes to commit"
           else
             git add apps/ios/Cawnex/Cawnex/Core/Config/AppConfiguration.swift
             git commit -m "chore: auto-update iOS dev config
-            
+
             UserPoolId: ${{ needs.deploy-infrastructure.outputs.user-pool-id }}
             iOSClientId: ${{ needs.deploy-infrastructure.outputs.ios-client-id }}
             ApiUrl: ${{ needs.deploy-infrastructure.outputs.api-url }}"
-            
+
             git push
           fi
 
@@ -208,7 +208,7 @@ jobs:
     needs: [deploy-infrastructure, update-ios-config]
     runs-on: ubuntu-latest
     if: always()
-    
+
     steps:
       - name: Summary
         run: |

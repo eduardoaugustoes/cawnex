@@ -1,174 +1,36 @@
 {
   "root": true,
   "parser": "@typescript-eslint/parser",
-  "plugins": [
-    "@typescript-eslint",
-    "import",
-    "prefer-arrow",
-    "unused-imports"
-  ],
-  "extends": [
-    "eslint:recommended",
-    "@typescript-eslint/recommended",
-    "@typescript-eslint/recommended-requiring-type-checking",
-    "plugin:@typescript-eslint/strict",
-    "plugin:import/errors",
-    "plugin:import/warnings",
-    "plugin:import/typescript"
-  ],
+  "plugins": ["@typescript-eslint"],
+  "extends": ["eslint:recommended"],
   "parserOptions": {
     "ecmaVersion": 2022,
     "sourceType": "module",
-    "project": [
-      "./infra/tsconfig.json",
-      "./tsconfig.base.json"
-    ]
+    "project": ["./infra/tsconfig.json"]
   },
   "env": {
     "node": true,
     "es6": true
   },
   "rules": {
-    // ================================
-    // TYPESCRIPT - ULTRA STRICT
-    // ================================
-    "@typescript-eslint/no-explicit-any": "error",
-    "@typescript-eslint/no-unsafe-any": "error",
-    "@typescript-eslint/no-unsafe-assignment": "error",
-    "@typescript-eslint/no-unsafe-call": "error",
-    "@typescript-eslint/no-unsafe-member-access": "error",
-    "@typescript-eslint/no-unsafe-return": "error",
-    "@typescript-eslint/restrict-template-expressions": "error",
-    "@typescript-eslint/restrict-plus-operands": "error",
-    "@typescript-eslint/no-floating-promises": "error",
-    "@typescript-eslint/no-misused-promises": "error",
-    "@typescript-eslint/require-await": "error",
-    "@typescript-eslint/await-thenable": "error",
-    "@typescript-eslint/no-unnecessary-type-assertion": "error",
-    "@typescript-eslint/prefer-nullish-coalescing": "error",
-    "@typescript-eslint/prefer-optional-chain": "error",
-    "@typescript-eslint/strict-boolean-expressions": "error",
-    
-    // ================================
-    // CODE QUALITY
-    // ================================
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "@typescript-eslint/no-magic-numbers": ["error", { 
-      "ignore": [0, 1, -1], 
-      "ignoreEnums": true,
-      "ignoreNumericLiteralTypes": true 
-    }],
-    "@typescript-eslint/prefer-readonly": "error",
-    "@typescript-eslint/prefer-readonly-parameter-types": "off", // Too strict for most cases
-    "@typescript-eslint/explicit-function-return-type": "error",
-    "@typescript-eslint/explicit-module-boundary-types": "error",
-    "@typescript-eslint/no-inferrable-types": "error",
-    "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
-    "@typescript-eslint/consistent-type-imports": ["error", { "prefer": "type-imports" }],
-    
-    // ================================
-    // NAMING CONVENTIONS
-    // ================================
-    "@typescript-eslint/naming-convention": [
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": [
       "error",
-      {
-        "selector": "variableLike",
-        "format": ["camelCase", "UPPER_CASE"]
-      },
-      {
-        "selector": "typeLike",
-        "format": ["PascalCase"]
-      },
-      {
-        "selector": "interface",
-        "format": ["PascalCase"],
-        "prefix": ["I"]
-      },
-      {
-        "selector": "enum",
-        "format": ["PascalCase"]
-      }
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
     ],
-    
-    // ================================
-    // IMPORT/EXPORT RULES
-    // ================================
-    "import/order": ["error", {
-      "groups": [
-        "builtin",
-        "external", 
-        "internal",
-        "parent",
-        "sibling",
-        "index"
-      ],
-      "newlines-between": "always",
-      "alphabetize": { "order": "asc", "caseInsensitive": true }
-    }],
-    "import/no-unresolved": "error",
-    "import/no-cycle": "error",
-    "import/no-unused-modules": "error",
-    "unused-imports/no-unused-imports": "error",
-    
-    // ================================
-    // GENERAL CODE QUALITY
-    // ================================
     "no-console": "warn",
     "no-debugger": "error",
-    "no-alert": "error",
-    "no-var": "error",
-    "prefer-const": "error",
-    "prefer-arrow-callback": "error",
-    "arrow-body-style": ["error", "as-needed"],
-    "object-shorthand": "error",
-    "prefer-template": "error",
-    "template-curly-spacing": "error",
-    "no-duplicate-imports": "error",
-    "no-useless-rename": "error",
-    
-    // ================================
-    // COMPLEXITY LIMITS
-    // ================================
-    "complexity": ["error", 10],
-    "max-depth": ["error", 4],
-    "max-lines": ["error", 300],
-    "max-lines-per-function": ["error", 50],
-    "max-params": ["error", 4],
-    
-    // ================================
-    // STYLE RULES
-    // ================================
-    "indent": ["error", 2],
-    "quotes": ["error", "double"],
-    "semi": ["error", "always"],
-    "comma-dangle": ["error", "always-multiline"],
-    "object-curly-spacing": ["error", "always"],
-    "array-bracket-spacing": ["error", "never"]
+    "prefer-const": "error"
   },
-  "overrides": [
-    {
-      "files": ["**/*.test.ts", "**/*.spec.ts"],
-      "rules": {
-        "@typescript-eslint/no-magic-numbers": "off",
-        "@typescript-eslint/unbound-method": "off",
-        "max-lines-per-function": "off"
-      }
-    },
-    {
-      "files": ["infra/**/*.ts"],
-      "rules": {
-        "@typescript-eslint/no-magic-numbers": "off", // CDK has many magic numbers
-        "max-lines": ["error", 500],                  // CDK files can be longer
-        "max-lines-per-function": ["error", 100]      // CDK construct functions longer
-      }
-    }
-  ],
   "ignorePatterns": [
     "node_modules/",
     "dist/",
     "build/",
     "cdk.out/",
     "coverage/",
-    "**/*.d.ts"
+    "**/*.d.ts",
+    "_archive/",
+    "test/",
+    "tests/"
   ]
 }

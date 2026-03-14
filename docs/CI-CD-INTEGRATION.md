@@ -37,13 +37,15 @@ graph TD
 **🎯 Purpose:** Enforces ultra-strict quality standards before ANY deployment
 
 ### **Triggered By:**
+
 - ✅ Pull requests to `main`
-- ✅ Pushes to `main`  
+- ✅ Pushes to `main`
 - ✅ Manual workflow dispatch
 
 ### **Quality Checks Performed:**
 
 #### **🐍 Python Ultra-Strict Validation**
+
 ```yaml
 python-quality:
   - MyPy type checking (--strict mode)
@@ -55,6 +57,7 @@ python-quality:
 ```
 
 **What this catches:**
+
 - ❌ Any untyped functions or variables
 - ❌ Code style inconsistencies
 - ❌ Security vulnerabilities
@@ -62,6 +65,7 @@ python-quality:
 - ❌ Complex code (>10 cyclomatic complexity)
 
 #### **⚡ TypeScript Ultra-Strict Validation**
+
 ```yaml
 typescript-quality:
   - TypeScript strict compilation
@@ -72,6 +76,7 @@ typescript-quality:
 ```
 
 **What this catches:**
+
 - ❌ Type safety violations
 - ❌ Unused variables/imports
 - ❌ Code complexity violations
@@ -79,6 +84,7 @@ typescript-quality:
 - ❌ Dependency vulnerabilities
 
 #### **📱 iOS Swift Ultra-Strict Validation**
+
 ```yaml
 ios-quality:
   - Swift build with warnings as errors
@@ -88,12 +94,14 @@ ios-quality:
 ```
 
 **What this catches:**
+
 - ❌ Memory safety issues
 - ❌ Concurrency problems
 - ❌ Potential crashes
 - ❌ Performance issues
 
 ### **📊 Quality Gate Results:**
+
 - **✅ All Pass:** Deployment approved
 - **❌ Any Fail:** Deployment blocked
 
@@ -101,10 +109,12 @@ ios-quality:
 
 ## 🚀 Deployment Workflows
 
-### **Development Deployment** 
+### **Development Deployment**
+
 **File:** `.github/workflows/1-deploy-dev.yml`
 
 **Enhanced with quality controls:**
+
 ```yaml
 on:
   workflow_run:
@@ -113,14 +123,17 @@ on:
 ```
 
 **🔒 Quality Integration:**
+
 - ✅ Only runs after quality gate passes
 - ✅ Automatic blocking if quality fails
 - ✅ Clear error messages for failures
 
 ### **Production Deployment**
-**File:** `.github/workflows/2-deploy-staging-prod.yml`  
+
+**File:** `.github/workflows/2-deploy-staging-prod.yml`
 
 **Maximum security for production:**
+
 ```yaml
 production-quality-gate:
   - Comprehensive quality validation
@@ -130,6 +143,7 @@ production-quality-gate:
 ```
 
 **🔒 Production Safeguards:**
+
 - ✅ **Double confirmation:** Type environment name to confirm
 - ✅ **Quality gate:** Run comprehensive checks before production
 - ✅ **Override option:** Emergency deployments with audit trail
@@ -144,6 +158,7 @@ production-quality-gate:
 **🎯 Purpose:** Catch quality issues BEFORE they reach CI/CD
 
 ### **Local Quality Checks:**
+
 ```bash
 # Installed automatically on first commit
 pre-commit install
@@ -156,6 +171,7 @@ pre-commit run --all-files
 ```
 
 ### **What Pre-commit Catches:**
+
 - 🔍 **Code quality** issues before commit
 - 🔍 **Security vulnerabilities** in dependencies
 - 🔍 **Formatting** inconsistencies
@@ -170,22 +186,26 @@ pre-commit run --all-files
 ### **Automated Reports Include:**
 
 #### **Coverage Reports**
+
 - ✅ Python test coverage (HTML + terminal)
 - ✅ Uploaded as workflow artifacts
 - ✅ 80% minimum threshold enforced
 
 #### **Security Reports**
+
 - ✅ Bandit security scan results (JSON)
-- ✅ npm audit for Node.js dependencies  
+- ✅ npm audit for Node.js dependencies
 - ✅ Dependency vulnerability scanning
 
 #### **Code Quality Metrics**
+
 - ✅ Cyclomatic complexity analysis
 - ✅ Function length violations
 - ✅ Type coverage statistics
 - ✅ Linting issue summaries
 
 #### **📈 Trend Tracking**
+
 - Quality check pass/fail rates over time
 - Most common violation types
 - Developer productivity impact
@@ -198,16 +218,19 @@ pre-commit run --all-files
 ### **✅ Immediate Benefits:**
 
 #### **🚫 Deployment Protection**
+
 - **Zero-defect releases** - No bugs make it to production
 - **Consistent quality** - Same standards every deployment
 - **Clear feedback** - Developers know exactly what to fix
 
-#### **⚡ Developer Experience**  
+#### **⚡ Developer Experience**
+
 - **Fast feedback** - Issues caught in minutes, not days
 - **Auto-fixing** - Many issues resolved automatically
 - **IDE integration** - Real-time quality feedback
 
 #### **🔒 Security First**
+
 - **Vulnerability blocking** - Security issues prevent deployment
 - **Secrets protection** - Accidental secret commits prevented
 - **Dependency scanning** - Known vulnerabilities detected
@@ -215,11 +238,13 @@ pre-commit run --all-files
 ### **✅ Long-term Benefits:**
 
 #### **💰 Cost Reduction**
+
 - **Fewer production bugs** - Less time debugging in production
 - **Faster development** - Confident refactoring with type safety
 - **Team scaling** - New developers can't break existing patterns
 
 #### **🏢 Enterprise Readiness**
+
 - **Audit compliance** - Complete quality audit trails
 - **Risk reduction** - Minimal chance of production failures
 - **Professional standards** - Code quality meets enterprise expectations
@@ -231,6 +256,7 @@ pre-commit run --all-files
 ### **Adjusting Quality Thresholds:**
 
 #### **Test Coverage Requirements**
+
 ```yaml
 # In apps/api/pyproject.toml
 [tool.pytest.ini_options]
@@ -238,14 +264,16 @@ addopts = ["--cov-fail-under=80"]  # Adjust percentage as needed
 ```
 
 #### **Complexity Limits**
-```yaml  
+
+```yaml
 # In .eslintrc.json
-"complexity": ["error", 10]  # Adjust max complexity
+"complexity": ["error", 10] # Adjust max complexity
 ```
 
 #### **TypeScript Strictness**
+
 ```json
-// In tsconfig.base.json  
+// In tsconfig.base.json
 "compilerOptions": {
   "strict": true,              // Can't be disabled
   "noUnusedLocals": true       // Adjustable per project needs
@@ -255,20 +283,23 @@ addopts = ["--cov-fail-under=80"]  # Adjust percentage as needed
 ### **Emergency Overrides:**
 
 #### **Production Emergency Deployment**
+
 ```yaml
 # In GitHub Actions UI
 inputs:
-  quality_gate_override: true  # Only for emergencies
+  quality_gate_override: true # Only for emergencies
 ```
 
 **⚠️ Override Usage:**
+
 - 🚨 **Only for critical production fixes**
-- 📝 **Requires justification in deployment notes**  
+- 📝 **Requires justification in deployment notes**
 - 🔄 **Follow-up quality fix required within 24h**
 
 ### **Adding New Quality Checks:**
 
 #### **1. Add to Quality Gate Workflow**
+
 ```yaml
 # In 0-quality-gate.yml
 - name: New Quality Check
@@ -279,6 +310,7 @@ inputs:
 ```
 
 #### **2. Add to Pre-commit Hooks**
+
 ```yaml
 # In .pre-commit-config.yaml
 - repo: local
@@ -290,6 +322,7 @@ inputs:
 ```
 
 #### **3. Update Quality Control Script**
+
 ```bash
 # In scripts/quality-control.sh
 run_check "New Quality Check" "./scripts/new-quality-check.sh"
@@ -304,6 +337,7 @@ run_check "New Quality Check" "./scripts/new-quality-check.sh"
 #### **🐍 Python Issues**
 
 **MyPy Type Errors:**
+
 ```bash
 # Fix missing type hints
 def function_name(param: str) -> str:
@@ -314,6 +348,7 @@ from typing import Dict, List, Optional
 ```
 
 **Test Coverage Below 80%:**
+
 ```bash
 # Add missing tests
 pytest --cov=src --cov-report=html --cov-report=term-missing
@@ -321,6 +356,7 @@ pytest --cov=src --cov-report=html --cov-report=term-missing
 ```
 
 **Security Issues (Bandit):**
+
 ```bash
 # View security report
 cat bandit-report.json
@@ -330,6 +366,7 @@ cat bandit-report.json
 #### **⚡ TypeScript Issues**
 
 **ESLint Errors:**
+
 ```bash
 # Auto-fix many issues
 npm run quality:fix
@@ -339,6 +376,7 @@ npx eslint infra --fix
 ```
 
 **Type Checking Failures:**
+
 ```bash
 # Get detailed type errors
 npm run type-check:infra
@@ -348,6 +386,7 @@ npm run type-check:infra
 #### **📱 iOS Issues**
 
 **Swift Compilation Errors:**
+
 ```bash
 # In Xcode, fix all warnings (treated as errors)
 # Check static analyzer suggestions
@@ -357,11 +396,12 @@ npm run type-check:infra
 ### **Debugging Quality Gate Failures:**
 
 #### **1. Run Locally First**
+
 ```bash
 # Full quality check
 ./scripts/quality-control.sh
 
-# Quick validation  
+# Quick validation
 ./scripts/quality-control.sh --quick
 
 # Auto-fix common issues
@@ -369,11 +409,12 @@ npm run type-check:infra
 ```
 
 #### **2. Check Specific Components**
+
 ```bash
 # Python only
 ./scripts/quality-control.sh --python
 
-# TypeScript only  
+# TypeScript only
 ./scripts/quality-control.sh --ts
 
 # iOS only (in Xcode)
@@ -381,6 +422,7 @@ npm run type-check:infra
 ```
 
 #### **3. View Detailed Reports**
+
 - **Coverage:** `apps/api/htmlcov/index.html`
 - **Security:** `apps/api/bandit-report.json`
 - **Type checking:** Terminal output with error codes
@@ -392,18 +434,21 @@ npm run type-check:infra
 ### **Quality Dashboard Metrics:**
 
 #### **Pipeline Health**
+
 - ✅ Quality gate pass rate (target: >95%)
 - ✅ Average fix time for quality issues
 - ✅ Most common failure types
 - ✅ Developer productivity impact
 
-#### **Code Quality Trends**  
+#### **Code Quality Trends**
+
 - ✅ Test coverage over time (trend: increasing)
 - ✅ Security vulnerabilities found/fixed
 - ✅ Code complexity metrics
 - ✅ Type safety coverage
 
 #### **Deployment Safety**
+
 - ✅ Production deployment success rate
 - ✅ Issues caught by quality gate vs production
 - ✅ Emergency override usage frequency
@@ -416,9 +461,10 @@ npm run type-check:infra
 ### **For New Developers:**
 
 #### **1. Setup Local Environment**
+
 ```bash
 # Install pre-commit hooks
-pip install pre-commit  
+pip install pre-commit
 pre-commit install
 
 # Install development tools
@@ -427,11 +473,13 @@ npm install
 ```
 
 #### **2. Understand Quality Standards**
+
 - 📚 Read `docs/STRICT-CODING-STANDARDS.md`
 - 🧪 Run `./scripts/quality-control.sh` locally
 - 🔧 Practice fixing quality issues on sample code
 
 #### **3. Development Workflow**
+
 1. **Write code** with strict typing
 2. **Run quality checks** locally before committing
 3. **Fix issues** immediately rather than accumulating
@@ -441,6 +489,7 @@ npm install
 ### **For Code Reviewers:**
 
 #### **Quality-Focused Reviews**
+
 - ✅ **Quality gate must pass** before review starts
 - ✅ **Focus on logic/design** rather than style (automated)
 - ✅ **Verify test coverage** for new features
@@ -452,18 +501,21 @@ npm install
 ## 🎯 Success Criteria
 
 ### **Quality Gate Effectiveness:**
+
 - 🎯 **>95% pass rate** on first run
 - 🎯 **<5 minutes** average fix time for failures
 - 🎯 **Zero production bugs** from quality issues
 - 🎯 **<2% emergency overrides** usage
 
 ### **Developer Satisfaction:**
+
 - 🎯 **Positive feedback** on quality automation
-- 🎯 **Reduced debugging time** in development  
+- 🎯 **Reduced debugging time** in development
 - 🎯 **Confident refactoring** with type safety
 - 🎯 **Clear understanding** of quality standards
 
 ### **Business Impact:**
+
 - 🎯 **Faster release cycles** with confidence
 - 🎯 **Lower maintenance costs** from technical debt
 - 🎯 **Higher customer satisfaction** from stable releases

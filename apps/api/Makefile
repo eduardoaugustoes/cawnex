@@ -4,10 +4,11 @@
 .DEFAULT_GOAL := help
 
 # Variables
-PYTHON := python3.12
-PIP := pip
+PYTHON := venv/bin/python
+PIP := venv/bin/pip
 SRC_DIR := src
 TEST_DIR := tests
+VENV_DIR := venv
 
 help: ## Show this help message
 	@echo "Cawnex API - Development Commands"
@@ -26,12 +27,12 @@ dev-install: ## Install development dependencies
 # ================================
 type-check: ## Run MyPy type checking (STRICT)
 	@echo "🔍 Running MyPy type checking..."
-	mypy $(SRC_DIR) --strict --show-error-codes --pretty
+	$(VENV_DIR)/bin/mypy $(SRC_DIR) --strict --show-error-codes --pretty
 	@echo "✅ Type checking passed!"
 
 type-check-report: ## Generate MyPy type checking HTML report
 	@echo "📊 Generating MyPy HTML report..."
-	mypy $(SRC_DIR) --strict --html-report mypy-report
+	$(VENV_DIR)/bin/mypy $(SRC_DIR) --strict --html-report mypy-report
 	@echo "📄 Report generated at: mypy-report/index.html"
 
 # ================================
@@ -39,31 +40,31 @@ type-check-report: ## Generate MyPy type checking HTML report
 # ================================
 lint: ## Run all linters (flake8, bandit, etc.)
 	@echo "🔍 Running Flake8 linting..."
-	flake8 $(SRC_DIR) --max-line-length=88 --max-complexity=10
+	$(VENV_DIR)/bin/flake8 $(SRC_DIR) --max-line-length=88 --max-complexity=10
 	@echo "🔒 Running Bandit security checks..."
-	bandit -r $(SRC_DIR) -f json -o bandit-report.json
+	$(VENV_DIR)/bin/bandit -r $(SRC_DIR) -f json -o bandit-report.json
 	@echo "✅ All linting passed!"
 
 lint-fix: ## Auto-fix linting issues where possible
 	@echo "🔧 Running isort..."
-	isort $(SRC_DIR) $(TEST_DIR)
+	$(VENV_DIR)/bin/isort $(SRC_DIR) $(TEST_DIR)
 	@echo "🔧 Running Black..."
-	black $(SRC_DIR) $(TEST_DIR)
+	$(VENV_DIR)/bin/black $(SRC_DIR) $(TEST_DIR)
 	@echo "✅ Auto-fixing complete!"
 
-# ================================ 
+# ================================
 # FORMATTING - ULTRA STRICT
 # ================================
 format: ## Format code with Black and sort imports with isort
 	@echo "📝 Formatting code..."
-	black $(SRC_DIR) $(TEST_DIR) --line-length=88
-	isort $(SRC_DIR) $(TEST_DIR) --profile black
+	$(VENV_DIR)/bin/black $(SRC_DIR) $(TEST_DIR) --line-length=88
+	$(VENV_DIR)/bin/isort $(SRC_DIR) $(TEST_DIR) --profile black
 	@echo "✅ Formatting complete!"
 
 format-check: ## Check if code is properly formatted
 	@echo "📝 Checking code formatting..."
-	black $(SRC_DIR) $(TEST_DIR) --check --line-length=88
-	isort $(SRC_DIR) $(TEST_DIR) --check-only --profile black
+	$(VENV_DIR)/bin/black $(SRC_DIR) $(TEST_DIR) --check --line-length=88
+	$(VENV_DIR)/bin/isort $(SRC_DIR) $(TEST_DIR) --check-only --profile black
 	@echo "✅ Code is properly formatted!"
 
 # ================================
@@ -71,17 +72,17 @@ format-check: ## Check if code is properly formatted
 # ================================
 test: ## Run tests with coverage (min 80%)
 	@echo "🧪 Running tests with coverage..."
-	pytest --cov=$(SRC_DIR) --cov-report=term-missing --cov-fail-under=80
+	$(VENV_DIR)/bin/pytest --cov=$(SRC_DIR) --cov-report=term-missing --cov-fail-under=80
 	@echo "✅ All tests passed!"
 
 test-fast: ## Run tests without coverage
 	@echo "🧪 Running fast tests..."
-	pytest -x -v
+	$(VENV_DIR)/bin/pytest -x -v
 	@echo "✅ Fast tests passed!"
 
 test-report: ## Generate HTML test coverage report
 	@echo "📊 Generating test coverage report..."
-	pytest --cov=$(SRC_DIR) --cov-report=html
+	$(VENV_DIR)/bin/pytest --cov=$(SRC_DIR) --cov-report=html
 	@echo "📄 Report generated at: htmlcov/index.html"
 
 # ================================
@@ -89,9 +90,9 @@ test-report: ## Generate HTML test coverage report
 # ================================
 security: ## Run security checks
 	@echo "🔒 Running security checks..."
-	bandit -r $(SRC_DIR) -f json -o bandit-report.json
+	$(VENV_DIR)/bin/bandit -r $(SRC_DIR) -f json -o bandit-report.json
 	@echo "🔍 Checking for known vulnerabilities..."
-	$(PIP) audit
+	$(VENV_DIR)/bin/pip-audit
 	@echo "✅ Security checks passed!"
 
 # ================================
@@ -108,11 +109,11 @@ ci: quality ## Run CI pipeline (same as quality)
 # ================================
 dev: ## Start development server
 	@echo "🚀 Starting development server..."
-	uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+	$(VENV_DIR)/bin/uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
 dev-debug: ## Start development server with debug logging
 	@echo "🐛 Starting development server with debug..."
-	uvicorn src.main:app --reload --host 0.0.0.0 --port 8000 --log-level debug
+	$(VENV_DIR)/bin/uvicorn src.main:app --reload --host 0.0.0.0 --port 8000 --log-level debug
 
 # ================================
 # BUILD & DEPLOYMENT
@@ -154,10 +155,10 @@ clean: ## Clean build artifacts and cache
 # ================================
 pre-commit: ## Run pre-commit hooks on all files
 	@echo "🔍 Running pre-commit hooks..."
-	pre-commit run --all-files
+	$(VENV_DIR)/bin/pre-commit run --all-files
 	@echo "✅ Pre-commit hooks passed!"
 
 install-hooks: ## Install pre-commit hooks
 	@echo "🪝 Installing pre-commit hooks..."
-	pre-commit install
+	$(VENV_DIR)/bin/pre-commit install
 	@echo "✅ Hooks installed!"

@@ -53,20 +53,20 @@ else
         --context stage=$STAGE \
         --context domainName=$DOMAIN_NAME \
         --require-approval never
-    
+
     # Get the new hosted zone ID and nameservers
     NEW_HOSTED_ZONE_ID=$(aws cloudformation describe-stacks \
         --region us-east-1 \
         --stack-name CawnexDomainStack-$STAGE \
         --query 'Stacks[0].Outputs[?OutputKey==`HostedZoneId`].OutputValue' \
         --output text)
-    
+
     NAMESERVERS=$(aws cloudformation describe-stacks \
         --region us-east-1 \
         --stack-name CawnexDomainStack-$STAGE \
         --query 'Stacks[0].Outputs[?OutputKey==`NameServers`].OutputValue' \
         --output text)
-    
+
     echo ""
     echo "🔧 IMPORTANT: Configure these nameservers at your domain registrar:"
     echo "   Domain: $DOMAIN_NAME"
@@ -74,7 +74,7 @@ else
     echo "   Nameservers: $NAMESERVERS"
     echo ""
     echo "⏳ Wait 24-48 hours for DNS propagation before proceeding with SES verification."
-    
+
     HOSTED_ZONE_ID=$NEW_HOSTED_ZONE_ID
 fi
 

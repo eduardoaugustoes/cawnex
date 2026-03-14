@@ -112,14 +112,14 @@ if [ "$TEST_EMAIL" = "your-email@example.com" ]; then
     echo "      Example: TEST_EMAIL=you@domain.com $0 $DOMAIN_NAME $STAGE"
 else
     echo "   📧 Testing email to: $TEST_EMAIL"
-    
+
     # Check if email is verified in SES (required for sandbox)
     EMAIL_STATUS=$(aws sesv2 get-email-identity \
         --email-identity $TEST_EMAIL \
         --region us-east-1 \
         --query 'VerifiedForSendingStatus' \
         --output text 2>/dev/null || echo "false")
-    
+
     if [ "$EMAIL_STATUS" = "true" ]; then
         # Send test email
         aws sesv2 send-email \
@@ -141,7 +141,7 @@ fi
 echo ""
 echo "📋 Domain Setup Summary for $DOMAIN_NAME:"
 echo "   Hosted Zone: $([ -n "$HOSTED_ZONE_ID" ] && echo "✅" || echo "❌")"
-echo "   SPF Record: $([ -n "$SPF_RECORD" ] && echo "✅" || echo "❌")"  
+echo "   SPF Record: $([ -n "$SPF_RECORD" ] && echo "✅" || echo "❌")"
 echo "   DMARC Record: $([ -n "$DMARC_RECORD" ] && echo "✅" || echo "❌")"
 echo "   SES Verified: $(aws sesv2 get-email-identity --email-identity $DOMAIN_NAME --region us-east-1 --query 'VerifiedForSendingStatus' --output text 2>/dev/null || echo "false")"
 echo "   SSL Certificate: $([ -n "$CERT_ARN" ] && echo "✅" || echo "❌")"

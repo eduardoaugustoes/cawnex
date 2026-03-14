@@ -20,61 +20,61 @@ jobs:
   update-config:
     name: Update iOS Configuration
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
-      
+
       - name: Get Stack Outputs
         id: outputs
         run: |
           STACK_NAME="Cawnex-${{ inputs.stage }}"
-          
+
           # Get outputs from deployed stack
           USER_POOL_ID=$(aws cloudformation describe-stacks \
             --stack-name $STACK_NAME \
             --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
             --output text)
-          
+
           IOS_CLIENT_ID=$(aws cloudformation describe-stacks \
             --stack-name $STACK_NAME \
             --query 'Stacks[0].Outputs[?OutputKey==`iOSClientId`].OutputValue' \
             --output text)
-          
+
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name $STACK_NAME \
             --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
             --output text)
-          
+
           echo "user_pool_id=$USER_POOL_ID" >> $GITHUB_OUTPUT
-          echo "ios_client_id=$IOS_CLIENT_ID" >> $GITHUB_OUTPUT  
+          echo "ios_client_id=$IOS_CLIENT_ID" >> $GITHUB_OUTPUT
           echo "api_url=$API_URL" >> $GITHUB_OUTPUT
-      
+
       - name: Update iOS Configuration
         run: |
           CONFIG_FILE="apps/ios/Cawnex/Cawnex/Core/Config/AppConfiguration.swift"
-          
+
           # Determine which config block to update
           case "${{ inputs.stage }}" in
             "dev")
               START_MARKER="static let dev = AppConfiguration("
               ;;
-            "staging") 
+            "staging")
               START_MARKER="static let staging = AppConfiguration("
               ;;
             "prod")
               START_MARKER="static let prod = AppConfiguration("
               ;;
           esac
-          
+
           # Create new configuration block
           cat > temp_config.swift << EOF
           static let ${{ inputs.stage }} = AppConfiguration(
@@ -84,43 +84,43 @@ jobs:
               apiBaseUrl: "${{ steps.outputs.outputs.api_url }}"
           )
           EOF
-          
+
           # Replace the configuration block using sed
           sed -i "/^    $START_MARKER/,/^    )$/{
             /^    $START_MARKER/r temp_config.swift
             /^    $START_MARKER/,/^    )$/d
           }" $CONFIG_FILE
-          
+
           # Clean up
           rm temp_config.swift
-          
+
           echo "✅ Updated ${{ inputs.stage }} configuration"
           echo "📋 New values:"
           echo "  UserPoolId: ${{ steps.outputs.outputs.user_pool_id }}"
           echo "  ClientId: ${{ steps.outputs.outputs.ios_client_id }}"
           echo "  ApiUrl: ${{ steps.outputs.outputs.api_url }}"
-      
+
       - name: Commit and Push Changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          
+
           if git diff --quiet; then
             echo "No changes to commit"
           else
             git add apps/ios/Cawnex/Cawnex/Core/Config/AppConfiguration.swift
             git commit -m "chore: update iOS config for ${{ inputs.stage }} environment
-            
+
             Auto-updated from deployed stack outputs:
             - UserPoolId: ${{ steps.outputs.outputs.user_pool_id }}
             - iOSClientId: ${{ steps.outputs.outputs.ios_client_id }}
             - ApiUrl: ${{ steps.outputs.outputs.api_url }}"
-            
+
             git push
-            
+
             echo "✅ Configuration updated and committed"
           fi
-      
+
       - name: Summary
         run: |
           echo "## iOS Configuration Updated 📱" >> $GITHUB_STEP_SUMMARY

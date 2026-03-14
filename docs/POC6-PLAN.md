@@ -79,24 +79,26 @@ User submits issue
 
 ### New Resources
 
-| Resource | Config | Cost |
-|----------|--------|------|
-| VPC | 2 AZs, 2 private subnets, 1 public subnet | $0 |
-| NAT Instance | t4g.nano (public subnet) | ~$3/mth |
-| EFS | General Purpose, bursting | ~$0.30/GB-month |
-| EFS Access Point | `/mnt/repos`, uid/gid 1000 | $0 |
-| VPC Endpoint (DynamoDB) | Gateway type | $0 |
-| Worker Lambda | Docker, 1GB RAM, 15min timeout, VPC | Pay per use |
-| ECR | Docker image registry | ~$0.10/GB-month |
-| Security Groups | EFS SG + Lambda SG + NAT SG | $0 |
+| Resource                | Config                                    | Cost            |
+| ----------------------- | ----------------------------------------- | --------------- |
+| VPC                     | 2 AZs, 2 private subnets, 1 public subnet | $0              |
+| NAT Instance            | t4g.nano (public subnet)                  | ~$3/mth         |
+| EFS                     | General Purpose, bursting                 | ~$0.30/GB-month |
+| EFS Access Point        | `/mnt/repos`, uid/gid 1000                | $0              |
+| VPC Endpoint (DynamoDB) | Gateway type                              | $0              |
+| Worker Lambda           | Docker, 1GB RAM, 15min timeout, VPC       | Pay per use     |
+| ECR                     | Docker image registry                     | ~$0.10/GB-month |
+| Security Groups         | EFS SG + Lambda SG + NAT SG               | $0              |
 
 ### Estimated Monthly Cost (idle)
+
 - NAT Instance: ~$3
 - EFS (1GB): ~$0.30
 - ECR: ~$0.10
 - **Total: ~$3.50/mth**
 
 ### Existing Resources (from POC 5)
+
 - DynamoDB `cawnex-poc5-blackboard-dev` (or new table)
 - Murder Lambda `cawnex-poc5-murder-dev`
 - API Lambda `cawnex-poc5-api-dev`
@@ -255,10 +257,12 @@ def execute_task(execution_id, repo, branch, instructions, crow):
 ## DynamoDB Stream Filter
 
 Worker Lambda reacts to:
+
 - `SK` contains `#TASK`
 - `status` = `pending`
 
 CDK event source mapping with filter:
+
 ```typescript
 {
   filters: [
@@ -282,6 +286,7 @@ Note: Murder Lambda keeps its existing filter (reacts to `#REPORT` records).
 ## Logging (CloudWatch)
 
 All Lambda logs go to CloudWatch automatically:
+
 - `/aws/lambda/cawnex-poc6-worker-dev`
 - `/aws/lambda/cawnex-poc5-murder-dev` (existing)
 - `/aws/lambda/cawnex-poc5-api-dev` (existing)
@@ -405,11 +410,13 @@ jobs:
 ## Test Plan
 
 ### Setup
+
 1. Clean blackboard (delete old executions)
 2. Create simple test issue: "Add GET /health endpoint that returns `{"status":"ok","version":"1.0.0"}`"
 3. Deploy POC 6 stack
 
 ### Execute
+
 ```bash
 curl -s -X POST https://hmhwi06xx1.execute-api.us-east-1.amazonaws.com/murder \
   -H "Content-Type: application/json" \
@@ -421,6 +428,7 @@ curl -s -X POST https://hmhwi06xx1.execute-api.us-east-1.amazonaws.com/murder \
 ```
 
 ### Expected Flow
+
 1. API creates execution → DynamoDB `META(pending)`
 2. Murder Lambda → assigns planner → writes `STEP#01#TASK(pending)`
 3. **Worker Lambda** picks up → clones repo to EFS → worktree → Claude plans → writes `STEP#01#REPORT`
@@ -431,6 +439,7 @@ curl -s -X POST https://hmhwi06xx1.execute-api.us-east-1.amazonaws.com/murder \
 8. Murder → approves → creates PR → `RESULT(completed)`
 
 ### Success Criteria
+
 - [ ] Repo cloned once to EFS, reused on subsequent steps
 - [ ] Each step uses isolated worktree
 - [ ] Claude analyzes real code from worktree
@@ -459,13 +468,13 @@ lambdas/poc6-worker/requirements.txt
 
 ## Risk Register
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Lambda cold start with VPC | +2-5s latency | Provisioned concurrency (later) |
-| EFS latency vs /tmp | Slower file I/O | Acceptable for POC |
-| NAT Instance failure | Worker offline | Monitor, upgrade to NAT GW later |
-| Git binary size in Docker | Larger image, slower cold start | Use minimal git install |
-| OAuth token expiry (8h) | Worker stops working | Manual refresh for POC, automate later |
-| 15-min Lambda timeout | Large repos/complex tasks fail | Monitor, Fargate migration path exists |
-| Concurrent worktree conflicts | Git lock errors | Worktree isolation prevents this |
-| EFS throughput limits | Slow clone for large repos | Bursting mode handles spikes |
+| Risk                          | Impact                          | Mitigation                             |
+| ----------------------------- | ------------------------------- | -------------------------------------- |
+| Lambda cold start with VPC    | +2-5s latency                   | Provisioned concurrency (later)        |
+| EFS latency vs /tmp           | Slower file I/O                 | Acceptable for POC                     |
+| NAT Instance failure          | Worker offline                  | Monitor, upgrade to NAT GW later       |
+| Git binary size in Docker     | Larger image, slower cold start | Use minimal git install                |
+| OAuth token expiry (8h)       | Worker stops working            | Manual refresh for POC, automate later |
+| 15-min Lambda timeout         | Large repos/complex tasks fail  | Monitor, Fargate migration path exists |
+| Concurrent worktree conflicts | Git lock errors                 | Worktree isolation prevents this       |
+| EFS throughput limits         | Slow clone for large repos      | Bursting mode handles spikes           |

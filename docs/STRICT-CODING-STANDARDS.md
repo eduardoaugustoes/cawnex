@@ -7,7 +7,7 @@ This document outlines the **ultra-strict coding standards** implemented across 
 ### ✅ What We Enforce
 
 - **🔒 Zero warnings allowed** - All warnings treated as errors
-- **📏 Strict typing** - No `any` types, complete type coverage  
+- **📏 Strict typing** - No `any` types, complete type coverage
 - **🧪 High test coverage** - Minimum 80% coverage required
 - **🔍 Static analysis** - Multiple linters and analyzers
 - **📝 Code formatting** - Consistent style across all files
@@ -27,6 +27,7 @@ This document outlines the **ultra-strict coding standards** implemented across 
 ## 🐍 Python - Ultra-Strict Configuration
 
 ### 📁 Files
+
 - `apps/api/pyproject.toml` - Main configuration
 - `apps/api/.pre-commit-config.yaml` - Pre-commit hooks
 - `apps/api/Makefile` - Development commands
@@ -34,6 +35,7 @@ This document outlines the **ultra-strict coding standards** implemented across 
 ### 🔧 Tools & Rules
 
 #### **MyPy - Type Checking (Ultra-Strict)**
+
 ```toml
 [tool.mypy]
 python_version = "3.12"
@@ -47,6 +49,7 @@ no_implicit_optional = true
 ```
 
 **What this catches:**
+
 - ❌ Functions without type hints
 - ❌ Variables with implicit `Any` type
 - ❌ Untyped function calls
@@ -54,6 +57,7 @@ no_implicit_optional = true
 - ❌ Optional types without explicit `Optional[]`
 
 #### **Black - Code Formatting (Zero Tolerance)**
+
 ```toml
 [tool.black]
 line-length = 88
@@ -61,39 +65,45 @@ target-version = ['py312']
 ```
 
 **What this enforces:**
+
 - ✅ Consistent 88-character line length
 - ✅ Standardized quote usage
 - ✅ Uniform indentation
 - ✅ Consistent trailing commas
 
 #### **Flake8 - Linting (Maximum Strictness)**
+
 ```yaml
-args: 
+args:
   - --max-line-length=88
   - --max-complexity=10
   - --ignore=E203,W503,D100,D104
 ```
 
 **What this prevents:**
+
 - ❌ Complex functions (>10 cyclomatic complexity)
-- ❌ Long lines (>88 characters)  
+- ❌ Long lines (>88 characters)
 - ❌ Unused imports
 - ❌ Undefined names
 - ❌ Style inconsistencies
 
 #### **Bandit - Security Scanning**
+
 ```toml
 [tool.bandit]
 exclude_dirs = ["tests", "dist", "build"]
 ```
 
 **What this detects:**
+
 - 🔒 Hard-coded passwords
-- 🔒 SQL injection vulnerabilities  
+- 🔒 SQL injection vulnerabilities
 - 🔒 Insecure random number generation
 - 🔒 Shell injection risks
 
 #### **Pytest - Testing (Coverage Required)**
+
 ```toml
 [tool.pytest.ini_options]
 addopts = [
@@ -103,6 +113,7 @@ addopts = [
 ```
 
 **What this requires:**
+
 - ✅ Minimum 80% code coverage
 - ✅ All tests must pass
 - ✅ No skipped tests in CI
@@ -133,6 +144,7 @@ make security
 ## ⚡ TypeScript - Ultra-Strict Configuration
 
 ### 📁 Files
+
 - `tsconfig.base.json` - Base TypeScript configuration
 - `infra/tsconfig.json` - CDK-specific overrides
 - `.eslintrc.json` - ESLint rules
@@ -141,6 +153,7 @@ make security
 ### 🔧 Tools & Rules
 
 #### **TypeScript Compiler (Maximum Strictness)**
+
 ```json
 {
   "compilerOptions": {
@@ -159,6 +172,7 @@ make security
 ```
 
 **What this catches:**
+
 - ❌ Implicit `any` types
 - ❌ Null/undefined access without checks
 - ❌ Unused variables and parameters
@@ -167,6 +181,7 @@ make security
 - ❌ Unchecked array/object access
 
 #### **ESLint - Code Quality (Ultra-Strict)**
+
 ```json
 {
   "rules": {
@@ -182,6 +197,7 @@ make security
 ```
 
 **What this prevents:**
+
 - ❌ `any` type usage
 - ❌ Unsafe type assertions
 - ❌ Complex functions (>10 complexity)
@@ -190,6 +206,7 @@ make security
 - ❌ Unhandled promises
 
 #### **Prettier - Formatting (Consistency)**
+
 ```json
 {
   "semi": true,
@@ -221,6 +238,7 @@ npm run quality:all
 ## 📱 iOS Swift - Ultra-Strict Configuration
 
 ### 📁 Files
+
 - `apps/ios/Cawnex/configs/Shared.xcconfig` - Shared compiler settings
 - `apps/ios/Cawnex/configs/Development.xcconfig` - Dev-specific settings
 - `apps/ios/Cawnex/configs/Production.xcconfig` - Production settings
@@ -228,6 +246,7 @@ npm run quality:all
 ### 🔧 Compiler Settings
 
 #### **Swift Compiler (Maximum Strictness)**
+
 ```ini
 // Ultra-strict warnings
 SWIFT_TREAT_WARNINGS_AS_ERRORS = YES
@@ -242,13 +261,15 @@ SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES
 ```
 
 **What this enforces:**
+
 - ❌ All warnings become compilation errors
-- ❌ Unsafe concurrency patterns  
+- ❌ Unsafe concurrency patterns
 - ❌ Implicit optionals
 - ❌ Force unwrapping without checks
 - ❌ Memory safety violations
 
 #### **Static Analysis (Deep Scanning)**
+
 ```ini
 // Enable all static analysis
 RUN_CLANG_STATIC_ANALYZER = YES
@@ -261,6 +282,7 @@ CLANG_ANALYZER_SECURITY_INSECUREAPI_STRCPY = YES
 ```
 
 #### **Runtime Checking (Development)**
+
 ```ini
 // Development builds include runtime checks
 ENABLE_UNDEFINED_BEHAVIOR_SANITIZER[config=Debug] = YES
@@ -268,6 +290,7 @@ ENABLE_ADDRESS_SANITIZER[config=Debug] = YES
 ```
 
 **What this catches:**
+
 - 🔍 Memory leaks and corruption
 - 🔍 Use-after-free errors
 - 🔍 Buffer overflows
@@ -323,7 +346,7 @@ Before committing code, **all of these must pass**:
 
 1. **Type checking** across all languages
 2. **Security scanning** for vulnerabilities
-3. **Test suites** with coverage validation  
+3. **Test suites** with coverage validation
 4. **Code quality** metrics
 5. **Build validation** for all platforms
 
@@ -355,31 +378,31 @@ Before committing code, **all of these must pass**:
 
 ### 🐍 Python Configuration Breakdown
 
-| Tool | Purpose | Strictness Level | Auto-Fix |
-|------|---------|-----------------|----------|
-| **MyPy** | Type checking | Ultra-Strict | ❌ |
-| **Black** | Code formatting | Zero-tolerance | ✅ |
-| **isort** | Import sorting | Strict ordering | ✅ |
-| **Flake8** | Linting & style | Maximum rules | ⚠️ Partial |
-| **Bandit** | Security scanning | All checks | ❌ |
-| **Pytest** | Testing | 80% coverage required | ❌ |
+| Tool       | Purpose           | Strictness Level      | Auto-Fix   |
+| ---------- | ----------------- | --------------------- | ---------- |
+| **MyPy**   | Type checking     | Ultra-Strict          | ❌         |
+| **Black**  | Code formatting   | Zero-tolerance        | ✅         |
+| **isort**  | Import sorting    | Strict ordering       | ✅         |
+| **Flake8** | Linting & style   | Maximum rules         | ⚠️ Partial |
+| **Bandit** | Security scanning | All checks            | ❌         |
+| **Pytest** | Testing           | 80% coverage required | ❌         |
 
 ### ⚡ TypeScript Configuration Breakdown
 
-| Tool | Purpose | Strictness Level | Auto-Fix |
-|------|---------|-----------------|----------|
-| **TSC** | Type checking | Ultra-Strict | ❌ |
-| **ESLint** | Code quality | Zero warnings | ⚠️ Partial |
-| **Prettier** | Code formatting | Zero-tolerance | ✅ |
+| Tool         | Purpose         | Strictness Level | Auto-Fix   |
+| ------------ | --------------- | ---------------- | ---------- |
+| **TSC**      | Type checking   | Ultra-Strict     | ❌         |
+| **ESLint**   | Code quality    | Zero warnings    | ⚠️ Partial |
+| **Prettier** | Code formatting | Zero-tolerance   | ✅         |
 
 ### 📱 iOS Configuration Breakdown
 
-| Setting | Purpose | Strictness Level | Runtime Impact |
-|---------|---------|-----------------|----------------|
-| **Warnings as Errors** | Compilation | Zero-tolerance | None |
-| **Static Analyzer** | Bug detection | Deep scanning | None |
-| **Address Sanitizer** | Memory safety | Debug only | High (dev only) |
-| **Strict Concurrency** | Thread safety | Complete | Low |
+| Setting                | Purpose       | Strictness Level | Runtime Impact  |
+| ---------------------- | ------------- | ---------------- | --------------- |
+| **Warnings as Errors** | Compilation   | Zero-tolerance   | None            |
+| **Static Analyzer**    | Bug detection | Deep scanning    | None            |
+| **Address Sanitizer**  | Memory safety | Debug only       | High (dev only) |
+| **Strict Concurrency** | Thread safety | Complete         | Low             |
 
 ---
 
@@ -388,12 +411,14 @@ Before committing code, **all of these must pass**:
 ### 🎯 When to Adjust Settings
 
 **✅ Acceptable adjustments:**
+
 - Lower complexity limits for specific modules
 - Add language-specific ignore patterns
 - Adjust test coverage requirements per module
 - Environment-specific optimizations
 
 **❌ Not recommended:**
+
 - Disabling type checking
 - Allowing `any` types in TypeScript
 - Removing security scans
@@ -402,7 +427,7 @@ Before committing code, **all of these must pass**:
 ### 📝 Making Changes
 
 1. **Document the reason** for any relaxed standard
-2. **Get team approval** for configuration changes  
+2. **Get team approval** for configuration changes
 3. **Test thoroughly** with adjusted settings
 4. **Update this documentation** accordingly
 
@@ -446,8 +471,9 @@ Before committing code, **all of these must pass**:
 ### 📈 Continuous Improvement
 
 **Regular reviews of:**
+
 - Quality check pass/fail rates
-- Most common violation types  
+- Most common violation types
 - Developer productivity impact
 - Bug detection effectiveness
 - Time saved vs overhead added

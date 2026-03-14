@@ -3,7 +3,6 @@ import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sqs from "aws-cdk-lib/aws-sqs";
-import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigatewayv2";
 import * as apigwIntegrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
@@ -11,7 +10,6 @@ import * as apigwAuthorizers from "aws-cdk-lib/aws-apigatewayv2-authorizers";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as logs from "aws-cdk-lib/aws-logs";
-import * as iam from "aws-cdk-lib/aws-iam";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 
@@ -30,7 +28,7 @@ export class CawnexStack extends cdk.Stack {
     // ─────────────────────────────────────────────
     const tableName = cdk.Fn.importValue(`CawnexAuthStack-${stage}-TableName`);
     const tableArn = cdk.Fn.importValue(`CawnexAuthStack-${stage}-TableArn`);
-    
+
     const table = dynamodb.Table.fromTableArn(this, "MainTable", tableArn);
 
     // ─────────────────────────────────────────────
@@ -42,9 +40,7 @@ export class CawnexStack extends cdk.Stack {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       versioned: stage === "prod",
       removalPolicy:
-        stage === "prod"
-          ? cdk.RemovalPolicy.RETAIN
-          : cdk.RemovalPolicy.DESTROY,
+        stage === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: stage !== "prod",
       lifecycleRules: [
         {
@@ -75,11 +71,21 @@ export class CawnexStack extends cdk.Stack {
     // ─────────────────────────────────────────────
     // Import Cognito resources from AuthStack
     // ─────────────────────────────────────────────
-    const userPoolId = cdk.Fn.importValue(`CawnexAuthStack-${stage}-UserPoolId`);
-    const userPoolArn = cdk.Fn.importValue(`CawnexAuthStack-${stage}-UserPoolArn`);
-    const iosClientId = cdk.Fn.importValue(`CawnexAuthStack-${stage}-iOSClientId`);
-    const webClientId = cdk.Fn.importValue(`CawnexAuthStack-${stage}-WebClientId`);
-    const cognitoDomain = cdk.Fn.importValue(`CawnexAuthStack-${stage}-CognitoDomain`);
+    const userPoolId = cdk.Fn.importValue(
+      `CawnexAuthStack-${stage}-UserPoolId`
+    );
+    const _userPoolArn = cdk.Fn.importValue(
+      `CawnexAuthStack-${stage}-UserPoolArn`
+    ); // Reserved for future IAM policies
+    const iosClientId = cdk.Fn.importValue(
+      `CawnexAuthStack-${stage}-iOSClientId`
+    );
+    const webClientId = cdk.Fn.importValue(
+      `CawnexAuthStack-${stage}-WebClientId`
+    );
+    const cognitoDomain = cdk.Fn.importValue(
+      `CawnexAuthStack-${stage}-CognitoDomain`
+    );
 
     // ─────────────────────────────────────────────
     // Lambda — API (FastAPI via Mangum)
@@ -113,9 +119,7 @@ export class CawnexStack extends cdk.Stack {
       apiName: `cawnex-api-${stage}`,
       corsPreflight: {
         allowOrigins: [
-          stage === "prod"
-            ? "https://app.cawnex.ai"
-            : "http://localhost:5173",
+          stage === "prod" ? "https://app.cawnex.ai" : "http://localhost:5173",
         ],
         allowMethods: [apigw.CorsHttpMethod.ANY],
         allowHeaders: ["Authorization", "Content-Type"],
@@ -212,7 +216,7 @@ export class CawnexStack extends cdk.Stack {
     taskQueue.grantSendMessages(workerTaskDef.taskRole); // for re-queue
 
     // Worker needs to call LLM APIs (BYOL) — outbound internet
-    const workerService = new ecs.FargateService(this, "WorkerService", {
+    const _workerService = new ecs.FargateService(this, "WorkerService", {
       serviceName: `cawnex-worker-${stage}`,
       cluster,
       taskDefinition: workerTaskDef,
@@ -239,8 +243,7 @@ export class CawnexStack extends cdk.Stack {
         origin: new origins.HttpOrigin(
           `${httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`
         ),
-        viewerProtocolPolicy:
-          cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
         originRequestPolicy:
           cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,

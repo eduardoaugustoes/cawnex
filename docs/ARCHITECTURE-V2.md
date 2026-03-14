@@ -154,7 +154,7 @@ Dynasty: "Acme Corp"
 │     ├── Murder → dispatching Wave 2 tasks
 │     └── Crows → implementing, reviewing, testing
 │
-├── Court: "Calhou" 
+├── Court: "Calhou"
 │     ├── Monarch (directive: "MVP quoting calculator")
 │     ├── Council (same advisors, different project context)
 │     ├── Murder → executing Wave 1
@@ -172,10 +172,11 @@ Dynasty: "Acme Corp"
 Dynasty policy: "TypeScript, vitest, CDK, OWASP top 10, DRY principles"
      ↓ inherited by all Courts
 Court/Cawnex:   "Build orchestration platform" + dynasty policies
-Court/Calhou:   "Build quoting calculator" + dynasty policies  
+Court/Calhou:   "Build quoting calculator" + dynasty policies
 ```
 
 Each Court operates independently but shares dynasty standards. The human can:
+
 - Set dynasty-wide policies (affect all projects)
 - Steer individual Monarchs with project-specific directives
 - Move resources between Courts as priorities shift
@@ -227,6 +228,7 @@ PLANNING → APPROVED → EXECUTING → REVIEW → DELIVERED
 5. **DELIVERED** — Merged, shipped. Monarch plans next wave.
 
 At ANY point, human can:
+
 - **Steer**: "change direction, focus on X instead"
 - **Pause**: "stop, let me think"
 - **Inject**: "add this urgent task to current wave"
@@ -299,13 +301,13 @@ Human:  Steers priorities as business evolves
 
 ### When to use each level
 
-| Decision Type | Who Decides | Example |
-|---------------|-------------|---------|
-| Next step in active task | Murder alone | "implementer done → send to reviewer" |
-| Which task to execute next | Council + Monarch | "auth or onboarding first?" |
-| Milestone/wave planning | Council + Monarch + Human approval | "what's in Wave 1?" |
-| Architecture/direction change | Council + Monarch + Human approval | "switch from REST to GraphQL" |
-| Emergency (security/prod) | Security advisor VETO → Monarch auto-acts | "critical vulnerability found" |
+| Decision Type                 | Who Decides                               | Example                               |
+| ----------------------------- | ----------------------------------------- | ------------------------------------- |
+| Next step in active task      | Murder alone                              | "implementer done → send to reviewer" |
+| Which task to execute next    | Council + Monarch                         | "auth or onboarding first?"           |
+| Milestone/wave planning       | Council + Monarch + Human approval        | "what's in Wave 1?"                   |
+| Architecture/direction change | Council + Monarch + Human approval        | "switch from REST to GraphQL"         |
+| Emergency (security/prod)     | Security advisor VETO → Monarch auto-acts | "critical vulnerability found"        |
 
 ### Council Voting Process
 
@@ -391,19 +393,19 @@ vs manual developer time:               $50-200/task
   },
   "cost": "0.006",
   "duration_ms": 30000,
-  "tokens": {"in": 2000, "out": 500}
+  "tokens": { "in": 2000, "out": 500 }
 }
 ```
 
 ### Context by Phase
 
-| Crow | Gets | Doesn't get |
-|------|------|-------------|
-| Planner | file tree + key files + issue | diff (doesn't exist yet) |
-| Implementer | specific files (from plan) + plan | full repo |
-| Reviewer | git diff + changed files + plan | full repo |
-| Fixer | diff + review issues + files | full repo |
-| Tester | changed files + plan + existing tests | full repo |
+| Crow        | Gets                                  | Doesn't get              |
+| ----------- | ------------------------------------- | ------------------------ |
+| Planner     | file tree + key files + issue         | diff (doesn't exist yet) |
+| Implementer | specific files (from plan) + plan     | full repo                |
+| Reviewer    | git diff + changed files + plan       | full repo                |
+| Fixer       | diff + review issues + files          | full repo                |
+| Tester      | changed files + plan + existing tests | full repo                |
 
 Murder assembles context intelligently based on crow type and phase.
 
@@ -418,12 +420,12 @@ S3 or DynamoDB:
 
   /dynasty/{org_id}/
       CLAUDE.md                     ← dynasty-wide standards
-      
+
   /dynasty/{org_id}/court/{project_id}/
       CLAUDE.md                     ← project context + architecture
       VISION.md                     ← project vision
       ROADMAP.md                    ← milestones + timeline
-      
+
   /dynasty/{org_id}/court/{project_id}/agents/
       monarch.md                    ← monarch directive + personality
       council/
@@ -474,7 +476,7 @@ WAVE#w1                     TASK#t002               ref to task
 ### GSIs
 
 - **GSI1**: `dynasty_id + court_id` → list courts per dynasty
-- **GSI2**: `court_id + wave_id` → list tasks per wave  
+- **GSI2**: `court_id + wave_id` → list tasks per wave
 - **GSI3**: `status + created_at` → find pending/active work
 
 ---
@@ -510,17 +512,17 @@ Confidence decreases with:
 
 ## Scaling Path
 
-| POC | What | Status |
-|-----|------|--------|
-| **6** | Worker Lambda + EFS + git | ✅ Done |
-| **7** | Context contract (Murder assembles context per phase) | Next |
-| **8** | Parallel execution (Murder dispatches N tasks) | |
-| **9** | Crow registry (rookery) + discovery | |
-| **10** | Council (6 advisors + Monarch) | |
-| **11** | Waves (deliverable batches + human approval) | |
-| **12** | Vision→Strategy→Planning phases | |
-| **13** | Autonomy gradient (confidence-based auto-merge) | |
-| **14** | Custom crows (user-defined specialists) | |
+| POC    | What                                                  | Status  |
+| ------ | ----------------------------------------------------- | ------- |
+| **6**  | Worker Lambda + EFS + git                             | ✅ Done |
+| **7**  | Context contract (Murder assembles context per phase) | Next    |
+| **8**  | Parallel execution (Murder dispatches N tasks)        |         |
+| **9**  | Crow registry (rookery) + discovery                   |         |
+| **10** | Council (6 advisors + Monarch)                        |         |
+| **11** | Waves (deliverable batches + human approval)          |         |
+| **12** | Vision→Strategy→Planning phases                       |         |
+| **13** | Autonomy gradient (confidence-based auto-merge)       |         |
+| **14** | Custom crows (user-defined specialists)               |         |
 
 ---
 
@@ -538,6 +540,7 @@ Human steers
 ```
 
 Each cycle makes the system smarter:
+
 - Council learns which priorities led to good outcomes
 - Monarch learns which directives work for this project
 - Crows improve via better context and prompt refinement
@@ -545,5 +548,5 @@ Each cycle makes the system smarter:
 
 ---
 
-*"A murder of crows, guided by a monarch, advised by a council, 
-building what humans envision."*
+_"A murder of crows, guided by a monarch, advised by a council,
+building what humans envision."_

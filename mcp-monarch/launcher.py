@@ -25,30 +25,30 @@ logger = logging.getLogger(__name__)
 async def start_monarch_society():
     """Start the complete Monarch AI Society system."""
     logger.info("🏰 Starting Monarch AI Society...")
-    
+
     # Check required environment variables
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not telegram_token:
         logger.error("❌ TELEGRAM_BOT_TOKEN environment variable required")
         logger.info("To get a token: Message @BotFather on Telegram and create a new bot")
         return
-    
+
     # Start Telegram bot
     logger.info("🤖 Starting Telegram bot...")
     bot = MonarchTelegramBot(telegram_token)
-    
+
     try:
         # Start bot in background
         bot_task = asyncio.create_task(bot.start_bot())
-        
+
         logger.info("✅ Monarch AI Society is running!")
         logger.info("📱 Chat with your Monarch on Telegram")
         logger.info("🔧 MCP server available for Claude Desktop/Cursor integration")
         logger.info("Press Ctrl+C to stop")
-        
+
         # Keep running
         await bot_task
-        
+
     except KeyboardInterrupt:
         logger.info("🛑 Shutting down Monarch AI Society...")
     except Exception as e:
@@ -88,7 +88,7 @@ def print_setup_instructions():
 
 6. Chat with your Monarch on Telegram!
    - /start - Welcome and commands
-   - /vision - See the guiding vision  
+   - /vision - See the guiding vision
    - /society - Check society status
    - /spawn api_development - Create specialist agent
    - Or just chat naturally about goals and progress

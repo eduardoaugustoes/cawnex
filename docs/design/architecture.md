@@ -81,16 +81,16 @@
 
 ## Key Simplifications vs. AgentOps
 
-| AgentOps (Luiz) | Cawnex (Our approach) | Rationale |
-|-----------------|----------------------|-----------|
-| Kafka + Redis | **Redis Streams only** | Simpler. Kafka is overkill for MVP. Redis Streams provides pub/sub + persistence. Migrate to Kafka if needed at scale. |
-| MySQL + ClickHouse | **PostgreSQL only** | One DB to start. Postgres handles both OLTP and basic analytics. Add ClickHouse later. |
-| Custom CLI + Web | **Web-first, CLI later** | Dashboard is the differentiator. CLI can be added in V2. |
-| NLM-DFA routing | **LLM-based routing (simpler)** | Start with a Claude prompt that analyzes the issue and returns affected repos. Formalize into DFA later if needed. |
-| 7 agents | **Start with 4**: Refinement, Dev, QA, Docs | Mobile + Security can be added later. Dev agent handles both backend + frontend initially. |
-| GitLab only | **GitHub first** | Larger market. Add GitLab later. |
-| Linear only | **GitHub Issues first** | Zero integration needed — same platform as git. Add Linear/Jira as plugins. |
-| Kubernetes deploy | **Docker Compose for MVP** | Ship faster. K8s when there are actual users. |
+| AgentOps (Luiz)    | Cawnex (Our approach)                       | Rationale                                                                                                              |
+| ------------------ | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Kafka + Redis      | **Redis Streams only**                      | Simpler. Kafka is overkill for MVP. Redis Streams provides pub/sub + persistence. Migrate to Kafka if needed at scale. |
+| MySQL + ClickHouse | **PostgreSQL only**                         | One DB to start. Postgres handles both OLTP and basic analytics. Add ClickHouse later.                                 |
+| Custom CLI + Web   | **Web-first, CLI later**                    | Dashboard is the differentiator. CLI can be added in V2.                                                               |
+| NLM-DFA routing    | **LLM-based routing (simpler)**             | Start with a Claude prompt that analyzes the issue and returns affected repos. Formalize into DFA later if needed.     |
+| 7 agents           | **Start with 4**: Refinement, Dev, QA, Docs | Mobile + Security can be added later. Dev agent handles both backend + frontend initially.                             |
+| GitLab only        | **GitHub first**                            | Larger market. Add GitLab later.                                                                                       |
+| Linear only        | **GitHub Issues first**                     | Zero integration needed — same platform as git. Add Linear/Jira as plugins.                                            |
+| Kubernetes deploy  | **Docker Compose for MVP**                  | Ship faster. K8s when there are actual users.                                                                          |
 
 ---
 

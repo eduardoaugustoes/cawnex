@@ -13,10 +13,10 @@ interface CawnexDomainStackProps extends cdk.StackProps {
 export class CawnexDomainStack extends cdk.Stack {
   /** Route53 Hosted Zone for the domain */
   public readonly hostedZone: route53.IHostedZone;
-  
+
   /** SES Domain Identity for email sending */
   public readonly sesIdentity: ses.EmailIdentity;
-  
+
   /** Wildcard SSL Certificate */
   public readonly certificate: acm.Certificate;
 
@@ -41,7 +41,7 @@ export class CawnexDomainStack extends cdk.Stack {
         zoneName: domainName,
         comment: `Cawnex ${stage} domain - ${domainName}`,
       });
-      
+
       // Output nameservers for registrar configuration
       new cdk.CfnOutput(this, "NameServers", {
         value: cdk.Fn.join(", ", this.hostedZone.hostedZoneNameServers || []),
@@ -83,7 +83,7 @@ export class CawnexDomainStack extends cdk.Stack {
       zone: this.hostedZone,
       recordName: "_dmarc",
       values: [
-        stage === "prod" 
+        stage === "prod"
           ? `v=DMARC1; p=quarantine; fo=1; rua=mailto:dmarc@${domainName}; ruf=mailto:dmarc@${domainName}`
           : `v=DMARC1; p=none; fo=1; rua=mailto:dmarc@${domainName}`, // Relaxed for dev/staging
       ],
@@ -94,20 +94,23 @@ export class CawnexDomainStack extends cdk.Stack {
     // ─────────────────────────────────────────────
     // Common Subdomain Setup
     // ─────────────────────────────────────────────
-    
+
     // API subdomain (for future use)
-    const apiDomain = stage === "prod" ? `api.${domainName}` : `api-${stage}.${domainName}`;
-    
+    const apiDomain =
+      stage === "prod" ? `api.${domainName}` : `api-${stage}.${domainName}`;
+
     // App subdomain (for future web dashboard)
-    const appDomain = stage === "prod" ? `app.${domainName}` : `app-${stage}.${domainName}`;
-    
+    const appDomain =
+      stage === "prod" ? `app.${domainName}` : `app-${stage}.${domainName}`;
+
     // Auth subdomain (for Cognito custom domain)
-    const authDomain = stage === "prod" ? `auth.${domainName}` : `auth-${stage}.${domainName}`;
+    const authDomain =
+      stage === "prod" ? `auth.${domainName}` : `auth-${stage}.${domainName}`;
 
     // ─────────────────────────────────────────────
     // Email Templates (common patterns)
     // ─────────────────────────────────────────────
-    
+
     // Email sender addresses
     const emailSenders = {
       noreply: `noreply@${domainName}`,

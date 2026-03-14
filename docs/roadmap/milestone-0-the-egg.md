@@ -27,22 +27,23 @@
 
 ## Prerequisites
 
-| Need | Status | Action |
-|------|--------|--------|
-| Docker on VPS | ❌ | Install |
-| Anthropic API key | ❓ | User provides |
-| GitHub PAT (repo scope) | ❓ | User provides or use existing |
-| PostgreSQL | ❌ | Via Docker |
-| Redis | ❌ | Via Docker |
-| Python 3.12 | ✅ | Already installed |
-| Node 22 | ✅ | Already installed |
-| `uv` (Python pkg manager) | ❌ | Install |
+| Need                      | Status | Action                        |
+| ------------------------- | ------ | ----------------------------- |
+| Docker on VPS             | ❌     | Install                       |
+| Anthropic API key         | ❓     | User provides                 |
+| GitHub PAT (repo scope)   | ❓     | User provides or use existing |
+| PostgreSQL                | ❌     | Via Docker                    |
+| Redis                     | ❌     | Via Docker                    |
+| Python 3.12               | ✅     | Already installed             |
+| Node 22                   | ✅     | Already installed             |
+| `uv` (Python pkg manager) | ❌     | Install                       |
 
 ---
 
 ## Steps
 
 ### Step 1 — Environment Setup
+
 **Time: 1-2 hours**
 
 ```
@@ -63,6 +64,7 @@
 ---
 
 ### Step 2 — Python Workspace + Core Models
+
 **Time: 2-3 hours**
 
 ```
@@ -86,6 +88,7 @@
 ---
 
 ### Step 3 — BYOL Provider Abstraction
+
 **Time: 2-3 hours**
 
 ```
@@ -109,6 +112,7 @@
 ---
 
 ### Step 4 — Git Operations Library
+
 **Time: 2-3 hours**
 
 ```
@@ -134,6 +138,7 @@
 ---
 
 ### Step 5 — Dev Crow (First Agent)
+
 **Time: 3-4 hours**
 
 ```
@@ -165,6 +170,7 @@
 ---
 
 ### Step 6 — Refinement Crow
+
 **Time: 2-3 hours**
 
 ```
@@ -189,6 +195,7 @@
 ---
 
 ### Step 7 — QA Crow
+
 **Time: 2-3 hours**
 
 ```
@@ -213,6 +220,7 @@
 ---
 
 ### Step 8 — Docs Crow
+
 **Time: 1-2 hours**
 
 ```
@@ -230,6 +238,7 @@
 ---
 
 ### Step 9 — The Murder (Orchestrator)
+
 **Time: 3-4 hours**
 
 ```
@@ -258,6 +267,7 @@
 ---
 
 ### Step 10 — GitHub Webhook + API
+
 **Time: 2-3 hours**
 
 ```
@@ -286,6 +296,7 @@
 ---
 
 ### Step 11 — The Proof 🥚→🐣
+
 **Time: 1 day**
 
 ```
@@ -328,19 +339,19 @@
 
 ## Step Summary
 
-| Step | What | Time | Dependency |
-|------|------|------|-----------|
-| **1** | Environment setup | 1-2h | None |
-| **2** | Core models + DB | 2-3h | Step 1 |
-| **3** | BYOL provider | 2-3h | Step 1 |
-| **4** | Git operations | 2-3h | Step 1 |
-| **5** | Dev Crow | 3-4h | Steps 2, 3, 4 |
-| **6** | Refinement Crow | 2-3h | Step 3 |
-| **7** | QA Crow | 2-3h | Steps 3, 4 |
-| **8** | Docs Crow | 1-2h | Steps 3, 4 |
-| **9** | Murder (Orchestrator) | 3-4h | Steps 5, 6, 7, 8 |
-| **10** | API + Webhooks | 2-3h | Step 9 |
-| **11** | The Proof | 1 day | Step 10 |
+| Step   | What                  | Time  | Dependency       |
+| ------ | --------------------- | ----- | ---------------- |
+| **1**  | Environment setup     | 1-2h  | None             |
+| **2**  | Core models + DB      | 2-3h  | Step 1           |
+| **3**  | BYOL provider         | 2-3h  | Step 1           |
+| **4**  | Git operations        | 2-3h  | Step 1           |
+| **5**  | Dev Crow              | 3-4h  | Steps 2, 3, 4    |
+| **6**  | Refinement Crow       | 2-3h  | Step 3           |
+| **7**  | QA Crow               | 2-3h  | Steps 3, 4       |
+| **8**  | Docs Crow             | 1-2h  | Steps 3, 4       |
+| **9**  | Murder (Orchestrator) | 3-4h  | Steps 5, 6, 7, 8 |
+| **10** | API + Webhooks        | 2-3h  | Step 9           |
+| **11** | The Proof             | 1 day | Step 10          |
 
 ```
               Step 1 (env)
@@ -364,29 +375,29 @@
 
 ## Deliverables
 
-| Deliverable | Description |
-|-------------|-------------|
-| `packages/core/` | Models, schemas, enums, DB setup |
-| `packages/providers/` | BYOL abstraction (Anthropic first) |
-| `packages/git-ops/` | Worktree, branch, PR management |
-| `apps/worker/` | 4 crows + Murder orchestrator + Guard + Retry |
-| `apps/api/` | FastAPI with webhooks + basic endpoints |
-| `prompts/` | 4 agent system prompts |
-| `docker-compose.yml` | PostgreSQL + Redis + API + Worker |
-| `CAWNEX.md` | Agent instructions for self-work |
-| `docs/results/milestone-0.md` | Proof results with metrics |
+| Deliverable                   | Description                                   |
+| ----------------------------- | --------------------------------------------- |
+| `packages/core/`              | Models, schemas, enums, DB setup              |
+| `packages/providers/`         | BYOL abstraction (Anthropic first)            |
+| `packages/git-ops/`           | Worktree, branch, PR management               |
+| `apps/worker/`                | 4 crows + Murder orchestrator + Guard + Retry |
+| `apps/api/`                   | FastAPI with webhooks + basic endpoints       |
+| `prompts/`                    | 4 agent system prompts                        |
+| `docker-compose.yml`          | PostgreSQL + Redis + API + Worker             |
+| `CAWNEX.md`                   | Agent instructions for self-work              |
+| `docs/results/milestone-0.md` | Proof results with metrics                    |
 
 ---
 
 ## Risk Mitigation
 
-| Risk | Mitigation |
-|------|-----------|
-| Claude Agent SDK doesn't support needed tools | Fall back to raw tool_use API (manual tool definitions) |
-| Webhook delivery fails (VPS not publicly accessible) | Use ngrok or Cloudflare Tunnel |
-| Dev Crow generates bad code | QA Crow catches it → retry loop (max 2) |
-| Success rate < 50% | Iterate on prompts, add more context in CAWNEX.md |
-| Docker uses too much RAM | Limit container memory, reduce worker concurrency to 1 |
+| Risk                                                 | Mitigation                                              |
+| ---------------------------------------------------- | ------------------------------------------------------- |
+| Claude Agent SDK doesn't support needed tools        | Fall back to raw tool_use API (manual tool definitions) |
+| Webhook delivery fails (VPS not publicly accessible) | Use ngrok or Cloudflare Tunnel                          |
+| Dev Crow generates bad code                          | QA Crow catches it → retry loop (max 2)                 |
+| Success rate < 50%                                   | Iterate on prompts, add more context in CAWNEX.md       |
+| Docker uses too much RAM                             | Limit container memory, reduce worker concurrency to 1  |
 
 ---
 
@@ -406,17 +417,18 @@ Milestone 4: The Murder    ← Skills marketplace + enterprise
 
 For when we reach Milestone 3:
 
-| Option | Cost | Setup Time | Best For |
-|--------|------|-----------|----------|
-| **Mac Mini M2** (buy) | ~$600 one-time | 1 day | Long-term, full control |
-| **MacStadium** (cloud Mac) | ~$50-80/mo | 1 hour | No hardware, instant |
-| **AWS EC2 Mac** | ~$1.20/hr | 1 hour | CI/CD bursts, pay-per-use |
-| **Codemagic** (CI only) | Free tier / $75/mo | 30 min | Just builds, no dev |
-| **GitHub Actions macOS** | Free (public) / $0.08/min | Already set up | CI only |
-| **BYOD** (your iPhone + Mac) | $0 | 0 | If you have one |
-| **Device farm** (AWS/Firebase) | ~$0.17/min | 1 hour | Testing on real devices |
+| Option                         | Cost                      | Setup Time     | Best For                  |
+| ------------------------------ | ------------------------- | -------------- | ------------------------- |
+| **Mac Mini M2** (buy)          | ~$600 one-time            | 1 day          | Long-term, full control   |
+| **MacStadium** (cloud Mac)     | ~$50-80/mo                | 1 hour         | No hardware, instant      |
+| **AWS EC2 Mac**                | ~$1.20/hr                 | 1 hour         | CI/CD bursts, pay-per-use |
+| **Codemagic** (CI only)        | Free tier / $75/mo        | 30 min         | Just builds, no dev       |
+| **GitHub Actions macOS**       | Free (public) / $0.08/min | Already set up | CI only                   |
+| **BYOD** (your iPhone + Mac)   | $0                        | 0              | If you have one           |
+| **Device farm** (AWS/Firebase) | ~$0.17/min                | 1 hour         | Testing on real devices   |
 
-**Recommendation**: 
+**Recommendation**:
+
 - **Dev**: MacStadium or BYOD Mac for Xcode development
 - **CI/CD**: GitHub Actions macOS runners (free for public repos)
 - **Testing**: Firebase Test Lab ($0 for 10 devices/day on Spark plan)

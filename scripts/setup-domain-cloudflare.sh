@@ -59,7 +59,7 @@ if [ -n "$DKIM_TOKENS" ]; then
     echo "   Content: v=DMARC1; p=quarantine; fo=1; rua=mailto:dmarc@$DOMAIN_NAME; ruf=mailto:dmarc@$DOMAIN_NAME"
     echo ""
     echo "3️⃣ DKIM Records:"
-    
+
     counter=1
     for token in $DKIM_TOKENS; do
         echo "   DKIM $counter:"
@@ -69,7 +69,7 @@ if [ -n "$DKIM_TOKENS" ]; then
         echo ""
         counter=$((counter + 1))
     done
-    
+
     echo "📧 After adding these records, emails from noreply@$DOMAIN_NAME will work!"
     echo ""
     echo "🧪 Test verification in ~10 minutes:"

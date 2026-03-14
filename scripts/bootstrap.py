@@ -5,9 +5,9 @@ Creates the minimal DynamoDB structure needed for self-building to begin.
 
 Usage:
     python scripts/bootstrap.py
-    
+
 This creates:
-1. Dynasty (organization)  
+1. Dynasty (organization)
 2. Court (project)
 3. First self-building task (Issue #14)
 
@@ -26,12 +26,12 @@ REPO = "eduardoaugustoes/cawnex"
 
 def main():
     print("🔄 Bootstrapping Cawnex self-building infrastructure...")
-    
+
     dynamodb = boto3.resource("dynamodb")
     table = dynamodb.Table(TABLE_NAME)
-    
+
     timestamp = datetime.now(timezone.utc).isoformat()
-    
+
     # 1. Create Dynasty (organization)
     print(f"📁 Creating dynasty: {DYNASTY_ID}")
     table.put_item(Item={
@@ -42,25 +42,25 @@ def main():
         "created_at": timestamp,
         "status": "active"
     })
-    
-    # 2. Create Court (project)  
+
+    # 2. Create Court (project)
     print(f"🏰 Creating court: {COURT_ID}")
     table.put_item(Item={
         "PK": f"DYNASTY#{DYNASTY_ID}",
         "SK": f"COURT#{COURT_ID}",
         "name": "Cawnex Platform",
-        "description": "Multi-agent AI orchestration platform", 
+        "description": "Multi-agent AI orchestration platform",
         "directive": "Build self-improving AI that can enhance its own capabilities",
         "repo": REPO,
         "status": "active",
         "created_at": timestamp,
         "current_wave": 1
     })
-    
+
     # 3. Create first self-building task (Issue #14)
     print("⚡ Creating first self-building task: API-backed ProjectService")
     table.put_item(Item={
-        "PK": f"COURT#{COURT_ID}", 
+        "PK": f"COURT#{COURT_ID}",
         "SK": "TASK#api-project-service",
         "title": "Implement API-backed ProjectService",
         "description": "Connect iOS ProjectService to real backend, enabling app to manage actual projects via API endpoints",
@@ -73,13 +73,13 @@ def main():
         "created_at": timestamp,
         "priority": "high"
     })
-    
+
     # 4. Create execution trigger for Issue #14
     print("🚀 Creating execution record to trigger POC 6...")
     execution_id = f"bootstrap_{int(datetime.now().timestamp())}"
     table.put_item(Item={
         "PK": f"EXEC#{execution_id}",
-        "SK": "META", 
+        "SK": "META",
         "repo": REPO,
         "issue": "14",
         "branch": f"cawnex/{execution_id}",
@@ -89,13 +89,13 @@ def main():
         "created_at": timestamp,
         "instructions": "Bootstrap self-building: Implement API-backed ProjectService to connect iOS app to real backend"
     })
-    
+
     # 5. Create task record that will trigger DynamoDB Stream → POC 6 Worker
     table.put_item(Item={
         "PK": f"EXEC#{execution_id}",
         "SK": "STEP#01#TASK",
         "crow": "implementer",
-        "status": "pending", 
+        "status": "pending",
         "task_data": json.dumps({
             "github_issue": "14",
             "task_type": "feature_implementation",
@@ -104,7 +104,7 @@ def main():
         }),
         "created_at": timestamp
     })
-    
+
     print("✅ Bootstrap complete!")
     print(f"📊 DynamoDB records created in table: {TABLE_NAME}")
     print(f"🎯 POC 6 Worker will be triggered by DynamoDB Stream")

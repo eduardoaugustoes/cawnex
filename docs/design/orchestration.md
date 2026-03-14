@@ -7,6 +7,7 @@
 ## Core Responsibility
 
 The Murder (orchestrator) is the central brain that:
+
 1. **Receives** events (issue created, PR opened, review completed)
 2. **Routes** to the correct agent(s)
 3. **Monitors** agent execution in real-time
@@ -45,6 +46,7 @@ Respond in JSON:
 ### V2 — LLM-DFA Router (Advanced)
 
 Formalize the routing into a state machine:
+
 - States: issue types × repo combinations
 - Transitions: based on code analysis results
 - LLM determines the current state and valid transitions
@@ -99,6 +101,7 @@ async def handle_issue(issue: Issue):
 The hardest problem. AgentOps's key innovation.
 
 ### The Problem
+
 - Backend PR changes API contract
 - Frontend PR depends on new API
 - If backend merges first and frontend fails → broken state
@@ -146,27 +149,33 @@ async def synchronized_merge(results: list[DevResult]):
 ### Detection Strategies
 
 #### 1. Output Coherence Check
+
 Monitor streaming output for:
+
 - Solving problems not mentioned in the issue
 - Creating files in unexpected locations
 - Installing dependencies not related to the task
 - Repetitive loops (agent doing the same thing multiple times)
 
 #### 2. Scope Boundary Check
+
 - Count files changed vs. expected scope
 - Flag if agent modifies files outside its assigned area
 - Alert if agent tries to change CI/CD or security config
 
 #### 3. Token Budget Guard
+
 - Set max tokens per execution
 - Warn at 80% budget
 - Cancel at 100%
 
 #### 4. Time Guard
+
 - Set max execution time per agent type
 - Refinement: 5 min, Dev: 15 min, QA: 5 min, Docs: 3 min
 
 #### 5. Conversation Loop Detector
+
 - Track if agent is repeating similar messages
 - If >3 similar outputs in sequence → cancel
 - This prevents the infinite loop problem Luiz mentioned
@@ -210,26 +219,26 @@ class Guard:
 
 ### Decision Matrix
 
-| Failure Type | Retryable? | Strategy |
-|-------------|-----------|----------|
-| LLM timeout | ✅ Yes | Retry with same context |
-| LLM rate limit | ✅ Yes | Exponential backoff |
-| Git conflict | ✅ Yes | Pull latest, rebase, retry |
-| Test failure | ✅ Yes | Send error to agent, ask for fix |
-| QA rejection | ✅ Yes | Send feedback to dev agent |
-| Hallucination detected | ❌ No | Cancel, notify human |
-| Token budget exceeded | ❌ No | Cancel, notify human |
-| Repeated failure (>3x) | ❌ No | Cancel, escalate to human |
-| Auth failure | ❌ No | Notify admin |
+| Failure Type           | Retryable? | Strategy                         |
+| ---------------------- | ---------- | -------------------------------- |
+| LLM timeout            | ✅ Yes     | Retry with same context          |
+| LLM rate limit         | ✅ Yes     | Exponential backoff              |
+| Git conflict           | ✅ Yes     | Pull latest, rebase, retry       |
+| Test failure           | ✅ Yes     | Send error to agent, ask for fix |
+| QA rejection           | ✅ Yes     | Send feedback to dev agent       |
+| Hallucination detected | ❌ No      | Cancel, notify human             |
+| Token budget exceeded  | ❌ No      | Cancel, notify human             |
+| Repeated failure (>3x) | ❌ No      | Cancel, escalate to human        |
+| Auth failure           | ❌ No      | Notify admin                     |
 
 ### Max Retries by Agent Type
 
-| Agent | Max Retries | Backoff |
-|-------|------------|---------|
-| Refinement | 2 | None (fast retry) |
-| Dev | 3 | Linear (1m, 2m, 3m) |
-| QA | 2 | None |
-| Docs | 1 | None |
+| Agent      | Max Retries | Backoff             |
+| ---------- | ----------- | ------------------- |
+| Refinement | 2           | None (fast retry)   |
+| Dev        | 3           | Linear (1m, 2m, 3m) |
+| QA         | 2           | None                |
+| Docs       | 1           | None                |
 
 ---
 
@@ -237,13 +246,13 @@ class Guard:
 
 ### What Gets Shared
 
-| From | To | Context Shared |
-|------|-----|---------------|
-| Refinement → Dev | Full user story, acceptance criteria, technical notes |
-| Orchestrator → Dev | Other repos' CAWNEX.md (API contracts) |
-| Dev → QA | PR URL, acceptance criteria, what was implemented |
-| QA → Dev (on rejection) | Specific feedback, failing checks |
-| Dev → Docs | Merged PR diff, what changed and why |
+| From                    | To                                                    | Context Shared |
+| ----------------------- | ----------------------------------------------------- | -------------- |
+| Refinement → Dev        | Full user story, acceptance criteria, technical notes |
+| Orchestrator → Dev      | Other repos' CAWNEX.md (API contracts)                |
+| Dev → QA                | PR URL, acceptance criteria, what was implemented     |
+| QA → Dev (on rejection) | Specific feedback, failing checks                     |
+| Dev → Docs              | Merged PR diff, what changed and why                  |
 
 ### Context Format
 

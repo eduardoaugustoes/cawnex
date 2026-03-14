@@ -28,6 +28,7 @@ cd mcp-monarch
 ```
 
 That's it! The script will:
+
 - ✅ Check virtual environment (already created)
 - ✅ Activate venv with all dependencies
 - ✅ Verify your Telegram token
@@ -39,11 +40,12 @@ Find your bot on Telegram and start chatting:
 
 - `/start` - Welcome and overview
 - `/vision` - See the guiding vision
-- `/society` - Check budget and agents  
+- `/society` - Check budget and agents
 - `/spawn api_development` - Request API specialist
 - `/workload` - Analyze bottlenecks
 
 Or just chat naturally:
+
 - "How are we doing?"
 - "Should we hire more specialists?"
 - "What's our efficiency looking like?"
@@ -61,14 +63,14 @@ Or just chat naturally:
 ```
 You: How's our development going?
 
-Monarch: I'm monitoring 15 tasks. Seeing bottlenecks in API development 
-(70% success, 40h/week) and testing (60% success, 20h/week). 
+Monarch: I'm monitoring 15 tasks. Seeing bottlenecks in API development
+(70% success, 40h/week) and testing (60% success, 20h/week).
 
 Should I spawn specialists? API developer would cost $100/mo with 4x ROI.
 
 You: Yes, spawn the API developer
 
-Monarch: ✅ API Development Specialist spawned! 
+Monarch: ✅ API Development Specialist spawned!
 Budget now: $100/$500. Estimated 30% efficiency improvement.
 ```
 
@@ -77,6 +79,7 @@ Budget now: $100/$500. Estimated 30% efficiency improvement.
 To use with Claude Desktop:
 
 1. Add to your Claude Desktop config:
+
 ```json
 {
   "mcpServers": {
@@ -106,7 +109,7 @@ This shows how the Monarch evaluates efficiency and makes spawning decisions.
 
 - **Vision-Driven**: All agents serve the same goal
 - **Resource-Aware**: Budget constraints prevent chaos
-- **ROI-Based**: Only spawn when economically justified  
+- **ROI-Based**: Only spawn when economically justified
 - **Self-Organizing**: Society grows based on real needs
 - **Human-Guided**: You steer via natural conversation
 
@@ -115,7 +118,7 @@ This shows how the Monarch evaluates efficiency and makes spawning decisions.
 **"No module named 'telegram'"**
 → Fixed! Now using `./venv/bin/python` directly. Run `./start.sh` again.
 
-**"TELEGRAM_BOT_TOKEN required"**  
+**"TELEGRAM_BOT_TOKEN required"**
 → Get token from @BotFather and export it: `export TELEGRAM_BOT_TOKEN="..."`
 
 **Want to test without Telegram first?**
@@ -133,7 +136,7 @@ This shows how the Monarch evaluates efficiency and makes spawning decisions.
 ## 🎭 What's Next?
 
 1. **Test basic spawning** via Telegram
-2. **Add agent-to-agent communication** 
+2. **Add agent-to-agent communication**
 3. **Connect to real GitHub issues**
 4. **Implement recursive councils**
 5. **Build autonomous development society**

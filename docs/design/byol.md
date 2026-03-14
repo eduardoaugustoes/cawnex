@@ -9,6 +9,7 @@
 Cawnex charges for **orchestration**, not compute. The LLM cost is the user's responsibility.
 
 This means:
+
 - Zero LLM cost on our side
 - No artificial execution limits
 - Users control their own budget
@@ -19,6 +20,7 @@ This means:
 ## Two BYOL Modes
 
 ### Mode 1 — API Key
+
 User provides an API key (Anthropic, OpenAI, Google). Cawnex makes SDK calls directly.
 
 ```
@@ -29,6 +31,7 @@ User → Settings → Paste API key → Encrypted (KMS) → Used per execution
 **Cons**: User pays per token (can be expensive at scale)
 
 ### Mode 2 — Subscription Relay (Claude Max / Pro)
+
 User has an unlimited subscription (Claude Max $200/mo). Cawnex orchestrates via Claude Code subprocess.
 
 ```
@@ -42,23 +45,23 @@ User → Installs Claude Code in sandbox → Cawnex sends commands → Parses ou
 
 ### Mode Comparison
 
-| | API Key | Subscription Relay |
-|---|---------|-------------------|
-| Cost to user | Per token ($0.50-2/exec) | Flat ($100-200/mo unlimited) |
-| Control | Full (model, tokens, temp) | Limited (CLI interface) |
-| Speed | Faster (direct SDK) | Slightly slower (subprocess) |
-| Structured output | Native | Parsed |
-| Token tracking | Exact | Estimated |
-| Best for | Low-medium volume | High volume / power users |
+|                   | API Key                    | Subscription Relay           |
+| ----------------- | -------------------------- | ---------------------------- |
+| Cost to user      | Per token ($0.50-2/exec)   | Flat ($100-200/mo unlimited) |
+| Control           | Full (model, tokens, temp) | Limited (CLI interface)      |
+| Speed             | Faster (direct SDK)        | Slightly slower (subprocess) |
+| Structured output | Native                     | Parsed                       |
+| Token tracking    | Exact                      | Estimated                    |
+| Best for          | Low-medium volume          | High volume / power users    |
 
 ### User's Total Cost
 
-| Scenario | LLM Cost | Cawnex Cost | Total |
-|----------|----------|-------------|-------|
-| Light (20 exec/mo, API) | ~$20 | Free tier | ~$20 |
-| Medium (100 exec/mo, API) | ~$100 | $29 Pro | ~$129 |
-| Heavy (500+ exec/mo, Max sub) | $200 flat | $99 Team | ~$299 |
-| Enterprise (unlimited, Max sub) | $200 flat | Custom | ~$500+ |
+| Scenario                        | LLM Cost  | Cawnex Cost | Total  |
+| ------------------------------- | --------- | ----------- | ------ |
+| Light (20 exec/mo, API)         | ~$20      | Free tier   | ~$20   |
+| Medium (100 exec/mo, API)       | ~$100     | $29 Pro     | ~$129  |
+| Heavy (500+ exec/mo, Max sub)   | $200 flat | $99 Team    | ~$299  |
+| Enterprise (unlimited, Max sub) | $200 flat | Custom      | ~$500+ |
 
 Compare: Lovable Pro = $50/mo with 500 message limits. Cawnex + Claude Max = $299/mo **unlimited**.
 
@@ -68,22 +71,22 @@ Compare: Lovable Pro = $50/mo with 500 message limits. Cawnex + Claude Max = $29
 
 ### Day 1
 
-| Provider | Models | Use Case |
-|----------|--------|----------|
+| Provider      | Models                          | Use Case                           |
+| ------------- | ------------------------------- | ---------------------------------- |
 | **Anthropic** | Opus 4.6, Sonnet 4.6, Haiku 4.6 | Primary. Best for code generation. |
 
 ### V1.1
 
-| Provider | Models | Use Case |
-|----------|--------|----------|
+| Provider   | Models               | Use Case                        |
+| ---------- | -------------------- | ------------------------------- |
 | **OpenAI** | GPT-4.1, o3, o4-mini | Alternative. Some users prefer. |
 
 ### V2
 
-| Provider | Models | Use Case |
-|----------|--------|----------|
-| **Google** | Gemini 2.5 Pro | Cost-effective for simple tasks |
-| **Custom/Local** | Ollama, vLLM | Self-hosted for enterprise/privacy |
+| Provider         | Models         | Use Case                           |
+| ---------------- | -------------- | ---------------------------------- |
+| **Google**       | Gemini 2.5 Pro | Cost-effective for simple tasks    |
+| **Custom/Local** | Ollama, vLLM   | Self-hosted for enterprise/privacy |
 
 ---
 
@@ -95,34 +98,35 @@ Users configure which model each crow uses. Sensible defaults:
 # Default agent model configuration
 agents:
   refinement:
-    model: opus           # Deep reasoning needed
+    model: opus # Deep reasoning needed
     max_tokens: 8000
     temperature: 0.3
 
   dev:
-    model: opus           # Code quality is critical
+    model: opus # Code quality is critical
     max_tokens: 16000
     temperature: 0.2
 
   qa:
-    model: sonnet         # Review is simpler, save cost
+    model: sonnet # Review is simpler, save cost
     max_tokens: 8000
     temperature: 0.1
 
   docs:
-    model: haiku          # Documentation is simple
+    model: haiku # Documentation is simple
     max_tokens: 4000
     temperature: 0.3
 ```
 
 Power users can override per-repo:
+
 ```yaml
 # CAWNEX.md in repository
 agent_config:
   dev:
-    model: opus           # This repo needs highest quality
+    model: opus # This repo needs highest quality
   qa:
-    model: opus           # Critical service, thorough review
+    model: opus # Critical service, thorough review
 ```
 
 ---
@@ -246,9 +250,11 @@ class ClaudeCodeRelay(LLMProvider):
 ## Marketing
 
 ### Positioning
+
 > "The orchestration layer for AI development. Bring your own brain."
 
 ### Key Messages
+
 - **No token limits**: Your API key, your budget, your rules
 - **Works with what you have**: Already paying for Claude Max? Use it.
 - **Transparent costs**: We charge for orchestration ($29-99/mo). LLM is yours.
@@ -256,22 +262,22 @@ class ClaudeCodeRelay(LLMProvider):
 
 ### vs. Competition
 
-| Platform | LLM Model | Limits |
-|----------|-----------|--------|
-| Lovable | Built-in (OpenAI?) | 500 messages/mo on Pro |
-| Bolt | Built-in | Credits run out fast |
-| Cursor | Built-in + BYOK | 500 fast requests/mo |
-| **Cawnex** | **BYOL only** | **No artificial limits** |
+| Platform   | LLM Model          | Limits                   |
+| ---------- | ------------------ | ------------------------ |
+| Lovable    | Built-in (OpenAI?) | 500 messages/mo on Pro   |
+| Bolt       | Built-in           | Credits run out fast     |
+| Cursor     | Built-in + BYOK    | 500 fast requests/mo     |
+| **Cawnex** | **BYOL only**      | **No artificial limits** |
 
 ---
 
 ## Risks & Mitigations
 
-| Risk | Mitigation |
-|------|-----------|
-| User enters invalid/expired key | Test on connect. Health check every execution. |
-| User's key gets rate-limited | Detect 429s. Queue + exponential backoff. Notify user. |
-| Budget overrun | Optional budget cap with notifications at 80%/100%. |
-| Provider API changes | Abstraction layer isolates changes. |
-| User wants provider we don't support | Plugin architecture for V2. Priority: Anthropic → OpenAI → Google. |
-| Subscription relay breaks (CLI update) | Fallback to API key mode. Monitor CLI version compatibility. |
+| Risk                                   | Mitigation                                                         |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| User enters invalid/expired key        | Test on connect. Health check every execution.                     |
+| User's key gets rate-limited           | Detect 429s. Queue + exponential backoff. Notify user.             |
+| Budget overrun                         | Optional budget cap with notifications at 80%/100%.                |
+| Provider API changes                   | Abstraction layer isolates changes.                                |
+| User wants provider we don't support   | Plugin architecture for V2. Priority: Anthropic → OpenAI → Google. |
+| Subscription relay breaks (CLI update) | Fallback to API key mode. Monitor CLI version compatibility.       |

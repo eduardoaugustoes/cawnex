@@ -3,33 +3,24 @@
   "display": "Cawnex Infrastructure - CDK TypeScript Configuration",
   "compilerOptions": {
     // Override base config for CDK-specific needs
-    "lib": ["ES2022"],                          // CDK doesn't need DOM types
-    "noUnusedLocals": false,                    // CDK constructs may have unused variables
-    "noUnusedParameters": false,                // CDK construct parameters often unused
-    "strictPropertyInitialization": false,     // CDK constructs init properties differently
-    "skipLibCheck": true,                       // CDK has many type conflicts
-    "experimentalDecorators": true,             // CDK uses decorators
+    "lib": ["ES2022"], // CDK doesn't need DOM types
+    "noUnusedLocals": false, // CDK constructs may have unused variables
+    "noUnusedParameters": false, // CDK construct parameters often unused
+    "strictPropertyInitialization": false, // CDK constructs init properties differently
+    "skipLibCheck": true, // CDK has many type conflicts
+    "experimentalDecorators": true, // CDK uses decorators
     "typeRoots": ["./node_modules/@types"],
     "outDir": "./dist",
-    "rootDir": ".",                             // CDK uses root as source
-    
+    "rootDir": ".", // CDK uses root as source
+
     // CDK-specific settings
     "resolveJsonModule": true,
-    "allowJs": false,                           // Pure TypeScript for infrastructure
+    "allowJs": false, // Pure TypeScript for infrastructure
     "checkJs": false,
-    "composite": false                          // CDK doesn't need project references
+    "composite": false // CDK doesn't need project references
   },
-  "include": [
-    "bin/**/*",
-    "lib/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "cdk.out",
-    "dist",
-    "**/*.test.ts",
-    "**/*.d.ts"
-  ],
+  "include": ["bin/**/*", "lib/**/*"],
+  "exclude": ["node_modules", "cdk.out", "dist", "**/*.test.ts", "**/*.d.ts"],
   "ts-node": {
     "require": ["tsconfig-paths/register"]
   }

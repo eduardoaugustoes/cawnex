@@ -8,11 +8,13 @@
 ## The Shift
 
 ### Before (Coupled)
+
 ```
 Issue → Refinement Crow → Dev Crow → QA Crow → Docs Crow → Merged PR
 ```
 
 Every concept was code-specific:
+
 - "Issue" (GitHub)
 - "Crow" (hardcoded agent types)
 - "PR" (git)
@@ -21,22 +23,23 @@ Every concept was code-specific:
 - Tools: read_file, write_file, shell, git
 
 ### After (Decoupled)
+
 ```
 Task → Agent Pipeline → Artifacts
 ```
 
 Generic concepts that work for ANY domain:
 
-| Coupled (before) | Decoupled (after) | Examples |
-|-------------------|-------------------|----------|
-| Issue | **Task** | GitHub issue, book brief, research question, marketing campaign |
-| Crow (Dev/QA/Docs) | **Agent** (configurable) | Code writer, book author, researcher, editor, reviewer, translator |
-| PR | **Artifact** | Pull request, document, report, image, dataset, email draft |
-| Worktree | **Workspace** | Git worktree, temp directory, cloud storage folder, Google Doc |
-| Merge | **Deliver** | Git merge, publish, email send, upload, deploy |
-| GitHub webhook | **Trigger** | Webhook, schedule, API call, chat message, file upload |
-| Git tools | **Tool Pack** | Git pack, file pack, web pack, writing pack, data pack |
-| Refinement → Dev → QA → Docs | **Workflow** (configurable pipeline) | Code workflow, writing workflow, research workflow |
+| Coupled (before)             | Decoupled (after)                    | Examples                                                           |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------------------ |
+| Issue                        | **Task**                             | GitHub issue, book brief, research question, marketing campaign    |
+| Crow (Dev/QA/Docs)           | **Agent** (configurable)             | Code writer, book author, researcher, editor, reviewer, translator |
+| PR                           | **Artifact**                         | Pull request, document, report, image, dataset, email draft        |
+| Worktree                     | **Workspace**                        | Git worktree, temp directory, cloud storage folder, Google Doc     |
+| Merge                        | **Deliver**                          | Git merge, publish, email send, upload, deploy                     |
+| GitHub webhook               | **Trigger**                          | Webhook, schedule, API call, chat message, file upload             |
+| Git tools                    | **Tool Pack**                        | Git pack, file pack, web pack, writing pack, data pack             |
+| Refinement → Dev → QA → Docs | **Workflow** (configurable pipeline) | Code workflow, writing workflow, research workflow                 |
 
 ---
 
@@ -116,19 +119,20 @@ class ToolPack:
 
 #### Built-in Tool Packs
 
-| Pack | Tools | Use Cases |
-|------|-------|-----------|
-| **filesystem** | read_file, write_file, list_dir, delete_file, move_file | Universal — every agent needs files |
-| **shell** | run_command (sandboxed) | Code agents, devops |
-| **git** | clone, branch, commit, push, diff, worktree_create, worktree_delete | Code agents |
-| **github** | create_pr, merge_pr, comment_pr, create_issue, read_issue | Code workflow |
-| **web_search** | search, fetch_url, extract_content | Research, writing |
-| **writing** | create_document, append_section, format_markdown, word_count | Book writing, content |
-| **data** | read_csv, query_db, generate_chart, analyze | Data/research agents |
-| **communication** | send_email, send_slack, send_notification | Delivery agents |
-| **storage** | upload_s3, download_s3, list_bucket | Cloud storage |
+| Pack              | Tools                                                               | Use Cases                           |
+| ----------------- | ------------------------------------------------------------------- | ----------------------------------- |
+| **filesystem**    | read_file, write_file, list_dir, delete_file, move_file             | Universal — every agent needs files |
+| **shell**         | run_command (sandboxed)                                             | Code agents, devops                 |
+| **git**           | clone, branch, commit, push, diff, worktree_create, worktree_delete | Code agents                         |
+| **github**        | create_pr, merge_pr, comment_pr, create_issue, read_issue           | Code workflow                       |
+| **web_search**    | search, fetch_url, extract_content                                  | Research, writing                   |
+| **writing**       | create_document, append_section, format_markdown, word_count        | Book writing, content               |
+| **data**          | read_csv, query_db, generate_chart, analyze                         | Data/research agents                |
+| **communication** | send_email, send_slack, send_notification                           | Delivery agents                     |
+| **storage**       | upload_s3, download_s3, list_bucket                                 | Cloud storage                       |
 
 #### Custom Tool Packs (V2)
+
 Users can define their own tool packs — functions the agent can call that hit user-defined APIs.
 
 ### 4. Workflow (replaces hardcoded pipeline)
@@ -159,6 +163,7 @@ class WorkflowStep:
 ```
 
 #### Example: Code Shipping Workflow
+
 ```yaml
 name: Code Shipping
 trigger: { source: github, event: issue_labeled, label: cawnex }
@@ -177,7 +182,7 @@ steps:
   - name: Review
     agent: qa-reviewer-agent
     input_from: previous_step
-    on_reject: goto:Implement  # Send back with feedback
+    on_reject: goto:Implement # Send back with feedback
 
   - name: Document
     agent: docs-agent
@@ -186,6 +191,7 @@ steps:
 ```
 
 #### Example: Book Writing Workflow
+
 ```yaml
 name: Book Writing
 trigger: { source: manual }
@@ -217,6 +223,7 @@ steps:
 ```
 
 #### Example: Research Workflow
+
 ```yaml
 name: Deep Research
 trigger: { source: api }
@@ -260,6 +267,7 @@ class Artifact:
 ```
 
 Artifact types:
+
 - `pull_request` → {pr_number, repo, branch, diff_stats}
 - `document` → {format: "markdown", word_count, sections}
 - `report` → {format: "pdf", pages, charts}
@@ -299,62 +307,62 @@ class TriggerConfig:
 
 ### Models (packages/core)
 
-| Current | Change To | Impact |
-|---------|-----------|--------|
-| `Issue` model | **`Task`** model | Rename + add `workflow_id`, `context` (JSON), remove git-specific fields |
-| `Execution` model | Keep but generalize | Remove `pr_url`, `pr_number`, `worktree_path`, `branch_name` → move to `Artifact` and `Workspace` |
-| `ExecutionEvent` model | Keep as-is | Already generic ✅ |
-| `Tenant` model | Keep as-is | Already generic ✅ |
-| `LLMConfig` model | Keep as-is | Already generic ✅ |
-| `Repository` model | Becomes optional **`TaskSource`** config | Not all tasks come from repos |
-| — | Add **`AgentDefinition`** model | Configurable agents |
-| — | Add **`Workflow`** model | Configurable pipelines |
-| — | Add **`WorkflowStep`** model | Pipeline steps |
-| — | Add **`Artifact`** model | Output tracking |
-| — | Add **`ToolPack`** registry | Available tool packs |
+| Current                | Change To                                | Impact                                                                                            |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `Issue` model          | **`Task`** model                         | Rename + add `workflow_id`, `context` (JSON), remove git-specific fields                          |
+| `Execution` model      | Keep but generalize                      | Remove `pr_url`, `pr_number`, `worktree_path`, `branch_name` → move to `Artifact` and `Workspace` |
+| `ExecutionEvent` model | Keep as-is                               | Already generic ✅                                                                                |
+| `Tenant` model         | Keep as-is                               | Already generic ✅                                                                                |
+| `LLMConfig` model      | Keep as-is                               | Already generic ✅                                                                                |
+| `Repository` model     | Becomes optional **`TaskSource`** config | Not all tasks come from repos                                                                     |
+| —                      | Add **`AgentDefinition`** model          | Configurable agents                                                                               |
+| —                      | Add **`Workflow`** model                 | Configurable pipelines                                                                            |
+| —                      | Add **`WorkflowStep`** model             | Pipeline steps                                                                                    |
+| —                      | Add **`Artifact`** model                 | Output tracking                                                                                   |
+| —                      | Add **`ToolPack`** registry              | Available tool packs                                                                              |
 
 ### Enums
 
-| Current | Change To |
-|---------|-----------|
+| Current                                   | Change To                                              |
+| ----------------------------------------- | ------------------------------------------------------ |
 | `AgentType` (hardcoded: DEV, QA, DOCS...) | Remove — agents are user-defined via `AgentDefinition` |
-| `IssueStatus` | Rename to **`TaskStatus`** |
-| `IssueSource` | Rename to **`TaskSource`** |
-| `ExecutionStatus` | Keep as-is ✅ |
-| `EventType` | Keep as-is ✅ |
-| — | Add **`ArtifactType`** |
-| — | Add **`WorkspaceType`** |
-| — | Add **`TriggerSource`** |
+| `IssueStatus`                             | Rename to **`TaskStatus`**                             |
+| `IssueSource`                             | Rename to **`TaskSource`**                             |
+| `ExecutionStatus`                         | Keep as-is ✅                                          |
+| `EventType`                               | Keep as-is ✅                                          |
+| —                                         | Add **`ArtifactType`**                                 |
+| —                                         | Add **`WorkspaceType`**                                |
+| —                                         | Add **`TriggerSource`**                                |
 
 ### Worker (apps/worker)
 
-| Current Plan | Change To |
-|-------------|-----------|
-| `crows/dev.py`, `crows/qa.py`, etc. | **`agent_runner.py`** — generic runner that loads `AgentDefinition` + attaches `ToolPack`s |
-| `murder.py` (hardcoded pipeline) | **`orchestrator.py`** — reads `Workflow` definition, executes steps in order |
-| `tools/filesystem.py`, `tools/shell.py` | **`tool_packs/filesystem.py`**, `tool_packs/git.py`, etc. — pluggable |
-| `prompts/dev.md`, `prompts/qa.md` | **`templates/`** — agent templates users can start from |
+| Current Plan                            | Change To                                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `crows/dev.py`, `crows/qa.py`, etc.     | **`agent_runner.py`** — generic runner that loads `AgentDefinition` + attaches `ToolPack`s |
+| `murder.py` (hardcoded pipeline)        | **`orchestrator.py`** — reads `Workflow` definition, executes steps in order               |
+| `tools/filesystem.py`, `tools/shell.py` | **`tool_packs/filesystem.py`**, `tool_packs/git.py`, etc. — pluggable                      |
+| `prompts/dev.md`, `prompts/qa.md`       | **`templates/`** — agent templates users can start from                                    |
 
 ### API
 
-| Current | Change To |
-|---------|-----------|
-| `/issues` | **`/tasks`** |
-| `/issues/:id/approve` | **`/tasks/:id/approve`** |
-| `/webhooks/github` | **`/triggers/github`** (+ `/triggers/linear`, `/triggers/api`) |
-| — | Add **`/agents`** CRUD (create/configure agents) |
-| — | Add **`/workflows`** CRUD (create/configure pipelines) |
-| — | Add **`/artifacts`** (list outputs) |
+| Current               | Change To                                                      |
+| --------------------- | -------------------------------------------------------------- |
+| `/issues`             | **`/tasks`**                                                   |
+| `/issues/:id/approve` | **`/tasks/:id/approve`**                                       |
+| `/webhooks/github`    | **`/triggers/github`** (+ `/triggers/linear`, `/triggers/api`) |
+| —                     | Add **`/agents`** CRUD (create/configure agents)               |
+| —                     | Add **`/workflows`** CRUD (create/configure pipelines)         |
+| —                     | Add **`/artifacts`** (list outputs)                            |
 
 ### Naming
 
-| Current | Change To | Reasoning |
-|---------|-----------|-----------|
-| Crow | **Agent** | Generic. "Crow" stays as fun branding but not in code. |
-| Murder | **Orchestrator** | Generic. "The Murder" is marketing, not architecture. |
-| Nest | **Workspace** | Generic. |
-| Caw | **Message** / **Event** | Generic. |
-| Roost | **Dashboard** | Generic. |
+| Current | Change To               | Reasoning                                              |
+| ------- | ----------------------- | ------------------------------------------------------ |
+| Crow    | **Agent**               | Generic. "Crow" stays as fun branding but not in code. |
+| Murder  | **Orchestrator**        | Generic. "The Murder" is marketing, not architecture.  |
+| Nest    | **Workspace**           | Generic.                                               |
+| Caw     | **Message** / **Event** | Generic.                                               |
+| Roost   | **Dashboard**           | Generic.                                               |
 
 **The crow naming stays in branding, docs, and UI.** But the code is domain-agnostic.
 
@@ -363,7 +371,7 @@ class TriggerConfig:
 ## What DOESN'T Change
 
 - **BYOL** — still user brings their own LLM ✅
-- **Multi-tenant** — still scoped to organizations ✅  
+- **Multi-tenant** — still scoped to organizations ✅
 - **Guard system** — hallucination/budget/time limits apply to ANY agent ✅
 - **Retry engine** — works for any workflow step ✅
 - **Event streaming** — SSE/WebSocket works for any execution ✅
@@ -408,6 +416,7 @@ steps:
 ```
 
 Users can:
+
 1. Use this template as-is (most common)
 2. Modify it (change models, add agents)
 3. Create entirely new workflows (book writing, research, etc.)

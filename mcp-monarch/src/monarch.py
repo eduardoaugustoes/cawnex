@@ -26,7 +26,7 @@ MONARCH_VISION = {
     "primary": "Build autonomous AI platform that creates software from human intent",
     "principles": [
         "Ship working software over perfect documentation",
-        "Users over internal complexity", 
+        "Users over internal complexity",
         "Self-improvement is mandatory",
         "Efficiency over politics"
     ],
@@ -62,7 +62,7 @@ class MonarchAgent:
         self.spent_this_month = 0.0
         self.agents: Dict[str, Agent] = {}
         self.telegram_bot_token = None
-        
+
     def assess_workload(self) -> Dict[str, Any]:
         """Analyze current workload and identify needs for specialization."""
         # TODO: Integrate with actual task data
@@ -76,11 +76,11 @@ class MonarchAgent:
             },
             "recommendation": "Consider specialized agents for testing and API development"
         }
-    
+
     def evaluate_spawn_need(self, domain: str) -> Optional[SpawnRequest]:
         """Determine if we need a specialized agent for a domain."""
         workload = self.assess_workload()
-        
+
         if domain in workload["bottlenecks"]:
             gap = workload["efficiency_gaps"].get(domain)
             if gap and gap["success_rate"] < 0.75:
@@ -93,7 +93,7 @@ class MonarchAgent:
                     expected_roi=gap["time_spent"] / 10  # ROI estimate
                 )
         return None
-    
+
     def _get_skills_for_domain(self, domain: str) -> List[str]:
         skill_map = {
             "api_development": ["python", "fastapi", "openapi", "database-design"],
@@ -103,12 +103,12 @@ class MonarchAgent:
             "security": ["owasp", "penetration-testing", "encryption", "compliance"]
         }
         return skill_map.get(domain, ["general-programming"])
-    
+
     async def spawn_agent(self, request: SpawnRequest) -> Agent:
         """Create a new specialized agent."""
         if self.spent_this_month + request.estimated_monthly_cost > self.monthly_budget:
             raise Exception(f"Insufficient budget. Need ${request.estimated_monthly_cost}, have ${self.monthly_budget - self.spent_this_month}")
-        
+
         agent = Agent(
             id=f"agent_{uuid.uuid4().hex[:8]}",
             name=f"{request.specialization.title()} Specialist",
@@ -119,20 +119,20 @@ class MonarchAgent:
             status="spawning",
             created_at=datetime.now(timezone.utc)
         )
-        
+
         # TODO: Actually deploy agent Lambda function
         await self._deploy_agent_lambda(agent)
-        
+
         self.agents[agent.id] = agent
         self.spent_this_month += request.estimated_monthly_cost
-        
+
         return agent
-    
+
     async def _deploy_agent_lambda(self, agent: Agent):
         """Deploy the agent as AWS Lambda function."""
         try:
             from agent_deployer import deployer
-            
+
             # Create agent config for deployment
             agent_config = {
                 "id": agent.id,
@@ -142,25 +142,25 @@ class MonarchAgent:
                 "monthly_budget": agent.monthly_budget,
                 "vision": self.vision
             }
-            
+
             print(f"🚀 Deploying {agent.name} (${agent.monthly_budget}/mo)")
-            
+
             # Deploy to AWS Lambda
             function_arn = await deployer.deploy_agent(agent_config)
             agent.status = "active"
-            
+
             print(f"✅ {agent.name} deployed successfully: {function_arn}")
-            
+
         except Exception as e:
             print(f"❌ Failed to deploy {agent.name}: {str(e)}")
             agent.status = "failed"
             # For POC, don't fail completely - just mark as failed
             pass
-    
+
     def list_agents(self) -> List[Agent]:
         """Get all spawned agents."""
         return list(self.agents.values())
-    
+
     def get_society_status(self) -> Dict[str, Any]:
         """Get current state of the AI society."""
         return {
@@ -184,18 +184,18 @@ class MonarchAgent:
             "total_agents": len(self.agents),
             "recommendations": self._get_expansion_recommendations()
         }
-    
+
     def _get_expansion_recommendations(self) -> List[str]:
         """Suggest areas for expansion."""
         workload = self.assess_workload()
         recommendations = []
-        
+
         for bottleneck in workload["bottlenecks"]:
             if bottleneck not in [a.specialization for a in self.agents.values()]:
                 spawn_req = self.evaluate_spawn_need(bottleneck)
                 if spawn_req and spawn_req.estimated_monthly_cost < (self.monthly_budget - self.spent_this_month):
                     recommendations.append(f"Consider spawning {spawn_req.role} (ROI: {spawn_req.expected_roi:.1f}x)")
-        
+
         return recommendations
 
 # Global monarch instance
@@ -216,7 +216,7 @@ async def handle_list_resources() -> list[Resource]:
         ),
         Resource(
             uri="monarch://society",
-            name="Society Status", 
+            name="Society Status",
             description="Current state of the AI agent society",
             mimeType="application/json"
         )
@@ -237,7 +237,7 @@ async def handle_list_tools() -> list[Tool]:
     """List available tools."""
     return [
         Tool(
-            name="assess_workload", 
+            name="assess_workload",
             description="Analyze current workload and identify bottlenecks",
             inputSchema={
                 "type": "object",
@@ -249,7 +249,7 @@ async def handle_list_tools() -> list[Tool]:
             name="spawn_agent",
             description="Create a new specialized agent to help fulfill the vision",
             inputSchema={
-                "type": "object", 
+                "type": "object",
                 "properties": {
                     "specialization": {
                         "type": "string",
@@ -279,7 +279,7 @@ async def handle_list_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {
                     "message": {
-                        "type": "string", 
+                        "type": "string",
                         "description": "Message to send"
                     }
                 },
@@ -295,19 +295,19 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent]:
         if name == "assess_workload":
             result = monarch.assess_workload()
             return [TextContent(type="text", text=json.dumps(result, indent=2))]
-        
+
         elif name == "spawn_agent":
             specialization = arguments["specialization"]
             justification = arguments["justification"]
-            
+
             # Evaluate if we should spawn
             spawn_req = monarch.evaluate_spawn_need(specialization)
             if not spawn_req:
                 return [TextContent(type="text", text=f"No spawn needed for {specialization}. Current efficiency is acceptable.")]
-            
+
             # Create the agent
             agent = await monarch.spawn_agent(spawn_req)
-            
+
             result = {
                 "status": "spawned",
                 "agent": {
@@ -321,7 +321,7 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "society_impact": f"Budget now: ${monarch.spent_this_month:.2f}/${monarch.monthly_budget:.2f}"
             }
             return [TextContent(type="text", text=json.dumps(result, indent=2))]
-        
+
         elif name == "list_agents":
             agents = monarch.list_agents()
             result = {
@@ -329,7 +329,7 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "agents": [
                     {
                         "name": agent.name,
-                        "specialization": agent.specialization, 
+                        "specialization": agent.specialization,
                         "status": agent.status,
                         "budget": f"${agent.monthly_budget:.2f}",
                         "performance": f"{agent.performance_score:.2f}",
@@ -339,16 +339,16 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent]:
                 ]
             }
             return [TextContent(type="text", text=json.dumps(result, indent=2))]
-        
+
         elif name == "send_telegram_message":
             message = arguments["message"]
             # TODO: Implement Telegram bot integration
             result = {"status": "sent", "message": message}
             return [TextContent(type="text", text=json.dumps(result, indent=2))]
-        
+
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
-            
+
     except Exception as e:
         return [TextContent(type="text", text=f"Error: {str(e)}")]
 
@@ -357,7 +357,7 @@ async def main():
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,
-            write_stream, 
+            write_stream,
             InitializationOptions(
                 server_name="monarch",
                 server_version="0.1.0",

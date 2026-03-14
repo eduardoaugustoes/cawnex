@@ -7,18 +7,21 @@
 ## 🎯 **What This Sets Up:**
 
 ### **DNS Management:**
+
 - ✅ Route53 Hosted Zone (DNS management by AWS)
 - ✅ SPF record (email authentication)
 - ✅ DMARC record (email security policy)
-- ✅ Wildcard SSL Certificate (*.yourdomain.com)
+- ✅ Wildcard SSL Certificate (\*.yourdomain.com)
 
 ### **Email Services:**
+
 - ✅ SES Domain Verification (send from your domain)
 - ✅ DKIM Signing (email authentication)
 - ✅ Custom email addresses (`noreply@yourdomain.com`)
 - ✅ Cognito integration (verification emails from your domain)
 
 ### **Subdomains Ready:**
+
 - ✅ `api.yourdomain.com` (API Gateway custom domain)
 - ✅ `app.yourdomain.com` (Web dashboard)
 - ✅ `auth.yourdomain.com` (Cognito custom domain)
@@ -28,9 +31,10 @@
 ## 🚀 **Quick Setup (Recommended)**
 
 ### **Step 1: Configure Your Domain**
+
 ```bash
 # Replace with your actual domain
-DOMAIN="yourdomain.com"  
+DOMAIN="yourdomain.com"
 STAGE="dev"
 
 # If you already have Route53 hosted zone:
@@ -41,6 +45,7 @@ STAGE="dev"
 ```
 
 ### **Step 2: Verify Setup**
+
 ```bash
 # Wait 5-10 minutes for deployment
 ./scripts/verify-domain-setup.sh $DOMAIN $STAGE
@@ -50,6 +55,7 @@ TEST_EMAIL=your-email@gmail.com ./scripts/verify-domain-setup.sh $DOMAIN $STAGE
 ```
 
 ### **Step 3: Deploy with Domain Integration**
+
 ```bash
 # Redeploy auth stack with domain
 cd infra
@@ -63,11 +69,13 @@ npx cdk deploy CawnexAuthStack-$STAGE \
 ## 📋 **Manual Setup Process**
 
 ### **Prerequisites:**
+
 - Domain registered (GoDaddy, Namecheap, Route53, etc.)
 - AWS CLI configured with appropriate permissions
 - CDK installed (`npm install -g aws-cdk`)
 
 ### **Step 1: Deploy Domain Stack**
+
 ```bash
 cd infra
 
@@ -79,6 +87,7 @@ npx cdk deploy CawnexDomainStack-dev \
 ```
 
 ### **Step 2: Update Nameservers (if new hosted zone)**
+
 ```bash
 # Get nameservers from stack output
 aws cloudformation describe-stacks \
@@ -94,6 +103,7 @@ aws cloudformation describe-stacks \
 ```
 
 ### **Step 3: Wait for DNS Propagation**
+
 ```bash
 # Check DNS propagation (may take 24-48 hours)
 dig ns yourdomain.com
@@ -102,6 +112,7 @@ dig txt _dmarc.yourdomain.com  # Should show DMARC record
 ```
 
 ### **Step 4: Verify SES Domain**
+
 ```bash
 # Check SES verification status
 aws sesv2 get-email-identity \
@@ -110,6 +121,7 @@ aws sesv2 get-email-identity \
 ```
 
 ### **Step 5: Redeploy Auth Stack with SES**
+
 ```bash
 # Redeploy with domain integration
 npx cdk deploy CawnexAuthStack-dev \
@@ -122,6 +134,7 @@ npx cdk deploy CawnexAuthStack-dev \
 ## 🔧 **Domain Configuration Examples**
 
 ### **Production Setup (cawnex.ai):**
+
 ```bash
 # Full production setup
 ./scripts/setup-domain.sh cawnex.ai Z0123456789ABCDEF prod
@@ -131,12 +144,13 @@ npx cdk deploy CawnexAuthStack-dev \
 
 # Subdomains will be:
 # - api.cawnex.ai (API Gateway)
-# - app.cawnex.ai (Web dashboard)  
+# - app.cawnex.ai (Web dashboard)
 # - auth.cawnex.ai (Cognito custom domain)
 # - Email: noreply@cawnex.ai, support@cawnex.ai
 ```
 
 ### **Development Setup (dev.cawnex.ai):**
+
 ```bash
 # Development with subdomain
 ./scripts/setup-domain.sh dev.cawnex.ai Z0123456789ABCDEF dev
@@ -148,6 +162,7 @@ npx cdk deploy CawnexAuthStack-dev \
 ```
 
 ### **Custom Domain Setup (mydomain.com):**
+
 ```bash
 # Your own domain
 ./scripts/setup-domain.sh mydomain.com dev
@@ -162,12 +177,13 @@ npx cdk deploy CawnexAuthStack-dev \
 ## ✅ **Verification Checklist**
 
 ### **DNS Records (dig commands):**
+
 ```bash
 # SPF record (email authentication)
 dig txt yourdomain.com | grep "v=spf1"
 # Expected: "v=spf1 include:amazonses.com ~all"
 
-# DMARC record (email security)  
+# DMARC record (email security)
 dig txt _dmarc.yourdomain.com | grep "v=DMARC1"
 # Expected: "v=DMARC1; p=quarantine; fo=1; rua=mailto:dmarc@yourdomain.com"
 
@@ -179,6 +195,7 @@ dig cname TOKEN3._domainkey.yourdomain.com
 ```
 
 ### **SES Verification:**
+
 ```bash
 # Domain verification status
 aws sesv2 get-email-identity \
@@ -191,11 +208,12 @@ aws sesv2 get-email-identity \
 aws sesv2 get-email-identity \
     --email-identity yourdomain.com \
     --region us-east-1 \
-    --query 'DkimAttributes.Status'  
+    --query 'DkimAttributes.Status'
 # Expected: "SUCCESS"
 ```
 
 ### **SSL Certificate:**
+
 ```bash
 # Certificate status
 CERT_ARN=$(aws cloudformation describe-stacks \
@@ -215,6 +233,7 @@ aws acm describe-certificate \
 ## 📧 **Email Testing**
 
 ### **Test Email Sending:**
+
 ```bash
 # Verify your test email first (SES sandbox requirement)
 aws sesv2 create-email-identity \
@@ -233,6 +252,7 @@ aws sesv2 send-email \
 ```
 
 ### **Test Cognito Verification:**
+
 ```bash
 # Create test user (will send verification email from your domain)
 aws cognito-idp admin-create-user \
@@ -251,6 +271,7 @@ aws cognito-idp admin-create-user \
 ### **Common Issues:**
 
 #### **SES Domain Not Verified:**
+
 ```bash
 # Check DNS records are properly set
 dig txt yourdomain.com | grep amazonses
@@ -262,6 +283,7 @@ aws sesv2 delete-email-identity --email-identity yourdomain.com
 ```
 
 #### **Emails Going to Spam:**
+
 ```bash
 # Check SPF/DMARC records
 ./scripts/verify-domain-setup.sh yourdomain.com dev
@@ -272,6 +294,7 @@ aws sesv2 delete-email-identity --email-identity yourdomain.com
 ```
 
 #### **Certificate Not Issued:**
+
 ```bash
 # Check DNS validation records
 aws acm describe-certificate --certificate-arn $CERT_ARN \
@@ -281,6 +304,7 @@ aws acm describe-certificate --certificate-arn $CERT_ARN \
 ```
 
 #### **DNS Propagation Issues:**
+
 ```bash
 # Check nameservers at registrar
 whois yourdomain.com | grep "Name Server"
@@ -296,6 +320,7 @@ whois yourdomain.com | grep "Name Server"
 ## 🎯 **Production Checklist**
 
 ### **Before Production:**
+
 - ✅ Domain verified in SES
 - ✅ SPF, DKIM, DMARC records configured
 - ✅ SSL certificate issued and valid
@@ -304,6 +329,7 @@ whois yourdomain.com | grep "Name Server"
 - ✅ SES sending limits reviewed (default: 200/day)
 
 ### **SES Limits:**
+
 ```bash
 # Check current sending limits
 aws sesv2 get-send-quota --region us-east-1
@@ -313,6 +339,7 @@ aws sesv2 get-send-quota --region us-east-1
 ```
 
 ### **Monitoring:**
+
 ```bash
 # Set up CloudWatch alarms for:
 # - Bounce rate > 5%
@@ -325,6 +352,7 @@ aws sesv2 get-send-quota --region us-east-1
 ## 📊 **Cost Estimate**
 
 ### **AWS Services:**
+
 - **Route53 Hosted Zone:** $0.50/month
 - **SES Email Sending:** $0.10 per 1000 emails
 - **ACM Certificate:** Free
@@ -338,7 +366,7 @@ aws sesv2 get-send-quota --region us-east-1
 
 1. **Test full auth flow** with real email addresses
 2. **Configure custom Cognito domain** (auth.yourdomain.com)
-3. **Set up API Gateway custom domain** (api.yourdomain.com)  
+3. **Set up API Gateway custom domain** (api.yourdomain.com)
 4. **Deploy web dashboard** to app.yourdomain.com
 5. **Monitor email reputation** in SES console
 

@@ -9,73 +9,52 @@
     "lambdas/*"
   ],
   "scripts": {
-    "// ================================": "QUALITY CONTROL - ULTRA STRICT",
+    "// ================================": "VALIDATION",
     "quality:typescript": "eslint '**/*.ts' --max-warnings 0",
     "quality:python": "cd apps/api && make quality",
     "quality:all": "npm run quality:typescript && npm run quality:python",
     "quality:fix": "npm run format:typescript && cd apps/api && make lint-fix",
-    
-    "// ================================": "CODE FORMATTING",
     "format:typescript": "eslint '**/*.ts' --fix && prettier --write '**/*.{ts,js,json,md}'",
     "format:check": "prettier --check '**/*.{ts,js,json,md}'",
-    
-    "// ================================": "TYPE CHECKING", 
     "type-check:infra": "cd infra && tsc --noEmit",
     "type-check:all": "npm run type-check:infra",
-    
-    "// ================================": "TESTING",
     "test:typescript": "jest",
     "test:python": "cd apps/api && make test",
     "test:all": "npm run test:typescript && npm run test:python",
     "test:coverage": "npm run test:all",
-    
-    "// ================================": "BUILD & DEPLOYMENT",
     "build:infra": "cd infra && npm run build",
     "build:api": "cd apps/api && make build-lambda",
     "build:all": "npm run build:infra && npm run build:api",
-    
     "deploy:dev": "cd infra && npm run deploy -- --context stage=dev",
     "deploy:prod": "cd infra && npm run deploy -- --context stage=prod --context domainName=cawnex.ai --context cloudflare=true",
-    
-    "// ================================": "DEVELOPMENT",
     "dev:api": "cd apps/api && make dev",
     "dev:infra": "cd infra && npm run watch",
-    
-    "// ================================": "CI/CD PIPELINE",
     "ci": "npm run quality:all && npm run type-check:all && npm run test:all && npm run build:all",
     "ci:quick": "npm run quality:all && npm run type-check:all",
-    
-    "// ================================": "CLEANUP",
     "clean": "npm run clean:typescript && npm run clean:python",
     "clean:typescript": "rimraf dist coverage .eslintcache",
     "clean:python": "cd apps/api && make clean",
-    
-    "// ================================": "SECURITY",
     "security:audit": "npm audit && cd apps/api && pip-audit",
     "security:check": "npm run security:audit && cd apps/api && make security",
-    
-    "// ================================": "SETUP",
     "setup": "npm install && cd apps/api && make dev-install && cd ../.. && npm run hooks:install",
     "hooks:install": "cd apps/api && make install-hooks",
-    
-    "// ================================": "VALIDATION",
     "validate:strict": "echo '🔍 Running ULTRA-STRICT validation...' && npm run quality:all && npm run security:check && npm run test:coverage && echo '🏆 ALL VALIDATIONS PASSED!'"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "eslint": "^8.57.0",
-    "eslint-plugin-import": "^2.29.0",
-    "eslint-plugin-prefer-arrow": "^1.2.3",
-    "eslint-plugin-unused-imports": "^3.1.0",
-    "jest": "^29.0.0",
     "@types/jest": "^29.0.0",
-    "ts-jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-prefer-arrow": "^1.2.3",
+    "eslint-plugin-unused-imports": "^3.2.0",
+    "husky": "^9.0.0",
+    "jest": "^29.0.0",
+    "lint-staged": "^15.0.0",
     "prettier": "^3.2.0",
     "rimraf": "^5.0.0",
-    "husky": "^9.0.0",
-    "lint-staged": "^15.0.0"
+    "ts-jest": "^29.0.0"
   },
   "husky": {
     "hooks": {

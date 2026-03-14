@@ -44,7 +44,7 @@ jobs:
             exit 1
           fi
           echo "::warning::Using deprecated workflow. Consider migrating to deploy-dev.yml (main workflow)"
-  
+
   build-api:
     name: Build API
     needs: validate
@@ -103,7 +103,7 @@ jobs:
             --context stage=${{ env.STAGE }} \
             --require-approval never \
             --outputs-file ../auth-outputs.json
-          
+
           npx cdk deploy Cawnex-${{ env.STAGE }} \
             --context stage=${{ env.STAGE }} \
             --require-approval never \

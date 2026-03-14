@@ -15,13 +15,13 @@ interface CawnexAuthStackProps extends cdk.StackProps {
 export class CawnexAuthStack extends cdk.Stack {
   /** Cognito User Pool — exported for cross-stack references */
   public readonly userPool: cognito.UserPool;
-  
+
   /** iOS Client — exported for cross-stack references */
   public readonly iosClient: cognito.UserPoolClient;
-  
+
   /** Web Client — exported for cross-stack references */
   public readonly webClient: cognito.UserPoolClient;
-  
+
   /** DynamoDB Table — shared between auth and app */
   public readonly table: dynamodb.Table;
 
@@ -40,9 +40,7 @@ export class CawnexAuthStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
       removalPolicy:
-        stage === "prod"
-          ? cdk.RemovalPolicy.RETAIN
-          : cdk.RemovalPolicy.DESTROY,
+        stage === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
       timeToLiveAttribute: "ttl",
     });
 
@@ -84,28 +82,28 @@ export class CawnexAuthStack extends cdk.Stack {
         requireSymbols: false,
       },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
-      
+
       // Email configuration — SES or Cognito default
-      email: domainName && sesIdentityArn 
-        ? cognito.UserPoolEmail.withSES({
-            fromEmail: `noreply@${domainName}`,
-            fromName: "Cawnex",
-            sesRegion: "us-east-1",
-            sesVerifiedDomain: domainName,
-          })
-        : cognito.UserPoolEmail.withCognito(),
+      email:
+        domainName && sesIdentityArn
+          ? cognito.UserPoolEmail.withSES({
+              fromEmail: `noreply@${domainName}`,
+              fromName: "Cawnex",
+              sesRegion: "us-east-1",
+              sesVerifiedDomain: domainName,
+            })
+          : cognito.UserPoolEmail.withCognito(),
 
       // Email verification settings
       userVerification: {
         emailSubject: "Verify your Cawnex account",
-        emailBody: "Thanks for signing up! Your verification code is {####}. This code expires in 24 hours.",
+        emailBody:
+          "Thanks for signing up! Your verification code is {####}. This code expires in 24 hours.",
         emailStyle: cognito.VerificationEmailStyle.CODE,
       },
 
       removalPolicy:
-        stage === "prod"
-          ? cdk.RemovalPolicy.RETAIN
-          : cdk.RemovalPolicy.DESTROY,
+        stage === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
     });
 
     // ─────────────────────────────────────────────
@@ -118,7 +116,7 @@ export class CawnexAuthStack extends cdk.Stack {
     // ─────────────────────────────────────────────
     // User Pool Clients
     // ─────────────────────────────────────────────
-    
+
     // iOS app client
     this.iosClient = this.userPool.addClient("iOSClient", {
       userPoolClientName: `cawnex-ios-${stage}`,
@@ -128,7 +126,11 @@ export class CawnexAuthStack extends cdk.Stack {
       },
       oAuth: {
         flows: { authorizationCodeGrant: true },
-        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
+        scopes: [
+          cognito.OAuthScope.OPENID,
+          cognito.OAuthScope.EMAIL,
+          cognito.OAuthScope.PROFILE,
+        ],
         callbackUrls: ["cawnex://auth/callback"],
         logoutUrls: ["cawnex://auth/logout"],
       },
@@ -145,7 +147,11 @@ export class CawnexAuthStack extends cdk.Stack {
       },
       oAuth: {
         flows: { authorizationCodeGrant: true },
-        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
+        scopes: [
+          cognito.OAuthScope.OPENID,
+          cognito.OAuthScope.EMAIL,
+          cognito.OAuthScope.PROFILE,
+        ],
         callbackUrls: [
           stage === "prod"
             ? "https://app.cawnex.ai/auth/callback"
@@ -160,26 +166,22 @@ export class CawnexAuthStack extends cdk.Stack {
     });
 
     // ─────────────────────────────────────────────
-    // Post-confirmation Lambda — creates tenant on first sign-up  
+    // Post-confirmation Lambda — creates tenant on first sign-up
     // ─────────────────────────────────────────────
-    const postConfirmationFn = new lambda.Function(
-      this,
-      "PostConfirmationFn",
-      {
-        functionName: `cawnex-post-confirmation-${stage}`,
-        runtime: lambda.Runtime.PYTHON_3_12,
-        handler: "handler.handler",
-        code: lambda.Code.fromAsset("../lambdas/auth-post-confirmation"),
-        memorySize: 128,
-        timeout: cdk.Duration.seconds(10),
-        architecture: lambda.Architecture.ARM_64,
-        environment: {
-          TABLE_NAME: this.table.tableName,
-          STAGE: stage,
-        },
-        logRetention: logs.RetentionDays.ONE_MONTH,
-      }
-    );
+    const postConfirmationFn = new lambda.Function(this, "PostConfirmationFn", {
+      functionName: `cawnex-post-confirmation-${stage}`,
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: "handler.handler",
+      code: lambda.Code.fromAsset("../lambdas/auth-post-confirmation"),
+      memorySize: 128,
+      timeout: cdk.Duration.seconds(10),
+      architecture: lambda.Architecture.ARM_64,
+      environment: {
+        TABLE_NAME: this.table.tableName,
+        STAGE: stage,
+      },
+      logRetention: logs.RetentionDays.ONE_MONTH,
+    });
 
     // Grant permissions to update user attributes and write to DynamoDB
     postConfirmationFn.addToRolePolicy(
@@ -188,7 +190,7 @@ export class CawnexAuthStack extends cdk.Stack {
         resources: [this.userPool.userPoolArn],
       })
     );
-    
+
     this.table.grantWriteData(postConfirmationFn);
 
     // Note: Trigger attachment will be done manually via AWS CLI after deployment

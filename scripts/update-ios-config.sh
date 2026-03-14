@@ -23,7 +23,7 @@ if [ "$FROM_ENV" = "--from-env" ]; then
     API_URL="$CAWNEX_API_URL"
 else
     echo "🔍 Getting stack outputs from AWS..."
-    
+
     # Check if AWS CLI is available
     if ! command -v aws &> /dev/null; then
         echo "❌ AWS CLI is required but not installed"
@@ -33,7 +33,7 @@ else
     # Get outputs from deployed stacks
     AUTH_STACK_NAME="CawnexAuthStack-$STAGE"
     MAIN_STACK_NAME="Cawnex-$STAGE"
-    
+
     USER_POOL_ID=$(aws cloudformation describe-stacks \
         --stack-name "$AUTH_STACK_NAME" \
         --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
@@ -133,6 +133,6 @@ if [ "$FROM_ENV" = "--from-env" ]; then
     echo ""
     echo "✅ Configuration updated from environment variables:"
     echo "   UserPoolId: $USER_POOL_ID"
-    echo "   iOSClientId: $IOS_CLIENT_ID" 
+    echo "   iOSClientId: $IOS_CLIENT_ID"
     echo "   ApiUrl: $API_URL"
 fi

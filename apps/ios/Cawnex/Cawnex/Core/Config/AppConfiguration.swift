@@ -1,20 +1,20 @@
 import Foundation
 
 struct AppConfiguration {
-    
+
     // MARK: - Environment Configuration
     #if DEBUG
     static let environment: Environment = .development
     #else
     static let environment: Environment = .production
     #endif
-    
+
     // MARK: - Environment Settings
     enum Environment {
         case development
         case staging
         case production
-        
+
         var userPoolId: String {
             switch self {
             case .development:
@@ -25,7 +25,7 @@ struct AppConfiguration {
                 return "us-east-1_6LT5eHiBs"  // Production User Pool
             }
         }
-        
+
         var clientId: String {
             switch self {
             case .development:
@@ -36,11 +36,11 @@ struct AppConfiguration {
                 return "7tqajln8jr6iim3oraln4ate6e"  // Production iOS Client
             }
         }
-        
+
         var region: String {
             return "us-east-1"  // All environments in us-east-1
         }
-        
+
         var apiBaseURL: String {
             switch self {
             case .development:
@@ -51,7 +51,7 @@ struct AppConfiguration {
                 return "https://api.cawnex.ai"  // Production API
             }
         }
-        
+
         var cognitoDomain: String {
             switch self {
             case .development:
@@ -62,7 +62,7 @@ struct AppConfiguration {
                 return "cawnex-prod"  // Production Cognito Domain
             }
         }
-        
+
         var description: String {
             switch self {
             case .development:
@@ -74,7 +74,7 @@ struct AppConfiguration {
             }
         }
     }
-    
+
     // MARK: - Current Configuration
     static var userPoolId: String { environment.userPoolId }
     static var clientId: String { environment.clientId }
@@ -82,23 +82,23 @@ struct AppConfiguration {
     static var apiBaseURL: String { environment.apiBaseURL }
     static var cognitoDomain: String { environment.cognitoDomain }
     static var environmentName: String { environment.description }
-    
+
     // MARK: - Computed Properties
     static var cognitoEndpoint: String {
         return "https://cognito-idp.\(region).amazonaws.com/"
     }
-    
+
     // MARK: - App Information
     static let appName = "Cawnex"
     static let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.cawnex.app"
     static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     static let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-    
+
     // MARK: - URLs
     static let privacyPolicyURL = "https://cawnex.ai/privacy"
     static let termsOfServiceURL = "https://cawnex.ai/terms"
     static let supportURL = "https://cawnex.ai/support"
-    
+
     // MARK: - Feature Flags
     struct FeatureFlags {
         static let enableBiometrics = true
@@ -107,23 +107,23 @@ struct AppConfiguration {
         static let enableLogging = true
         static let enableDebugMenu = environment == .development
     }
-    
+
     // MARK: - Debug Information
     static func debugDescription() -> String {
         return """
         Cawnex iOS Configuration:
-        
+
         Environment: \(environmentName)
         User Pool ID: \(userPoolId)
         Client ID: \(clientId)
         Region: \(region)
         API Base URL: \(apiBaseURL)
         Cognito Domain: \(cognitoDomain)
-        
+
         App Info:
         Bundle ID: \(bundleIdentifier)
         Version: \(appVersion) (\(buildNumber))
-        
+
         Feature Flags:
         Biometrics: \(FeatureFlags.enableBiometrics)
         Push Notifications: \(FeatureFlags.enablePushNotifications)

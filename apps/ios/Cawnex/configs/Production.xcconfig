@@ -10,7 +10,7 @@ API_TIMEOUT = 30.0
 API_RETRIES = 3
 
 // ================================
-// AWS COGNITO CONFIGURATION  
+// AWS COGNITO CONFIGURATION
 // ================================
 USER_POOL_ID = us-east-1_6LT5eHiBs
 CLIENT_ID = 7tqajln8jr6iim3oraln4ate6e
@@ -20,7 +20,7 @@ AWS_REGION = us-east-1
 // ================================
 // APP IDENTIFICATION
 // ================================
-BUNDLE_ID_SUFFIX = 
+BUNDLE_ID_SUFFIX =
 APP_DISPLAY_NAME = Cawnex
 PRODUCT_BUNDLE_IDENTIFIER = com.cawnex.app
 
@@ -28,7 +28,7 @@ PRODUCT_BUNDLE_IDENTIFIER = com.cawnex.app
 // FEATURE FLAGS
 // ================================
 ENABLE_DEBUG_MENU = NO
-ENABLE_ANALYTICS = YES  
+ENABLE_ANALYTICS = YES
 ENABLE_CRASH_REPORTING = YES
 ENABLE_LOGGING = NO
 ENABLE_PERFORMANCE_MONITORING = YES
@@ -37,7 +37,7 @@ ENABLE_PERFORMANCE_MONITORING = YES
 // PRODUCTION BUILD SETTINGS
 // ================================
 CODE_SIGN_IDENTITY = iPhone Distribution
-PROVISIONING_PROFILE_SPECIFIER = 
+PROVISIONING_PROFILE_SPECIFIER =
 
 // Production-specific optimizations
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) RELEASE PRODUCTION

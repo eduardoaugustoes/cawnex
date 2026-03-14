@@ -12,7 +12,7 @@ SWIFT_VERSION = 5.10
 SWIFT_COMPILATION_MODE[config=Debug] = singlefile
 SWIFT_COMPILATION_MODE[config=Release] = wholemodule
 
-// Optimization Levels  
+// Optimization Levels
 SWIFT_OPTIMIZATION_LEVEL[config=Debug] = -Onone
 SWIFT_OPTIMIZATION_LEVEL[config=Release] = -O
 
@@ -35,7 +35,7 @@ ENABLE_UNDEFINED_BEHAVIOR_SANITIZER[config=Debug] = YES
 ENABLE_UNDEFINED_BEHAVIOR_SANITIZER[config=Release] = NO
 
 // Address sanitizer (Debug only - catches memory issues)
-ENABLE_ADDRESS_SANITIZER[config=Debug] = YES  
+ENABLE_ADDRESS_SANITIZER[config=Debug] = YES
 ENABLE_ADDRESS_SANITIZER[config=Release] = NO
 
 // Thread sanitizer (Debug only - catches concurrency issues)
@@ -88,7 +88,7 @@ CODE_SIGN_STYLE = Automatic
 // Minimum iOS version
 IPHONEOS_DEPLOYMENT_TARGET = 17.0
 
-// Supported platforms  
+// Supported platforms
 SUPPORTED_PLATFORMS = iphoneos iphonesimulator
 
 // Device families (iPhone only)
@@ -118,7 +118,7 @@ CLANG_STATIC_ANALYZER_MODE_ACTION_deep = true
 
 // Enable additional static analyzer checks
 CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES
-CLANG_ANALYZER_NONNULL = YES  
+CLANG_ANALYZER_NONNULL = YES
 CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE
 CLANG_ANALYZER_SECURITY_FLOATLOOPCOUNTER = YES
 CLANG_ANALYZER_SECURITY_INSECUREAPI_RAND = YES
@@ -149,5 +149,5 @@ SWIFT_SERIALIZE_DEBUGGING_OPTIONS = NO
 // Debug configuration
 GCC_PREPROCESSOR_DEFINITIONS[config=Debug] = $(inherited) DEBUG=1 STRICT_MODE=1
 
-// Release configuration  
+// Release configuration
 GCC_PREPROCESSOR_DEFINITIONS[config=Release] = $(inherited) NDEBUG=1 RELEASE=1

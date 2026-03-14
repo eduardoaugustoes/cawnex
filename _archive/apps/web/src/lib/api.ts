@@ -79,51 +79,73 @@ export const api = {
   projects: {
     list: () => request<{ items: Project[]; total: number }>("/projects"),
     get: (id: number) => request<Project>(`/projects/${id}`),
-    create: (name: string) => request<Project>("/projects", {
-      method: "POST", body: JSON.stringify({ name }),
-    }),
-    update: (id: number, data: Partial<Project>) => request<Project>(`/projects/${id}`, {
-      method: "PATCH", body: JSON.stringify(data),
-    }),
-    delete: (id: number) => request<void>(`/projects/${id}`, { method: "DELETE" }),
+    create: (name: string) =>
+      request<Project>("/projects", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      }),
+    update: (id: number, data: Partial<Project>) =>
+      request<Project>(`/projects/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) =>
+      request<void>(`/projects/${id}`, { method: "DELETE" }),
     addRepo: (id: number, github_full_name: string, role?: string) =>
       request<ProjectRepo>(`/projects/${id}/repos`, {
-        method: "POST", body: JSON.stringify({ github_full_name, role }),
+        method: "POST",
+        body: JSON.stringify({ github_full_name, role }),
       }),
   },
 
   vision: {
-    get: (projectId: number) => request<Vision>(`/projects/${projectId}/vision`),
-    update: (projectId: number, content: string) => request<Vision>(`/projects/${projectId}/vision`, {
-      method: "PUT", body: JSON.stringify({ content }),
-    }),
+    get: (projectId: number) =>
+      request<Vision>(`/projects/${projectId}/vision`),
+    update: (projectId: number, content: string) =>
+      request<Vision>(`/projects/${projectId}/vision`, {
+        method: "PUT",
+        body: JSON.stringify({ content }),
+      }),
     chat: (projectId: number, message: string) =>
       request<VisionMessage>(`/projects/${projectId}/vision/chat`, {
-        method: "POST", body: JSON.stringify({ message }),
+        method: "POST",
+        body: JSON.stringify({ message }),
       }),
     apply: (projectId: number, messageId: number) =>
       request<Vision>(`/projects/${projectId}/vision/apply`, {
-        method: "POST", body: JSON.stringify({ message_id: messageId }),
+        method: "POST",
+        body: JSON.stringify({ message_id: messageId }),
       }),
     messages: (projectId: number) =>
       request<VisionMessage[]>(`/projects/${projectId}/vision/messages`),
   },
 
   milestones: {
-    list: (projectId: number) => request<Milestone[]>(`/projects/${projectId}/milestones`),
-    create: (projectId: number, name: string, description?: string, goal?: string) =>
+    list: (projectId: number) =>
+      request<Milestone[]>(`/projects/${projectId}/milestones`),
+    create: (
+      projectId: number,
+      name: string,
+      description?: string,
+      goal?: string
+    ) =>
       request<Milestone>(`/projects/${projectId}/milestones`, {
-        method: "POST", body: JSON.stringify({ name, description, goal }),
+        method: "POST",
+        body: JSON.stringify({ name, description, goal }),
       }),
     update: (projectId: number, id: number, data: Partial<Milestone>) =>
       request<Milestone>(`/projects/${projectId}/milestones/${id}`, {
-        method: "PATCH", body: JSON.stringify(data),
+        method: "PATCH",
+        body: JSON.stringify(data),
       }),
     delete: (projectId: number, id: number) =>
-      request<void>(`/projects/${projectId}/milestones/${id}`, { method: "DELETE" }),
+      request<void>(`/projects/${projectId}/milestones/${id}`, {
+        method: "DELETE",
+      }),
     reorder: (projectId: number, ids: number[]) =>
       request<Milestone[]>(`/projects/${projectId}/milestones/reorder`, {
-        method: "POST", body: JSON.stringify({ milestone_ids: ids }),
+        method: "POST",
+        body: JSON.stringify({ milestone_ids: ids }),
       }),
   },
 };

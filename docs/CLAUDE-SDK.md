@@ -8,11 +8,11 @@
 
 ### Three Auth Modes
 
-| Mode | Token Format | Cost | Header |
-|------|-------------|------|--------|
-| API Key | `sk-ant-api03-...` | Pay per token | `X-Api-Key: <key>` |
+| Mode                 | Token Format       | Cost                  | Header                                                               |
+| -------------------- | ------------------ | --------------------- | -------------------------------------------------------------------- |
+| API Key              | `sk-ant-api03-...` | Pay per token         | `X-Api-Key: <key>`                                                   |
 | OAuth (subscription) | `sk-ant-oat01-...` | $0 (included in plan) | `Authorization: Bearer <token>` + `anthropic-beta: oauth-2025-04-20` |
-| OAuth Refresh | `sk-ant-ort01-...` | N/A (exchange only) | Used to get new access token |
+| OAuth Refresh        | `sk-ant-ort01-...` | N/A (exchange only)   | Used to get new access token                                         |
 
 ### OAuth PKCE Flow (for mobile app)
 
@@ -97,13 +97,13 @@ POST https://api.anthropic.com/v1/messages
 
 ### Required Headers
 
-| Header | Value |
-|--------|-------|
-| `Content-Type` | `application/json` |
-| `anthropic-version` | `2023-06-01` |
-| `X-Api-Key` | `sk-ant-api03-...` (API key mode) |
-| `Authorization` | `Bearer sk-ant-oat01-...` (OAuth mode) |
-| `anthropic-beta` | `oauth-2025-04-20` (OAuth mode only) |
+| Header              | Value                                  |
+| ------------------- | -------------------------------------- |
+| `Content-Type`      | `application/json`                     |
+| `anthropic-version` | `2023-06-01`                           |
+| `X-Api-Key`         | `sk-ant-api03-...` (API key mode)      |
+| `Authorization`     | `Bearer sk-ant-oat01-...` (OAuth mode) |
+| `anthropic-beta`    | `oauth-2025-04-20` (OAuth mode only)   |
 
 ⚠️ **Never send both `X-Api-Key` and `Authorization`** — the API rejects the request if `X-Api-Key` contains an OAuth token format.
 
@@ -166,11 +166,11 @@ POST https://api.anthropic.com/v1/messages
 
 ### Models & Pricing
 
-| Model | Input ($/1M) | Output ($/1M) | Max Output |
-|-------|-------------|---------------|------------|
-| `claude-sonnet-4-20250514` | $3.00 | $15.00 | 8,192 |
-| `claude-opus-4-0-20250514` | $15.00 | $75.00 | 8,192 |
-| `claude-haiku-3-5-20241022` | $0.80 | $4.00 | 8,192 |
+| Model                       | Input ($/1M) | Output ($/1M) | Max Output |
+| --------------------------- | ------------ | ------------- | ---------- |
+| `claude-sonnet-4-20250514`  | $3.00        | $15.00        | 8,192      |
+| `claude-opus-4-0-20250514`  | $15.00       | $75.00        | 8,192      |
+| `claude-haiku-3-5-20241022` | $0.80        | $4.00         | 8,192      |
 
 ### Cost Calculation
 
@@ -216,16 +216,16 @@ data: {"type":"message_stop"}
 
 ### Stream Event Types
 
-| Event | Description |
-|-------|-------------|
-| `message_start` | Start of message, includes model/usage |
-| `content_block_start` | New content block beginning |
-| `content_block_delta` | Incremental text/tool content |
-| `content_block_stop` | Content block complete |
-| `message_delta` | Final stop_reason + output token count |
-| `message_stop` | Stream complete |
-| `ping` | Keep-alive |
-| `error` | Error during stream |
+| Event                 | Description                            |
+| --------------------- | -------------------------------------- |
+| `message_start`       | Start of message, includes model/usage |
+| `content_block_start` | New content block beginning            |
+| `content_block_delta` | Incremental text/tool content          |
+| `content_block_stop`  | Content block complete                 |
+| `message_delta`       | Final stop_reason + output token count |
+| `message_stop`        | Stream complete                        |
+| `ping`                | Keep-alive                             |
+| `error`               | Error during stream                    |
 
 ---
 
@@ -244,6 +244,7 @@ data: {"type":"message_stop"}
 ```
 
 **Common causes:**
+
 - OAuth token in `X-Api-Key` header (must use `Authorization: Bearer`)
 - Missing `anthropic-beta: oauth-2025-04-20` header with OAuth token
 - Both `X-Api-Key` and `Authorization` headers sent simultaneously
@@ -480,12 +481,14 @@ func streamMessage(
 Murder reads the blackboard, judges via Claude, and assigns a planner crow:
 
 **Claude Input** (system + user prompt with blackboard state):
+
 - Input tokens: **337**
 - Output tokens: **4096** (max)
 - Cost: **$0.0625** (Sonnet pricing)
 - Latency: **~53s**
 
 **Murder Decision Output:**
+
 ```json
 {
   "action": "assign",
@@ -518,6 +521,7 @@ pending → running → completed
 ### Sample Blackboard Items
 
 **META (execution metadata):**
+
 ```json
 {
   "PK": "EXEC#exec_47ed0c4d",
@@ -531,6 +535,7 @@ pending → running → completed
 ```
 
 **STEP DECISION (Murder assigns crow):**
+
 ```json
 {
   "PK": "EXEC#exec_47ed0c4d",
@@ -542,6 +547,7 @@ pending → running → completed
 ```
 
 **STEP TASK (for worker pickup):**
+
 ```json
 {
   "PK": "EXEC#exec_47ed0c4d",
@@ -556,6 +562,7 @@ pending → running → completed
 ```
 
 **STEP REPORT (worker output):**
+
 ```json
 {
   "PK": "EXEC#exec_47ed0c4d",
@@ -577,15 +584,15 @@ pending → running → completed
 
 ## Official SDKs
 
-| Language | Package | Install |
-|----------|---------|---------|
-| Python | `anthropic` | `pip install anthropic` |
-| TypeScript | `@anthropic-ai/sdk` | `npm install @anthropic-ai/sdk` |
-| Java | `com.anthropic:anthropic-java` | Maven/Gradle |
-| Go | `github.com/anthropics/anthropic-sdk-go` | `go get` |
-| Ruby | `anthropic` | `gem install anthropic` |
-| C# | `Anthropic` | NuGet |
-| PHP | `anthropic/anthropic-sdk-php` | Composer |
+| Language   | Package                                  | Install                         |
+| ---------- | ---------------------------------------- | ------------------------------- |
+| Python     | `anthropic`                              | `pip install anthropic`         |
+| TypeScript | `@anthropic-ai/sdk`                      | `npm install @anthropic-ai/sdk` |
+| Java       | `com.anthropic:anthropic-java`           | Maven/Gradle                    |
+| Go         | `github.com/anthropics/anthropic-sdk-go` | `go get`                        |
+| Ruby       | `anthropic`                              | `gem install anthropic`         |
+| C#         | `Anthropic`                              | NuGet                           |
+| PHP        | `anthropic/anthropic-sdk-php`            | Composer                        |
 
 ---
 

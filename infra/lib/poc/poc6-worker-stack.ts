@@ -40,8 +40,9 @@ export class Poc6WorkerStack extends cdk.Stack {
     const blackboardTableName = `cawnex-poc5-blackboard-${stage}`;
 
     // Stream ARN passed as CDK context (looked up at deploy time)
-    const blackboardStreamArn = this.node.tryGetContext("blackboardStreamArn") as string
-      || `arn:aws:dynamodb:${this.region}:${this.account}:table/${blackboardTableName}/stream/*`;
+    const blackboardStreamArn =
+      (this.node.tryGetContext("blackboardStreamArn") as string) ||
+      `arn:aws:dynamodb:${this.region}:${this.account}:table/${blackboardTableName}/stream/*`;
 
     const blackboard = dynamodb.Table.fromTableAttributes(this, "Blackboard", {
       tableName: blackboardTableName,
@@ -73,7 +74,8 @@ export class Poc6WorkerStack extends cdk.Stack {
     // ─────────────────────────────────────────────
     // NAT Instance (t4g.nano ~$3/mth)
     // ─────────────────────────────────────────────
-    const natInstance = new ec2.NatInstanceProviderV2({
+    const _natInstance = new ec2.NatInstanceProviderV2({
+      // TODO: Integrate with VPC configuration
       instanceType: ec2.InstanceType.of(
         ec2.InstanceClass.T4G,
         ec2.InstanceSize.NANO
@@ -171,7 +173,9 @@ export class Poc6WorkerStack extends cdk.Stack {
     // ECR — Import existing repository (created before CDK deploy)
     // ─────────────────────────────────────────────
     const repository = ecr.Repository.fromRepositoryName(
-      this, "WorkerRepo", `cawnex-poc6-worker-${stage}`
+      this,
+      "WorkerRepo",
+      `cawnex-poc6-worker-${stage}`
     );
 
     // ─────────────────────────────────────────────
@@ -179,12 +183,17 @@ export class Poc6WorkerStack extends cdk.Stack {
     // ─────────────────────────────────────────────
     const workerFn = new lambda.DockerImageFunction(this, "WorkerFunction", {
       functionName: `cawnex-poc6-worker-${stage}`,
-      code: lambda.DockerImageCode.fromEcr(repository, { tagOrDigest: "latest" }),
+      code: lambda.DockerImageCode.fromEcr(repository, {
+        tagOrDigest: "latest",
+      }),
       memorySize: 1024,
       timeout: cdk.Duration.minutes(15),
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      filesystem: lambda.FileSystem.fromEfsAccessPoint(accessPoint, "/mnt/repos"),
+      filesystem: lambda.FileSystem.fromEfsAccessPoint(
+        accessPoint,
+        "/mnt/repos"
+      ),
       environment: {
         STAGE: stage,
         BLACKBOARD_TABLE: blackboardTableName,
@@ -218,26 +227,25 @@ export class Poc6WorkerStack extends cdk.Stack {
     // DynamoDB Stream trigger — filter for TASK records
     workerFn.addEventSource(
       new lambdaEvents.DynamoEventSource(blackboard, {
-          startingPosition: lambda.StartingPosition.LATEST,
-          batchSize: 1,
-          retryAttempts: 2,
-          filters: [
-            lambda.FilterCriteria.filter({
-              eventName: lambda.FilterRule.isEqual("INSERT"),
-              dynamodb: {
-                NewImage: {
-                  SK: {
-                    S: lambda.FilterRule.exists(),
-                  },
-                  status: {
-                    S: lambda.FilterRule.isEqual("pending"),
-                  },
+        startingPosition: lambda.StartingPosition.LATEST,
+        batchSize: 1,
+        retryAttempts: 2,
+        filters: [
+          lambda.FilterCriteria.filter({
+            eventName: lambda.FilterRule.isEqual("INSERT"),
+            dynamodb: {
+              NewImage: {
+                SK: {
+                  S: lambda.FilterRule.exists(),
+                },
+                status: {
+                  S: lambda.FilterRule.isEqual("pending"),
                 },
               },
-            }),
-          ],
-        }
-      )
+            },
+          }),
+        ],
+      })
     );
 
     // ─────────────────────────────────────────────

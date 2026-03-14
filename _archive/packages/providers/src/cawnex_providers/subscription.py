@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class SubscriptionProvider(LLMProvider):
     """Claude Max subscription provider — runs via Claude Code CLI subprocess.
-    
+
     No API key needed. Uses the logged-in Claude session on the machine.
     Cost: $0 per call (covered by Max subscription).
     """
@@ -64,7 +64,7 @@ class SubscriptionProvider(LLMProvider):
         """Run a completion via claude --print subprocess."""
         cli = await self._resolve_cli()
         prompt = self._build_prompt(system, messages)
-        
+
         cmd = [
             *cli, "--print",
             "--output-format", "text",
@@ -166,7 +166,7 @@ class SubscriptionProvider(LLMProvider):
         parts = []
         if system:
             parts.append(f"<system>\n{system}\n</system>\n")
-        
+
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
@@ -174,7 +174,7 @@ class SubscriptionProvider(LLMProvider):
                 parts.append(f"<user>\n{content}\n</user>")
             elif role == "assistant":
                 parts.append(f"<assistant>\n{content}\n</assistant>")
-        
+
         return "\n".join(parts)
 
 

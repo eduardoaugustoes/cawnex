@@ -9,24 +9,28 @@ Virtual environments (venv, env, virtualenv) should **NEVER** be committed to ve
 ## ❌ **Why Virtual Environments Should NOT Be in Git**
 
 ### **🗂️ Size Issues**
+
 - **Huge file count:** 1000s of files (our venv had 1,947 files!)
-- **Large storage:** 100-500MB+ per environment  
+- **Large storage:** 100-500MB+ per environment
 - **Repository bloat:** Makes cloning/pulling extremely slow
 - **Storage costs:** Wastes Git LFS or repository storage
 
 ### **🖥️ Platform Compatibility**
+
 - **OS-specific binaries:** Linux binaries won't work on macOS/Windows
-- **Architecture differences:** x86 vs ARM compiled dependencies  
+- **Architecture differences:** x86 vs ARM compiled dependencies
 - **Python version locks:** Tied to specific Python installation paths
 - **Path dependencies:** Hardcoded paths that don't transfer
 
 ### **⚡ Performance Impact**
+
 - **Slow git operations:** `git status`, `git add`, `git push` become sluggish
 - **Large diffs:** Every dependency update shows thousands of file changes
 - **Clone time:** New developers wait minutes/hours to clone repository
 - **Branch switching:** Extremely slow when venv files change
 
-### **👥 Team Issues**  
+### **👥 Team Issues**
+
 - **Merge conflicts:** Binary files in venv cause impossible conflicts
 - **CI/CD problems:** Build systems can't use committed virtual environments
 - **Development friction:** Team members can't use each other's environments
@@ -39,6 +43,7 @@ Virtual environments (venv, env, virtualenv) should **NEVER** be committed to ve
 ### **🔧 Setup Process (Correct Way)**
 
 #### **For Python API Development:**
+
 ```bash
 # 1. Navigate to the Python project
 cd apps/api
@@ -58,6 +63,7 @@ pip install -e ".[dev,test]"
 ```
 
 #### **Environment Recreation (Team Members):**
+
 ```bash
 # After pulling the repository
 cd apps/api
@@ -71,6 +77,7 @@ pip install -e ".[dev,test]"
 ### **📁 Proper .gitignore Configuration**
 
 Our updated `.gitignore` now properly excludes:
+
 ```gitignore
 # Python Virtual Environments (all common patterns)
 venv/
@@ -80,7 +87,7 @@ env/
 ENV/
 virtualenv/
 **/venv/        # Any venv directory anywhere in project
-**/env/         # Any env directory anywhere in project  
+**/env/         # Any env directory anywhere in project
 **/.venv/       # Hidden venv directories
 **/ENV/         # Environment directories
 **/virtualenv/  # Virtualenv directories
@@ -92,12 +99,13 @@ virtualenv/
 ## 🎯 **Development Workflow**
 
 ### **🚀 Initial Project Setup**
+
 ```bash
 # 1. Clone the repository (fast, no venv bloat)
 git clone https://github.com/eduardoaugustoes/cawnex.git
 cd cawnex
 
-# 2. Set up Python environment  
+# 2. Set up Python environment
 cd apps/api
 python3 -m venv venv
 source venv/bin/activate
@@ -113,6 +121,7 @@ npm install
 ### **📦 Dependency Management**
 
 #### **Adding New Python Dependencies:**
+
 ```bash
 # 1. Activate environment
 cd apps/api && source venv/bin/activate
@@ -128,6 +137,7 @@ pip freeze > requirements.txt
 ```
 
 #### **Sharing Dependencies:**
+
 ```toml
 # In apps/api/pyproject.toml (tracked in git)
 [project]
@@ -147,6 +157,7 @@ dev = [
 ### **🔄 Team Synchronization**
 
 #### **When Someone Adds Dependencies:**
+
 ```bash
 # 1. Pull the latest changes
 git pull
@@ -159,12 +170,13 @@ pip install -e ".[dev,test]"
 ```
 
 #### **Environment Refresh (Periodic):**
+
 ```bash
 # Clean slate approach (recommended monthly)
 rm -rf apps/api/venv
 cd apps/api
 python3 -m venv venv
-source venv/bin/activate  
+source venv/bin/activate
 pip install -e ".[dev,test]"
 ```
 
@@ -173,6 +185,7 @@ pip install -e ".[dev,test]"
 ## 🔧 **IDE Integration**
 
 ### **VS Code Configuration**
+
 ```json
 // In .vscode/settings.json (can be tracked in git)
 {
@@ -184,6 +197,7 @@ pip install -e ".[dev,test]"
 ```
 
 ### **PyCharm Configuration**
+
 1. **File** → **Settings** → **Project** → **Python Interpreter**
 2. **Add Interpreter** → **Existing environment**
 3. **Select:** `apps/api/venv/bin/python`
@@ -195,10 +209,11 @@ pip install -e ".[dev,test]"
 ### **Our Quality Scripts Handle venv Properly:**
 
 #### **Quality Control Script:**
+
 ```bash
 # scripts/quality-control.sh automatically:
 # 1. Creates venv if it doesn't exist
-# 2. Activates the environment  
+# 2. Activates the environment
 # 3. Installs dependencies
 # 4. Runs quality checks
 # 5. Cleans up properly
@@ -207,6 +222,7 @@ pip install -e ".[dev,test]"
 ```
 
 #### **CI/CD Pipeline:**
+
 ```yaml
 # Our GitHub Actions workflows:
 # 1. Create fresh virtual environments on each run
@@ -220,6 +236,7 @@ pip install -e ".[dev,test]"
 ## 🐳 **Docker Alternative (Advanced)**
 
 ### **For Consistent Environments:**
+
 ```dockerfile
 # apps/api/Dockerfile
 FROM python:3.12-slim
@@ -233,6 +250,7 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--reload"]
 ```
 
 ### **Development with Docker:**
+
 ```bash
 # Build development environment
 cd apps/api
@@ -243,6 +261,7 @@ docker run -p 8000:8000 -v $(pwd):/app cawnex-api-dev
 ```
 
 **Benefits:**
+
 - ✅ **Identical environments** across team
 - ✅ **No virtual environment management** needed
 - ✅ **Production-like development** setup
@@ -253,6 +272,7 @@ docker run -p 8000:8000 -v $(pwd):/app cawnex-api-dev
 ## 🚨 **Common Mistakes to Avoid**
 
 ### **❌ DON'T Do This:**
+
 ```bash
 # Adding venv to git (WRONG!)
 git add venv/
@@ -261,12 +281,13 @@ git commit -m "Add virtual environment"
 # Sharing venv directories via zip/email (WRONG!)
 tar -czf my-env.tar.gz venv/
 
-# Using absolute paths in code (WRONG!)  
+# Using absolute paths in code (WRONG!)
 import sys
 sys.path.append("/home/user/project/venv/lib/python3.12/site-packages")
 ```
 
 ### **✅ DO This Instead:**
+
 ```bash
 # Proper dependency management
 pip install -e ".[dev,test]"
@@ -287,6 +308,7 @@ from src.services import AuthService
 ## 📊 **Monitoring & Maintenance**
 
 ### **Repository Health Checks:**
+
 ```bash
 # Check repository size (should be small without venv)
 git count-objects -v
@@ -299,6 +321,7 @@ git status --ignored | grep venv  # Should show venv as ignored
 ```
 
 ### **Virtual Environment Health:**
+
 ```bash
 # Check environment is clean
 pip check  # Verify no dependency conflicts
@@ -315,13 +338,15 @@ mypy --version && black --version && pytest --version
 ## 🎓 **Team Training Checklist**
 
 ### **For New Team Members:**
+
 - [ ] **Understand why** venv shouldn't be in git
-- [ ] **Know how to create** virtual environments properly  
+- [ ] **Know how to create** virtual environments properly
 - [ ] **Practice dependency management** with pyproject.toml
 - [ ] **Set up IDE** to use project virtual environment
 - [ ] **Run quality controls** successfully in their environment
 
 ### **For Existing Team Members:**
+
 - [ ] **Remove any existing** committed virtual environments
 - [ ] **Update .gitignore** with comprehensive patterns
 - [ ] **Practice clean environment** creation process
@@ -335,23 +360,27 @@ mypy --version && black --version && pytest --version
 ### **✅ What You Gain:**
 
 #### **🚀 Performance**
+
 - **Fast git operations** (no more 1,947 file commits!)
 - **Quick repository cloning** (reduced from 171MB+ to manageable size)
 - **Instant branch switching** (no binary file conflicts)
 
-#### **🤝 Team Collaboration**  
+#### **🤝 Team Collaboration**
+
 - **Platform independence** (works on Linux, macOS, Windows)
 - **Consistent dependencies** (same versions for everyone)
 - **Easy onboarding** (new developers up and running quickly)
 
 #### **🔧 Development Experience**
+
 - **Clean repository** (only source code and configuration)
 - **Reliable CI/CD** (fresh environments every build)
 - **Professional practices** (following Python community standards)
 
 #### **💰 Cost Savings**
+
 - **Reduced storage costs** (Git hosting, backup, sync)
-- **Faster build times** (CI/CD doesn't download massive repos)  
+- **Faster build times** (CI/CD doesn't download massive repos)
 - **Less network usage** (smaller pulls and pushes)
 
 ---
@@ -361,6 +390,7 @@ mypy --version && black --version && pytest --version
 ### **Virtual Environment Issues:**
 
 #### **"Command not found" after activation:**
+
 ```bash
 # Recreate environment
 rm -rf venv
@@ -370,6 +400,7 @@ pip install -e ".[dev,test]"
 ```
 
 #### **Permission errors:**
+
 ```bash
 # Fix permissions (Unix)
 chmod +x venv/bin/activate
@@ -377,6 +408,7 @@ source venv/bin/activate
 ```
 
 #### **Path issues in IDE:**
+
 ```bash
 # Get correct Python path
 cd apps/api && source venv/bin/activate
@@ -386,6 +418,7 @@ which python  # Use this path in IDE settings
 ### **Git Issues:**
 
 #### **Accidentally committed venv:**
+
 ```bash
 # Remove from git but keep locally
 git rm -r --cached venv/

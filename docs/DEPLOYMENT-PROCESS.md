@@ -7,12 +7,15 @@
 ## 🎯 **Why This Architecture?**
 
 ### **Circular Dependency Challenge:**
+
 ```
 UserPool → PostConfirmation Lambda → IAM permissions → UserPool
 ```
+
 CDK cannot resolve this dependency cycle automatically.
 
 ### **Solution: Deploy + Configure Pattern:**
+
 1. ✅ **Deploy infrastructure** without trigger attachment
 2. ✅ **Add trigger manually** via AWS CLI after deployment
 3. ✅ **Fully automated** in GitHub Actions workflow
@@ -22,9 +25,10 @@ CDK cannot resolve this dependency cycle automatically.
 ## 🏗️ **Architecture Overview**
 
 ### **CawnexAuthStack-dev** 🔐
+
 ```typescript
 ✅ DynamoDB Table (multi-tenant)
-✅ Cognito User Pool + iOS/Web clients  
+✅ Cognito User Pool + iOS/Web clients
 ✅ PostConfirmation Lambda (with DynamoDB permissions)
 ✅ User Pool Domain
 ✅ CloudFormation exports
@@ -32,14 +36,16 @@ CDK cannot resolve this dependency cycle automatically.
 ```
 
 ### **Cawnex-dev** 🚀
+
 ```typescript
 ✅ API Gateway + Lambda + JWT Authorizer
-✅ S3 + SQS + ECS infrastructure  
+✅ S3 + SQS + ECS infrastructure
 ✅ CloudFront CDN
 ✅ Imports DynamoDB table from AuthStack
 ```
 
 ### **Post-Deployment Setup** 🔧
+
 ```bash
 ✅ PostConfirmation trigger attachment
 ✅ Lambda invoke permissions for Cognito
@@ -53,24 +59,28 @@ CDK cannot resolve this dependency cycle automatically.
 ### **GitHub Actions Workflow:**
 
 #### **Step 1: Deploy AuthStack**
+
 ```bash
 npx cdk deploy CawnexAuthStack-dev
 # Creates: Cognito + DynamoDB + Lambda (no trigger)
 ```
 
-#### **Step 2: Deploy MainStack**  
+#### **Step 2: Deploy MainStack**
+
 ```bash
 npx cdk deploy Cawnex-dev
 # Creates: API + Infrastructure (imports table)
 ```
 
 #### **Step 3: Setup PostConfirmation Trigger**
+
 ```bash
 ./scripts/setup-post-confirmation-trigger.sh dev
 # Configures: Lambda trigger + permissions
 ```
 
 #### **Step 4: Update iOS Configuration**
+
 ```bash
 # Automatically updates AppConfiguration.swift
 # with deployed UserPoolId, ClientId, ApiUrl
@@ -81,6 +91,7 @@ npx cdk deploy Cawnex-dev
 ## 📋 **Manual Deployment (Local)**
 
 ### **Prerequisites:**
+
 ```bash
 # AWS credentials configured
 aws configure list
@@ -90,6 +101,7 @@ npx cdk --version
 ```
 
 ### **Deploy:**
+
 ```bash
 cd infra
 
@@ -101,7 +113,7 @@ npx cdk deploy Cawnex-dev --context stage=dev
 cd ..
 ./scripts/setup-post-confirmation-trigger.sh dev
 
-# Update iOS config  
+# Update iOS config
 ./scripts/update-ios-config.sh dev
 ```
 
@@ -110,6 +122,7 @@ cd ..
 ## ✅ **Verification Steps**
 
 ### **1. Check Stack Status:**
+
 ```bash
 aws cloudformation describe-stacks \
     --stack-name CawnexAuthStack-dev \
@@ -118,11 +131,12 @@ aws cloudformation describe-stacks \
 
 aws cloudformation describe-stacks \
     --stack-name Cawnex-dev \
-    --query 'Stacks[0].StackStatus'  
+    --query 'Stacks[0].StackStatus'
 # Expected: CREATE_COMPLETE
 ```
 
 ### **2. Verify PostConfirmation Trigger:**
+
 ```bash
 USER_POOL_ID=$(aws cloudformation describe-stacks \
     --stack-name CawnexAuthStack-dev \
@@ -136,6 +150,7 @@ aws cognito-idp describe-user-pool \
 ```
 
 ### **3. Test API Health:**
+
 ```bash
 API_URL=$(aws cloudformation describe-stacks \
     --stack-name Cawnex-dev \
@@ -153,6 +168,7 @@ curl -sf "$API_URL/health"
 ### **Common Issues:**
 
 #### **PostConfirmation trigger not working:**
+
 ```bash
 # Re-run trigger setup
 ./scripts/setup-post-confirmation-trigger.sh dev
@@ -163,12 +179,14 @@ aws logs describe-log-groups \
 ```
 
 #### **iOS config not updated:**
+
 ```bash
 # Manually update iOS configuration
 ./scripts/update-ios-config.sh dev
 ```
 
 #### **API returns 403 Forbidden:**
+
 ```bash
 # Check JWT authorizer configuration
 aws apigatewayv2 get-authorizers --api-id <API_ID>
@@ -179,8 +197,9 @@ aws apigatewayv2 get-authorizers --api-id <API_ID>
 ## 🎯 **End Result**
 
 **Complete working system:**
+
 - ✅ **Multi-tenant Cognito** with email verification
-- ✅ **Automatic tenant creation** on first signup  
+- ✅ **Automatic tenant creation** on first signup
 - ✅ **JWT authentication** with tenant_id claims
 - ✅ **iOS app configured** to connect to deployed backend
 - ✅ **API Gateway** with proper authorization

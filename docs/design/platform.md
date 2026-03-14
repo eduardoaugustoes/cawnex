@@ -8,12 +8,12 @@
 
 Each client is built with the best tools for its platform:
 
-| Platform | Language | UI Framework | Why |
-|----------|---------|-------------|-----|
-| **Web** | TypeScript | React + Vite + shadcn/ui | Industry standard, SSR-ready, fastest to iterate |
-| **iOS** | Swift 6 | SwiftUI | Native performance, Apple ecosystem (widgets, Siri, shortcuts) |
-| **Android** | Kotlin | Jetpack Compose | Native performance, Material 3, Google ecosystem |
-| **API** | Python 3.12 | FastAPI | Claude SDK is Python-first, async native |
+| Platform    | Language    | UI Framework             | Why                                                            |
+| ----------- | ----------- | ------------------------ | -------------------------------------------------------------- |
+| **Web**     | TypeScript  | React + Vite + shadcn/ui | Industry standard, SSR-ready, fastest to iterate               |
+| **iOS**     | Swift 6     | SwiftUI                  | Native performance, Apple ecosystem (widgets, Siri, shortcuts) |
+| **Android** | Kotlin      | Jetpack Compose          | Native performance, Material 3, Google ecosystem               |
+| **API**     | Python 3.12 | FastAPI                  | Claude SDK is Python-first, async native                       |
 
 ---
 
@@ -38,6 +38,7 @@ FastAPI (auto-generates openapi.json)
 All three clients consume the same endpoints:
 
 ### REST API
+
 ```
 POST   /api/v1/auth/github          ← OAuth (all platforms)
 POST   /api/v1/auth/apple           ← Sign in with Apple (iOS, web)
@@ -67,12 +68,14 @@ DELETE /api/v1/devices/:id          ← Unregister device
 ```
 
 ### WebSocket
+
 ```
 WS /ws/executions/:id               ← Real-time execution events
 WS /ws/dashboard                     ← Live dashboard updates
 ```
 
 ### Push Notifications
+
 ```
 APNs (iOS)  ← Execution complete, PR ready, approval needed
 FCM (Android) ← Same events
@@ -83,35 +86,38 @@ FCM (Android) ← Same events
 ## Platform-Specific Features
 
 ### iOS Only
-| Feature | Implementation |
-|---------|---------------|
-| **Widgets** | WidgetKit — execution count, success rate on home screen |
-| **Live Activities** | Show running execution progress on lock screen |
-| **Siri Shortcuts** | "Hey Siri, approve the latest Cawnex issue" |
-| **Haptic feedback** | On approve/reject actions |
-| **Face ID / Touch ID** | Biometric auth for sensitive actions |
-| **Spotlight Search** | Search executions from iOS search |
-| **App Clips** | Quick approve flow from push notification |
+
+| Feature                | Implementation                                           |
+| ---------------------- | -------------------------------------------------------- |
+| **Widgets**            | WidgetKit — execution count, success rate on home screen |
+| **Live Activities**    | Show running execution progress on lock screen           |
+| **Siri Shortcuts**     | "Hey Siri, approve the latest Cawnex issue"              |
+| **Haptic feedback**    | On approve/reject actions                                |
+| **Face ID / Touch ID** | Biometric auth for sensitive actions                     |
+| **Spotlight Search**   | Search executions from iOS search                        |
+| **App Clips**          | Quick approve flow from push notification                |
 
 ### Android Only
-| Feature | Implementation |
-|---------|---------------|
-| **Widgets** | Glance widgets — execution stats on home screen |
-| **Quick Settings Tile** | Toggle Cawnex agent status |
-| **Material You** | Dynamic color from wallpaper |
-| **Notification Actions** | Approve/reject directly from notification |
-| **Fingerprint / Face Unlock** | Biometric auth |
-| **Deep Links** | Open execution from any URL |
-| **Picture-in-Picture** | Watch execution stream while using other apps |
+
+| Feature                       | Implementation                                  |
+| ----------------------------- | ----------------------------------------------- |
+| **Widgets**                   | Glance widgets — execution stats on home screen |
+| **Quick Settings Tile**       | Toggle Cawnex agent status                      |
+| **Material You**              | Dynamic color from wallpaper                    |
+| **Notification Actions**      | Approve/reject directly from notification       |
+| **Fingerprint / Face Unlock** | Biometric auth                                  |
+| **Deep Links**                | Open execution from any URL                     |
+| **Picture-in-Picture**        | Watch execution stream while using other apps   |
 
 ### Web Only
-| Feature | Implementation |
-|---------|---------------|
-| **Full dashboard** | Charts, tables, detailed analytics |
-| **Code viewer** | Monaco editor for viewing agent output |
-| **Diff viewer** | PR diff visualization |
-| **Keyboard shortcuts** | Power user workflow |
-| **Desktop notifications** | Browser notifications for events |
+
+| Feature                   | Implementation                         |
+| ------------------------- | -------------------------------------- |
+| **Full dashboard**        | Charts, tables, detailed analytics     |
+| **Code viewer**           | Monaco editor for viewing agent output |
+| **Diff viewer**           | PR diff visualization                  |
+| **Keyboard shortcuts**    | Power user workflow                    |
+| **Desktop notifications** | Browser notifications for events       |
 
 ---
 
@@ -161,34 +167,34 @@ Notification Service
 
 ### Push Notification Types
 
-| Event | Title | Body | Action |
-|-------|-------|------|--------|
-| Refinement complete | "Issue #42 refined" | "Ready for your approval" | Deep link to approve screen |
-| Execution complete | "PR #7 ready" | "QA approved. View PR?" | Deep link to PR |
-| Execution failed | "Execution failed" | "Dev crow failed on repo-api" | Deep link to detail |
-| Budget warning | "Budget 80% used" | "$160 of $200 used this month" | Deep link to settings |
+| Event               | Title               | Body                           | Action                      |
+| ------------------- | ------------------- | ------------------------------ | --------------------------- |
+| Refinement complete | "Issue #42 refined" | "Ready for your approval"      | Deep link to approve screen |
+| Execution complete  | "PR #7 ready"       | "QA approved. View PR?"        | Deep link to PR             |
+| Execution failed    | "Execution failed"  | "Dev crow failed on repo-api"  | Deep link to detail         |
+| Budget warning      | "Budget 80% used"   | "$160 of $200 used this month" | Deep link to settings       |
 
 ---
 
 ## iOS Tech Stack
 
-| Concern | Tool | Version |
-|---------|------|---------|
-| Language | Swift | 6.0 |
-| UI | SwiftUI | Latest |
-| Min deployment | iOS 17 | |
-| Architecture | MVVM + Repository | |
-| Networking | URLSession + async/await | Native |
-| WebSocket | URLSessionWebSocketTask | Native |
-| JSON | Codable (generated from OpenAPI) | Native |
-| Auth | AuthenticationServices (Apple), ASWebAuthenticationSession (GitHub) | Native |
-| Push | UserNotifications + APNs | Native |
-| Storage | SwiftData (local cache) | Native |
-| Keychain | Keychain Services (tokens, API keys) | Native |
-| Widgets | WidgetKit | Native |
-| Live Activities | ActivityKit | Native |
-| Testing | XCTest + Swift Testing | Native |
-| CI/CD | Xcode Cloud or Fastlane + GitHub Actions | |
+| Concern         | Tool                                                                | Version |
+| --------------- | ------------------------------------------------------------------- | ------- |
+| Language        | Swift                                                               | 6.0     |
+| UI              | SwiftUI                                                             | Latest  |
+| Min deployment  | iOS 17                                                              |         |
+| Architecture    | MVVM + Repository                                                   |         |
+| Networking      | URLSession + async/await                                            | Native  |
+| WebSocket       | URLSessionWebSocketTask                                             | Native  |
+| JSON            | Codable (generated from OpenAPI)                                    | Native  |
+| Auth            | AuthenticationServices (Apple), ASWebAuthenticationSession (GitHub) | Native  |
+| Push            | UserNotifications + APNs                                            | Native  |
+| Storage         | SwiftData (local cache)                                             | Native  |
+| Keychain        | Keychain Services (tokens, API keys)                                | Native  |
+| Widgets         | WidgetKit                                                           | Native  |
+| Live Activities | ActivityKit                                                         | Native  |
+| Testing         | XCTest + Swift Testing                                              | Native  |
+| CI/CD           | Xcode Cloud or Fastlane + GitHub Actions                            |         |
 
 ### iOS Architecture
 
@@ -253,24 +259,24 @@ Cawnex/
 
 ## Android Tech Stack
 
-| Concern | Tool | Version |
-|---------|------|---------|
-| Language | Kotlin | 2.1 |
-| UI | Jetpack Compose | Latest |
-| Min SDK | API 28 (Android 9) | |
-| Architecture | MVVM + Repository (Clean Architecture) | |
-| Networking | Retrofit + OkHttp | |
-| WebSocket | OkHttp WebSocket | |
-| JSON | kotlinx.serialization (generated from OpenAPI) | |
-| Auth | Credential Manager (Google), Custom Tab (GitHub) | |
-| Push | Firebase Cloud Messaging (FCM) | |
-| Storage | Room (local cache) | |
-| Secure Storage | EncryptedSharedPreferences / Keystore | |
-| Widgets | Glance (Jetpack) | |
-| DI | Hilt (Dagger) | |
-| Navigation | Compose Navigation (type-safe) | |
-| Testing | JUnit5 + Compose Testing + Turbine (flows) | |
-| CI/CD | Fastlane + GitHub Actions | |
+| Concern        | Tool                                             | Version |
+| -------------- | ------------------------------------------------ | ------- |
+| Language       | Kotlin                                           | 2.1     |
+| UI             | Jetpack Compose                                  | Latest  |
+| Min SDK        | API 28 (Android 9)                               |         |
+| Architecture   | MVVM + Repository (Clean Architecture)           |         |
+| Networking     | Retrofit + OkHttp                                |         |
+| WebSocket      | OkHttp WebSocket                                 |         |
+| JSON           | kotlinx.serialization (generated from OpenAPI)   |         |
+| Auth           | Credential Manager (Google), Custom Tab (GitHub) |         |
+| Push           | Firebase Cloud Messaging (FCM)                   |         |
+| Storage        | Room (local cache)                               |         |
+| Secure Storage | EncryptedSharedPreferences / Keystore            |         |
+| Widgets        | Glance (Jetpack)                                 |         |
+| DI             | Hilt (Dagger)                                    |         |
+| Navigation     | Compose Navigation (type-safe)                   |         |
+| Testing        | JUnit5 + Compose Testing + Turbine (flows)       |         |
+| CI/CD          | Fastlane + GitHub Actions                        |         |
 
 ### Android Architecture
 
@@ -517,34 +523,38 @@ openapi-generator-cli generate \
 
 ## Build & Deploy Summary
 
-| App | Build | Deploy | CI |
-|-----|-------|--------|-----|
-| **API** | Docker | AWS ECS / Fly.io | GitHub Actions |
-| **Worker** | Docker | AWS ECS / Fly.io | GitHub Actions |
-| **Web** | Vite build → static | Cloudflare Pages | GitHub Actions |
-| **iOS** | Xcode | TestFlight → App Store | Xcode Cloud / Fastlane |
-| **Android** | Gradle | Play Console (internal → prod) | GitHub Actions / Fastlane |
+| App         | Build               | Deploy                         | CI                        |
+| ----------- | ------------------- | ------------------------------ | ------------------------- |
+| **API**     | Docker              | AWS ECS / Fly.io               | GitHub Actions            |
+| **Worker**  | Docker              | AWS ECS / Fly.io               | GitHub Actions            |
+| **Web**     | Vite build → static | Cloudflare Pages               | GitHub Actions            |
+| **iOS**     | Xcode               | TestFlight → App Store         | Xcode Cloud / Fastlane    |
+| **Android** | Gradle              | Play Console (internal → prod) | GitHub Actions / Fastlane |
 
 ---
 
 ## Development Requirements
 
-| Platform | You Need | On This VPS? |
-|----------|---------|-------------|
-| API + Worker | Python 3.12, Docker | ✅ Yes |
-| Web | Node 22, pnpm | ✅ Yes |
-| iOS | Mac with Xcode 16 | ❌ Needs Mac |
-| Android | Android Studio + JDK 21 | ⚠️ Can build on VPS but no emulator |
+| Platform     | You Need                | On This VPS?                        |
+| ------------ | ----------------------- | ----------------------------------- |
+| API + Worker | Python 3.12, Docker     | ✅ Yes                              |
+| Web          | Node 22, pnpm           | ✅ Yes                              |
+| iOS          | Mac with Xcode 16       | ❌ Needs Mac                        |
+| Android      | Android Studio + JDK 21 | ⚠️ Can build on VPS but no emulator |
 
 ### iOS Development Reality
+
 You **need a Mac** for iOS. Options:
+
 - Physical Mac (MacBook, Mac Mini)
 - **MacStadium** / **AWS Mac instances** (cloud Mac, ~$1/hr)
 - **Codemagic** (CI/CD that includes Mac build machines)
 - GitHub Actions has macOS runners for CI
 
 ### Android Development
+
 Can build on Linux (Gradle + JDK). But for UI development:
+
 - **Android Studio** on a local machine (emulator)
 - Or use a physical Android device connected via ADB
 
@@ -552,13 +562,13 @@ Can build on Linux (Gradle + JDK). But for UI development:
 
 ## Timeline Impact
 
-| Phase | Without Mobile | With Native Mobile |
-|-------|---------------|-------------------|
-| Phase 0 (Foundation) | 2 weeks | 2 weeks (no change — API only) |
-| Phase 1 (Core Loop) | 3 weeks | 3 weeks (no change — web + API) |
-| Phase 2 (The Murder) | 4 weeks | 4 weeks (no change) |
-| **Phase 3 (SaaS)** | **4 weeks** | **+6 weeks** (iOS: 4w, Android: 4w, parallel = 6w) |
-| **Total** | **13 weeks** | **19 weeks** |
+| Phase                | Without Mobile | With Native Mobile                                 |
+| -------------------- | -------------- | -------------------------------------------------- |
+| Phase 0 (Foundation) | 2 weeks        | 2 weeks (no change — API only)                     |
+| Phase 1 (Core Loop)  | 3 weeks        | 3 weeks (no change — web + API)                    |
+| Phase 2 (The Murder) | 4 weeks        | 4 weeks (no change)                                |
+| **Phase 3 (SaaS)**   | **4 weeks**    | **+6 weeks** (iOS: 4w, Android: 4w, parallel = 6w) |
+| **Total**            | **13 weeks**   | **19 weeks**                                       |
 
 Mobile adds ~6 weeks but can be parallelized with Phase 3 web work.
 

@@ -4,7 +4,7 @@ name: Setup Quality Hooks
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * 1'  # Weekly validation on Mondays
+    - cron: "0 2 * * 1" # Weekly validation on Mondays
 
 permissions:
   contents: write
@@ -15,7 +15,7 @@ jobs:
     name: 🪝 Setup & Validate Pre-commit Hooks
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: ⚡ Setup Node.js  
+      - name: ⚡ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -50,23 +50,23 @@ jobs:
       - name: 🧪 Test hooks on sample files
         run: |
           echo "::group::Testing pre-commit hooks"
-          
+
           # Create test files if they don't exist
           mkdir -p test-files
-          
+
           # Python test file
           cat > test-files/test.py << 'EOF'
           def hello_world():
               return "Hello, World!"
           EOF
-          
-          # TypeScript test file  
+
+          # TypeScript test file
           cat > test-files/test.ts << 'EOF'
           export function greet(name: string): string {
             return `Hello, ${name}!`;
           }
           EOF
-          
+
           # JSON test file
           cat > test-files/test.json << 'EOF'
           {
@@ -74,7 +74,7 @@ jobs:
             "version": "1.0.0"
           }
           EOF
-          
+
           # Run hooks on test files
           pre-commit run --all-files --show-diff-on-failure
           echo "::endgroup::"
@@ -88,7 +88,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## ✅ Installed Hooks" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           echo "### 🐍 Python Quality Hooks" >> $GITHUB_STEP_SUMMARY
           echo "- **Black** - Code formatting (88 char line length)" >> $GITHUB_STEP_SUMMARY
           echo "- **isort** - Import sorting" >> $GITHUB_STEP_SUMMARY
@@ -96,25 +96,25 @@ jobs:
           echo "- **MyPy** - Strict type checking" >> $GITHUB_STEP_SUMMARY
           echo "- **Bandit** - Security vulnerability scanning" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          echo "### ⚡ TypeScript Quality Hooks" >> $GITHUB_STEP_SUMMARY  
+
+          echo "### ⚡ TypeScript Quality Hooks" >> $GITHUB_STEP_SUMMARY
           echo "- **ESLint** - Zero warnings policy" >> $GITHUB_STEP_SUMMARY
           echo "- **Prettier** - Code formatting" >> $GITHUB_STEP_SUMMARY
           echo "- **Complexity Check** - Max 10 cyclomatic complexity" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           echo "### 🔒 Security & General Hooks" >> $GITHUB_STEP_SUMMARY
           echo "- **Secrets Detection** - Prevent secret commits" >> $GITHUB_STEP_SUMMARY
           echo "- **Dependency Security** - Scan for vulnerabilities" >> $GITHUB_STEP_SUMMARY
           echo "- **File Validation** - YAML, JSON, TOML checks" >> $GITHUB_STEP_SUMMARY
           echo "- **Content Cleanup** - Trailing whitespace, line endings" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           echo "### 🎯 Ultra-Strict Quality Control" >> $GITHUB_STEP_SUMMARY
           echo "- **Custom Script** - Comprehensive quality validation" >> $GITHUB_STEP_SUMMARY
           echo "- **Conventional Commits** - Standardized commit messages" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           echo "## 🚀 Usage Instructions" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**For developers:**" >> $GITHUB_STEP_SUMMARY
@@ -135,7 +135,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup-hooks
     timeout-minutes: 10
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4

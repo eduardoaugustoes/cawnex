@@ -104,7 +104,8 @@ export class Poc3MurderStack extends cdk.Stack {
     // ─────────────────────────────────────────────
     new cdk.CfnOutput(this, "MurderEndpoint", {
       value: `${httpApi.apiEndpoint}/murder`,
-      description: "POST endpoint to trigger Murder (body: {repo, issue_number})",
+      description:
+        "POST endpoint to trigger Murder (body: {repo, issue_number})",
     });
 
     new cdk.CfnOutput(this, "BlackboardTableName", {

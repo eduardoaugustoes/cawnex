@@ -5,7 +5,7 @@ anthropic>=0.84.0
 # Telegram Bot
 python-telegram-bot>=22.6
 
-# AWS for agent deployment  
+# AWS for agent deployment
 boto3>=1.42.0
 
 # Utilities

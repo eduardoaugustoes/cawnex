@@ -5,11 +5,13 @@
 Conversational API for steering AI projects. Each Court has a Monarch that maintains context, consults Council, and provides natural language project management.
 
 ## Base URL
+
 ```
 https://api.cawnex.com/v1
 ```
 
 ## Authentication
+
 ```
 Authorization: Bearer {user_jwt}
 X-Dynasty-ID: {org_id}
@@ -20,15 +22,17 @@ X-Dynasty-ID: {org_id}
 ## 📱 Core Endpoints
 
 ### **GET /dynasty/{dynasty_id}/courts**
+
 List all projects for the organization.
 
 **Response:**
+
 ```json
 {
   "courts": [
     {
       "court_id": "cawnex",
-      "name": "Cawnex Platform", 
+      "name": "Cawnex Platform",
       "directive": "Build Sprint 1: foundation + context",
       "status": "active",
       "current_wave": 2,
@@ -42,7 +46,7 @@ List all projects for the organization.
     {
       "court_id": "calhou",
       "name": "Calhou Calculator",
-      "directive": "MVP quoting calculator", 
+      "directive": "MVP quoting calculator",
       "status": "active",
       "current_wave": 1,
       "last_activity": "2026-03-13T20:15:00Z",
@@ -57,17 +61,20 @@ List all projects for the organization.
 ```
 
 ### **POST /dynasty/{dynasty_id}/court/{court_id}/chat**
+
 Send message to project's Monarch.
 
 **Request:**
+
 ```json
 {
   "message": "How's the reviewer optimization going?",
-  "context_limit": 10  // optional, last N messages
+  "context_limit": 10 // optional, last N messages
 }
 ```
 
 **Response:**
+
 ```json
 {
   "chat_id": "chat_abc123",
@@ -82,12 +89,12 @@ Send message to project's Monarch.
     },
     "actions_needed": [
       {
-        "action_id": "approve_diff_approach", 
+        "action_id": "approve_diff_approach",
         "description": "Switch reviewer to git diff instead of full repo",
         "impact": "Reduces context from 183 files to ~5-10 changed files",
         "council_votes": {
           "security": "approve",
-          "quality": "approve", 
+          "quality": "approve",
           "performance": "approve",
           "market": "neutral"
         }
@@ -99,13 +106,16 @@ Send message to project's Monarch.
 ```
 
 ### **GET /dynasty/{dynasty_id}/court/{court_id}/chat**
+
 Get conversation history.
 
 **Query params:**
+
 - `limit=20` (default: 50)
 - `before={message_id}` (pagination)
 
 **Response:**
+
 ```json
 {
   "messages": [
@@ -116,7 +126,7 @@ Get conversation history.
       "timestamp": "2026-03-13T19:00:00Z"
     },
     {
-      "message_id": "msg_002", 
+      "message_id": "msg_002",
       "sender": "monarch",
       "content": "Wave 2 initiated. Council approved 7 tasks focusing on context optimization...",
       "status_snapshot": { ... },
@@ -135,9 +145,11 @@ Get conversation history.
 ## 🔄 Action Management
 
 ### **POST /dynasty/{dynasty_id}/court/{court_id}/actions/{action_id}/approve**
+
 Approve Monarch's proposed action.
 
 **Request:**
+
 ```json
 {
   "feedback": "Yes, proceed with diff approach but keep full context as fallback"
@@ -145,6 +157,7 @@ Approve Monarch's proposed action.
 ```
 
 **Response:**
+
 ```json
 {
   "status": "approved",
@@ -154,9 +167,11 @@ Approve Monarch's proposed action.
 ```
 
 ### **POST /dynasty/{dynasty_id}/court/{court_id}/actions/{action_id}/reject**
+
 Reject Monarch's proposed action.
 
 **Request:**
+
 ```json
 {
   "reason": "Too risky. Let's optimize the current approach first.",
@@ -169,14 +184,16 @@ Reject Monarch's proposed action.
 ## 📊 Real-time Updates
 
 ### **WebSocket: /dynasty/{dynasty_id}/court/{court_id}/stream**
+
 Real-time updates for project activity.
 
 **Events:**
+
 ```json
 // Monarch message
 {
   "type": "monarch_message",
-  "chat_id": "chat_abc123", 
+  "chat_id": "chat_abc123",
   "message": { ... }
 }
 
@@ -189,7 +206,7 @@ Real-time updates for project activity.
   "estimated_completion": "2026-03-15T16:30:00Z"
 }
 
-// Action required  
+// Action required
 {
   "type": "action_required",
   "action": { ... },
@@ -211,24 +228,26 @@ Real-time updates for project activity.
 ## 💬 Message Types
 
 ### **Human → Monarch**
+
 ```json
 {
-  "type": "directive",          // "Focus on security"
-  "type": "question",           // "What's the ETA?" 
-  "type": "feedback",           // "Good progress, but..."
-  "type": "approval",           // "Yes, proceed"
-  "type": "steering"            // "Pivot to mobile-first"
+  "type": "directive", // "Focus on security"
+  "type": "question", // "What's the ETA?"
+  "type": "feedback", // "Good progress, but..."
+  "type": "approval", // "Yes, proceed"
+  "type": "steering" // "Pivot to mobile-first"
 }
 ```
 
 ### **Monarch → Human**
+
 ```json
 {
-  "type": "status_update",      // Regular progress reports
-  "type": "council_summary",    // "Council voted to..." 
-  "type": "action_request",     // "Should I proceed with X?"
-  "type": "problem_alert",      // "Wave 2 blocked by Y"
-  "type": "completion_report"   // "Wave completed successfully"
+  "type": "status_update", // Regular progress reports
+  "type": "council_summary", // "Council voted to..."
+  "type": "action_request", // "Should I proceed with X?"
+  "type": "problem_alert", // "Wave 2 blocked by Y"
+  "type": "completion_report" // "Wave completed successfully"
 }
 ```
 
@@ -237,10 +256,11 @@ Real-time updates for project activity.
 ## 🎯 Mobile App Integration
 
 ### **Project Card Component**
+
 ```swift
 struct ProjectCard: View {
     let court: Court
-    
+
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -248,22 +268,22 @@ struct ProjectCard: View {
                 Spacer()
                 StatusIndicator(court.status)
             }
-            
+
             Text(court.directive)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
-            ProgressBar(completed: court.progress.completed, 
+
+            ProgressBar(completed: court.progress.completed,
                        total: court.progress.total)
-            
+
             HStack {
                 NavigationLink("💬 Chat with Monarch") {
                     MonarchChatView(courtId: court.id)
                 }
                 .buttonStyle(PrimaryButtonStyle())
-                
+
                 Spacer()
-                
+
                 Text("Wave \(court.currentWave)")
                     .font(.caption)
             }
@@ -276,16 +296,17 @@ struct ProjectCard: View {
 ```
 
 ### **Chat Interface**
+
 ```swift
 struct MonarchChatView: View {
     @StateObject private var chatManager = MonarchChatManager()
     @State private var messageText = ""
-    
+
     var body: some View {
         VStack {
             // Status header
             StatusHeaderView(court: chatManager.court)
-            
+
             // Messages
             ScrollView {
                 LazyVStack {
@@ -294,14 +315,14 @@ struct MonarchChatView: View {
                     }
                 }
             }
-            
+
             // Actions (when Monarch requests approval)
             if let action = chatManager.pendingAction {
                 ActionApprovalView(action: action) { approved in
                     chatManager.handleAction(action.id, approved: approved)
                 }
             }
-            
+
             // Input
             HStack {
                 TextField("Message Monarch...", text: $messageText)
@@ -327,6 +348,7 @@ struct MonarchChatView: View {
 5. **Caching**: Aggressive prompt caching on project context (90% savings)
 
 **Next Steps:**
+
 1. Implement core chat endpoints
 2. Add WebSocket streaming
 3. Integrate with existing Murder/Crow infrastructure

@@ -8,11 +8,16 @@ import { CawnexStack } from "../lib/cawnex-stack";
 const app = new cdk.App();
 
 // Get stage from context
-const stage = (app.node.tryGetContext("stage") || "dev") as "dev" | "staging" | "prod";
+const stage = (app.node.tryGetContext("stage") || "dev") as
+  | "dev"
+  | "staging"
+  | "prod";
 
 // Get domain configuration from context (optional)
 const domainName = app.node.tryGetContext("domainName") as string | undefined;
-const hostedZoneId = app.node.tryGetContext("hostedZoneId") as string | undefined;
+const hostedZoneId = app.node.tryGetContext("hostedZoneId") as
+  | string
+  | undefined;
 const useCloudflare = app.node.tryGetContext("cloudflare") === "true";
 
 // Environment configuration
@@ -26,12 +31,16 @@ let domainStack: CawnexDomainStack | CawnexDomainCloudflareStack | undefined;
 if (domainName) {
   if (useCloudflare) {
     // Cloudflare-managed DNS (SES only, no Route53)
-    domainStack = new CawnexDomainCloudflareStack(app, `CawnexCloudflareStack-${stage}`, {
-      domainName,
-      stage,
-      env,
-      description: `Cawnex Cloudflare Stack (${stage}) - ${domainName}`,
-    });
+    domainStack = new CawnexDomainCloudflareStack(
+      app,
+      `CawnexCloudflareStack-${stage}`,
+      {
+        domainName,
+        stage,
+        env,
+        description: `Cawnex Cloudflare Stack (${stage}) - ${domainName}`,
+      }
+    );
   } else {
     // Full AWS management (Route53 + SES + SSL)
     domainStack = new CawnexDomainStack(app, `CawnexDomainStack-${stage}`, {
@@ -72,5 +81,5 @@ cdk.Tags.of(authStack).add("Stage", stage);
 cdk.Tags.of(authStack).add("Stack", "Auth");
 
 cdk.Tags.of(mainStack).add("Project", "Cawnex");
-cdk.Tags.of(mainStack).add("Stage", stage);  
+cdk.Tags.of(mainStack).add("Stage", stage);
 cdk.Tags.of(mainStack).add("Stack", "Main");

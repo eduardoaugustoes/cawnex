@@ -30,7 +30,7 @@ struct Skill: Identifiable, Equatable {
     let description: String
     let usedBy: String
     let useCount: Int
-    
+
     var effectiveDisplayName: String {
         displayName.isEmpty ? name : displayName
     }

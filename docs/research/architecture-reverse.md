@@ -55,6 +55,7 @@
 ## Component Breakdown
 
 ### 1. Entry Point — Linear Webhook
+
 **Confidence: HIGH** (confirmed in slides + demo)
 
 - Issues are created in Linear with specific labels
@@ -63,6 +64,7 @@
 - The webhook payload goes to Kafka
 
 ### 2. Message Bus — Kafka + Redis
+
 **Confidence: HIGH** (confirmed in transcript)
 
 - **Kafka**: Primary event streaming between orchestrator and agents
@@ -77,9 +79,11 @@
 **Unknown**: Exact topic structure, partition strategy, consumer groups
 
 ### 3. Orchestrator
+
 **Confidence: MEDIUM-HIGH** (described verbally, partially shown)
 
 #### NLM-DFA Router
+
 - Uses LLM + Deterministic Finite Automaton
 - Understands logical flow inside applications
 - Based on a pen-testing research paper (Shannon-based implementation)
@@ -91,6 +95,7 @@
 **Unknown**: Exact paper reference, implementation details, state machine definition
 
 #### Hallucination Detection
+
 - Monitors agent streaming output in real-time
 - Detects when agent creates things that "don't make sense"
 - Can auto-cancel execution
@@ -99,6 +104,7 @@
 **Unknown**: Detection algorithm, thresholds, what triggers cancellation
 
 #### PR Synchronization Manager
+
 - Ensures PRs across repos are merged together
 - "Only closes when all PRs and all tests are closed"
 - Coordinated rollback if any PR fails
@@ -106,6 +112,7 @@
 **Unknown**: Exact mechanism — likely uses Kafka events to track PR states
 
 #### Smart Retry
+
 - Not blind retry — uses execution tree analysis
 - Verifies interaction between agent messages
 - Each agent has its own retry policy
@@ -114,15 +121,18 @@
 **Unknown**: Retry limits, backoff strategy, how it determines "retryable"
 
 ### 4. Agents (Claude Agent SDK)
+
 **Confidence: HIGH** (confirmed in slides + demo + transcript)
 
 Each agent is a Claude Agent SDK instance with:
+
 - **System prompt**: Role-specific instructions (CLAUDE.md / Agent.md per repo)
 - **Tools**: Git operations, file system, shell commands
 - **Context**: Issue description, acceptance criteria, repo structure
 - **Worktree**: Isolated copy of the repo
 
 #### Agent Lifecycle
+
 ```
 1. Orchestrator creates execution
 2. Agent receives: issue context + repo assignment + acceptance criteria
@@ -134,6 +144,7 @@ Each agent is a Claude Agent SDK instance with:
 ```
 
 #### Agent Communication
+
 - Agents can communicate with each other ("caws")
 - Peer-to-peer protocol via Kafka/Redis
 - Example from transcript: "My agent said: 'Let me check if my peer needs anything.' And it waits for the response."
@@ -142,6 +153,7 @@ Each agent is a Claude Agent SDK instance with:
 **Unknown**: Message schema, how peers discover each other, conflict resolution
 
 ### 5. Git Workflow — Worktrees
+
 **Confidence: HIGH** (confirmed explicitly)
 
 - **Worktrees, NOT feature branches**
@@ -152,6 +164,7 @@ Each agent is a Claude Agent SDK instance with:
 - Worktree naming convention likely: `crow/<issue-id>-<type>`
 
 ### 6. Frontend — AgentOps Dashboard
+
 **Confidence: HIGH** (shown live)
 
 - **React + Vite + shadcn/ui**
@@ -162,6 +175,7 @@ Each agent is a Claude Agent SDK instance with:
 - Execution list: filterable by agent type, status, labels
 
 ### 7. Backend — FastAPI
+
 **Confidence: HIGH** (confirmed in slides)
 
 - **FastAPI + Python**
@@ -170,6 +184,7 @@ Each agent is a Claude Agent SDK instance with:
 - Endpoints for: execution management, agent coordination, webhook reception, SSE streaming
 
 ### 8. Observability — Datadog
+
 **Confidence: HIGH** (shown live)
 
 - Dashboard: "RevBridge Platform - Logs Control Center"
@@ -178,6 +193,7 @@ Each agent is a Claude Agent SDK instance with:
 - Errors copied → sent to Claude → fixed → deployed
 
 ### 9. Custom CLI — `rbd`
+
 **Confidence: HIGH** (shown live)
 
 ```
@@ -208,6 +224,7 @@ RBD Interactive Shell
 ```
 
 ### 10. Multi-Tenancy
+
 **Confidence: MEDIUM** (described in slides, not shown in depth)
 
 - Complete org isolation — data, credentials, executions never mix
@@ -273,22 +290,22 @@ RBD Interactive Shell
 
 ## Confidence Summary
 
-| Component | Confidence | Source |
-|-----------|-----------|--------|
-| 7 agents + roles | ✅ HIGH | Slides + transcript |
-| Claude Agent SDK | ✅ HIGH | Slides + demo |
-| FastAPI + MySQL + Redis | ✅ HIGH | Slides |
-| React + Vite + shadcn | ✅ HIGH | Demo |
-| Kafka + Redis messaging | ✅ HIGH | Transcript |
-| Linear integration | ✅ HIGH | Demo |
-| Worktrees (not branches) | ✅ HIGH | Transcript (explicit) |
-| Synchronized PRs | ✅ HIGH | Slides + transcript |
-| Datadog observability | ✅ HIGH | Demo |
-| NLM-DFA routing | ⚠️ MEDIUM | Transcript only, no implementation details |
-| Hallucination detection | ⚠️ MEDIUM | Transcript only |
-| Agent-to-agent comms | ⚠️ MEDIUM | Mentioned but not detailed |
-| Multi-tenant architecture | ⚠️ MEDIUM | Slides only |
-| Smart retry logic | ⚠️ MEDIUM | Described verbally |
-| OAuth refresh mechanism | 🔻 LOW | Mentioned in slide, no details |
-| Kafka topic structure | 🔻 LOW | Inferred, not confirmed |
-| Execution state machine | 🔻 LOW | Partially visible in demo |
+| Component                 | Confidence | Source                                     |
+| ------------------------- | ---------- | ------------------------------------------ |
+| 7 agents + roles          | ✅ HIGH    | Slides + transcript                        |
+| Claude Agent SDK          | ✅ HIGH    | Slides + demo                              |
+| FastAPI + MySQL + Redis   | ✅ HIGH    | Slides                                     |
+| React + Vite + shadcn     | ✅ HIGH    | Demo                                       |
+| Kafka + Redis messaging   | ✅ HIGH    | Transcript                                 |
+| Linear integration        | ✅ HIGH    | Demo                                       |
+| Worktrees (not branches)  | ✅ HIGH    | Transcript (explicit)                      |
+| Synchronized PRs          | ✅ HIGH    | Slides + transcript                        |
+| Datadog observability     | ✅ HIGH    | Demo                                       |
+| NLM-DFA routing           | ⚠️ MEDIUM  | Transcript only, no implementation details |
+| Hallucination detection   | ⚠️ MEDIUM  | Transcript only                            |
+| Agent-to-agent comms      | ⚠️ MEDIUM  | Mentioned but not detailed                 |
+| Multi-tenant architecture | ⚠️ MEDIUM  | Slides only                                |
+| Smart retry logic         | ⚠️ MEDIUM  | Described verbally                         |
+| OAuth refresh mechanism   | 🔻 LOW     | Mentioned in slide, no details             |
+| Kafka topic structure     | 🔻 LOW     | Inferred, not confirmed                    |
+| Execution state machine   | 🔻 LOW     | Partially visible in demo                  |

@@ -38,6 +38,7 @@ GitHub Issue
 ```
 
 **Key concepts:**
+
 - **Skills** = tool packs (collections of MCP tools)
 - **Agents (Crows)** = MCP servers loaded with skills + system prompt + model
 - **Murders** = MCP clients that orchestrate agents via tool discovery + LLM judgment
@@ -61,9 +62,11 @@ POC 1 and 2 are independent. POC 3 combines them. POC 4 is the demo.
 ## POC 1 — MCP Crow on Lambda
 
 ### Goal
+
 Prove a crow can run as an MCP server on AWS Lambda, expose tools dynamically, and be called by an MCP client.
 
 ### What We're Validating
+
 - MCP Streamable HTTP transport works behind API Gateway → Lambda
 - Stateless Lambda can serve MCP tool discovery + invocation
 - Cold start impact on MCP handshake + tool calls
@@ -150,14 +153,19 @@ Lambda is stateless. Between invocations, crow state lives in S3:
 {
   "session_id": "sess_abc123",
   "execution_id": "exec_xyz",
-  "messages": [ /* conversation history with Anthropic API */ ],
-  "tool_results": [ /* accumulated tool call results */ ],
+  "messages": [
+    /* conversation history with Anthropic API */
+  ],
+  "tool_results": [
+    /* accumulated tool call results */
+  ],
   "branch": "cawnex/exec_xyz",
   "files_touched": ["src/auth.py", "tests/test_auth.py"]
 }
 ```
 
 On each MCP tool call:
+
 1. Lambda starts → loads session from S3
 2. Processes the tool call (calls GitHub API, Anthropic API, etc.)
 3. Saves updated session to S3
@@ -173,18 +181,21 @@ On each MCP tool call:
 ### Steps
 
 1. Set up CDK stack: `poc1-mcp-crow`
+
    - Lambda function (Python 3.12, 1GB memory, 5-min timeout)
    - API Gateway v2 HTTP API (single route: `POST /mcp`)
    - S3 bucket for session state
    - IAM roles
 
 2. Implement MCP server in Lambda handler:
+
    - `initialize` → return server capabilities
    - `tools/list` → return 3 tools above
    - `tools/call` → dispatch to tool implementations
    - Session load/save on S3
 
 3. Implement tools:
+
    - `read_file` → GitHub API `GET /repos/{owner}/{repo}/contents/{path}`
    - `write_file` → GitHub API `PUT /repos/{owner}/{repo}/contents/{path}`
    - `create_pull_request` → GitHub API `POST /repos/{owner}/{repo}/pulls`
@@ -207,6 +218,7 @@ On each MCP tool call:
 - [ ] Cold start < 3s, warm invocation < 500ms
 
 ### Estimated Effort
+
 Half a day. Mostly boilerplate CDK + MCP SDK wiring.
 
 ---
@@ -214,9 +226,11 @@ Half a day. Mostly boilerplate CDK + MCP SDK wiring.
 ## POC 2 — Blackboard + Stream Filtering
 
 ### Goal
+
 Prove DynamoDB Streams can drive the Murder event loop without noise, and that concurrent writes don't cause race conditions.
 
 ### What We're Validating
+
 - DynamoDB Streams event filtering works (only specific SK patterns trigger Murder)
 - Concurrent crow writes to same execution don't corrupt state
 - Conditional writes prevent Murder race conditions
@@ -261,6 +275,7 @@ DynamoDB Streams event filter (in CDK):
 ```
 
 **Filtered OUT (no trigger):**
+
 - `EVENT#<ts>` — fine-grained tool call events (high volume, noise)
 - `STEP#<seq>#TASK` — task assignments (Murder wrote these, no need to re-trigger)
 
@@ -332,15 +347,18 @@ table.update_item(
 ### Steps
 
 1. CDK stack: `poc2-blackboard`
+
    - DynamoDB table with Streams enabled (NEW_AND_OLD_IMAGES)
    - Lambda function (Murder stub — logs received events)
    - Event source mapping with filter criteria
 
 2. Implement Murder stub:
+
    - Logs: which PK/SK triggered it, event type
    - Writes to a "received events" table or CloudWatch for verification
 
 3. Test script:
+
    - Write META record → verify Murder triggered
    - Write EVENT records (10x) → verify Murder NOT triggered
    - Write TASK record → verify Murder NOT triggered
@@ -361,6 +379,7 @@ table.update_item(
 - [ ] 50 EVENT writes produce 0 Murder invocations
 
 ### Estimated Effort
+
 Half a day. Mostly CDK + a test script.
 
 ---
@@ -368,9 +387,11 @@ Half a day. Mostly CDK + a test script.
 ## POC 3 — Murder as MCP Client + LLM Judge
 
 ### Goal
+
 Prove Murder can connect to crow MCP servers, discover their tools, orchestrate a multi-step task using LLM judgment, and drive the blackboard event loop.
 
 ### What We're Validating
+
 - Murder can act as MCP client connecting to crow MCP servers
 - LLM (Claude) can effectively judge crow output and decide next steps
 - The full loop works: blackboard event → Murder → MCP call → crow executes → report → Murder judges
@@ -489,6 +510,7 @@ async def call_crow(crow_url: str, tool_name: str, arguments: dict):
 **Issue:** "Add a health check endpoint to the API that returns `{"status": "ok", "version": "1.0.0"}`"
 
 **Expected flow:**
+
 1. Execution created → Murder fires
 2. Murder: "New execution, needs a plan" → calls Planner crow via MCP
 3. Planner returns plan: "Create `health.py` with GET /health endpoint"
@@ -506,11 +528,13 @@ async def call_crow(crow_url: str, tool_name: str, arguments: dict):
 ### Steps
 
 1. Extend CDK stack to include Murder Lambda
+
    - Permissions: DynamoDB read/write, invoke API GW (crow endpoint)
    - Event source: DynamoDB Streams (with filters from POC 2)
    - Environment: crow MCP endpoint URL, Anthropic API key (from Secrets Manager)
 
 2. Implement Murder Lambda:
+
    - Event handler: parse DynamoDB Stream event → determine what changed
    - State reader: load full execution state from blackboard
    - Decision engine: call Claude with blackboard state → get decision
@@ -518,6 +542,7 @@ async def call_crow(crow_url: str, tool_name: str, arguments: dict):
    - State writer: write decision + result to blackboard (with conditional write)
 
 3. Extend crow from POC 1:
+
    - Add `plan_implementation` tool (Planner skill)
    - Add `review_code` tool (Reviewer skill)
    - Keep `read_file`, `write_file`, `create_pull_request`
@@ -539,6 +564,7 @@ async def call_crow(crow_url: str, tool_name: str, arguments: dict):
 - [ ] Murder escalates to human after 2 failed retries (writes `escalate` to blackboard)
 
 ### Estimated Effort
+
 1-2 days. Murder logic is the core product — worth spending time here.
 
 ---
@@ -546,9 +572,11 @@ async def call_crow(crow_url: str, tool_name: str, arguments: dict):
 ## POC 4 — Full Loop (Integration Demo)
 
 ### Goal
+
 End-to-end: real GitHub issue → autonomous pipeline → merged PR. This is the "would you invest?" demo.
 
 ### What We're Validating
+
 - Everything works together under real conditions
 - Real GitHub issue (not synthetic)
 - Real repository (Cawnex itself — dogfooding)
@@ -566,6 +594,7 @@ Use a real Cawnex issue. Candidates:
 ### Architecture
 
 Full stack from POC 1 + 2 + 3, plus:
+
 - GitHub webhook Lambda (receives issue events)
 - Actual Cawnex repo as target
 - Real Anthropic API key (Eduardo's BYOL key)
@@ -619,6 +648,7 @@ GitHub Issue Created
 - [ ] PR is mergeable without manual fixes
 
 ### Estimated Effort
+
 1 day (mostly integration + debugging edge cases).
 
 ---
@@ -662,16 +692,17 @@ Each POC is a separate CDK stack. Deploy independently, test independently, comb
 
 After POC 4:
 
-| Question | Answer |
-|----------|--------|
-| Can crows run as MCP servers on Lambda? | POC 1 ✅ |
-| Can DynamoDB drive the event loop without noise? | POC 2 ✅ |
-| Can Murder judge and orchestrate via MCP? | POC 3 ✅ |
-| Does it produce real, mergeable PRs? | POC 4 ✅ |
-| Is the cost reasonable? | Measured across all POCs |
-| Is the latency acceptable? | Measured across all POCs |
+| Question                                         | Answer                   |
+| ------------------------------------------------ | ------------------------ |
+| Can crows run as MCP servers on Lambda?          | POC 1 ✅                 |
+| Can DynamoDB drive the event loop without noise? | POC 2 ✅                 |
+| Can Murder judge and orchestrate via MCP?        | POC 3 ✅                 |
+| Does it produce real, mergeable PRs?             | POC 4 ✅                 |
+| Is the cost reasonable?                          | Measured across all POCs |
+| Is the latency acceptable?                       | Measured across all POCs |
 
 **What it doesn't prove (yet):**
+
 - Multi-tenant isolation (but architecture supports it)
 - iOS app integration (but API is the same)
 - User-created skills/crows (but MCP makes it pluggable)
@@ -683,15 +714,15 @@ Those come after the engine is proven.
 
 ## Risk Register
 
-| Risk | Severity | Mitigation | POC |
-|------|----------|------------|-----|
-| MCP transport doesn't work on Lambda | HIGH | Test early in POC 1; fallback to direct HTTP if needed | 1 |
-| DynamoDB Streams latency too high | MEDIUM | Measure in POC 2; alternative: direct Lambda invoke | 2 |
-| Murder LLM judgment is unreliable | HIGH | Iterate on system prompt in POC 3; add structured output | 3 |
-| Cold starts kill responsiveness | MEDIUM | Provisioned concurrency for Murder; measure in POC 1 | 1,3 |
-| Crow Lambda hits 15-min timeout | LOW | Simple test tasks won't hit it; Fargate path exists | 3,4 |
-| Cost per execution too high | MEDIUM | Budget constraints in CrowTask; measure in all POCs | 1-4 |
-| GitHub API rate limiting | LOW | Use installation tokens; cache reads | 1,4 |
+| Risk                                 | Severity | Mitigation                                               | POC |
+| ------------------------------------ | -------- | -------------------------------------------------------- | --- |
+| MCP transport doesn't work on Lambda | HIGH     | Test early in POC 1; fallback to direct HTTP if needed   | 1   |
+| DynamoDB Streams latency too high    | MEDIUM   | Measure in POC 2; alternative: direct Lambda invoke      | 2   |
+| Murder LLM judgment is unreliable    | HIGH     | Iterate on system prompt in POC 3; add structured output | 3   |
+| Cold starts kill responsiveness      | MEDIUM   | Provisioned concurrency for Murder; measure in POC 1     | 1,3 |
+| Crow Lambda hits 15-min timeout      | LOW      | Simple test tasks won't hit it; Fargate path exists      | 3,4 |
+| Cost per execution too high          | MEDIUM   | Budget constraints in CrowTask; measure in all POCs      | 1-4 |
+| GitHub API rate limiting             | LOW      | Use installation tokens; cache reads                     | 1,4 |
 
 ---
 

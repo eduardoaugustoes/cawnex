@@ -19,7 +19,7 @@ except ImportError as e:
 
 try:
     import json
-    print("✅ json - OK") 
+    print("✅ json - OK")
 except ImportError as e:
     print(f"❌ json - FAILED: {e}")
 
@@ -50,6 +50,6 @@ except Exception as e:
 
 print("\n🏰 All imports working! Ready to start with Telegram token.")
 print("\nNext steps:")
-print("1. Get token from @BotFather on Telegram") 
+print("1. Get token from @BotFather on Telegram")
 print("2. export TELEGRAM_BOT_TOKEN='your_token'")
 print("3. ./start.sh")

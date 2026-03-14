@@ -26,6 +26,7 @@
 ## 🤖 AgentOps — The System
 
 ### Origin
+
 Born from RevBridge's real need: scale development without scaling the team proportionally. Started as CLI experiments, evolved into a full orchestration platform.
 
 ### The 7 Agents
@@ -39,6 +40,7 @@ Born from RevBridge's real need: scale development without scaling the team prop
 7. **Security** — SAST/DAST vulnerability scanning, best practices
 
 ### Orchestrator ("The Murder")
+
 - Receives events via **Kafka**
 - Uses **NLM-DFA** (LLM + Deterministic Finite Automaton) to understand logical flow across repositories
 - Based on a pen-testing research paper (Shannon-based implementation)
@@ -48,11 +50,13 @@ Born from RevBridge's real need: scale development without scaling the team prop
 - Coordinates **synchronized PRs** across multiple repos
 
 ### Communication
+
 - Agents communicate via **Kafka + Redis**
 - Real-time streaming via **SSE (Server-Sent Events)** to dashboard
 - Agent-to-agent messages ("caws") share context and coordinate
 
 ### Git Workflow
+
 - Each agent creates a **worktree** (not a feature branch)
 - Worktrees provide full isolation — agents don't interfere with each other
 - PRs are synchronized across repos — all merge together or none do
@@ -60,6 +64,7 @@ Born from RevBridge's real need: scale development without scaling the team prop
 - GitOps: everything goes through git, IAC applied via ArgoCD
 
 ### Smart Retry
+
 - Not blind retry — understands the execution tree
 - Verifies if there was an interaction between messages
 - Uses context and docs to determine if retry makes sense
@@ -69,12 +74,14 @@ Born from RevBridge's real need: scale development without scaling the team prop
 ## 📊 Real Production Numbers
 
 ### Demo environment (Task Manager project)
+
 - 17 executions (7 days)
 - 76.47% success rate
 - 2 PRs created
 - $2.10 total cost (~$0.15/exec)
 
 ### Production (RevBridge)
+
 - 174 executions (7 days)
 - 58.05% success rate
 - 33 PRs created
@@ -83,32 +90,34 @@ Born from RevBridge's real need: scale development without scaling the team prop
 - 57 failed (learning/iterating)
 
 ### QA Performance
+
 - Execution #197: 2m 48s for full QA review
 - Tasks: get diff, review against acceptance criteria, TypeScript check, fix issues, deliver result
 - Compare: 30+ minutes for a human reviewer
 
 ## 🔧 Tech Stack (Confirmed)
 
-| Component | Technology |
-|-----------|-----------|
-| AI Engine | Claude Agent SDK (Anthropic) — Opus 4.6 complex, Haiku light |
-| Backend | FastAPI + Python |
-| Database | MySQL (primary), PostgreSQL (some services) |
-| Cache | Redis |
-| Message Bus | Kafka (real-time events), Redis (queues) |
-| Analytics DB | ClickHouse |
-| Frontend | React + Vite + shadcn/ui |
-| Infra | Kubernetes + ArgoCD + IAC |
-| Observability | Datadog |
-| Issue Tracker | Linear |
-| Git | GitLab (primary), GitHub (some projects) |
-| Notifications | Slack |
-| Custom CLI | `rbd` — scale, promote, diff, commit, kubectl wrapper |
-| Auth | OAuth with auto-refresh (GitLab tokens expire every 2h) |
+| Component     | Technology                                                   |
+| ------------- | ------------------------------------------------------------ |
+| AI Engine     | Claude Agent SDK (Anthropic) — Opus 4.6 complex, Haiku light |
+| Backend       | FastAPI + Python                                             |
+| Database      | MySQL (primary), PostgreSQL (some services)                  |
+| Cache         | Redis                                                        |
+| Message Bus   | Kafka (real-time events), Redis (queues)                     |
+| Analytics DB  | ClickHouse                                                   |
+| Frontend      | React + Vite + shadcn/ui                                     |
+| Infra         | Kubernetes + ArgoCD + IAC                                    |
+| Observability | Datadog                                                      |
+| Issue Tracker | Linear                                                       |
+| Git           | GitLab (primary), GitHub (some projects)                     |
+| Notifications | Slack                                                        |
+| Custom CLI    | `rbd` — scale, promote, diff, commit, kubectl wrapper        |
+| Auth          | OAuth with auto-refresh (GitLab tokens expire every 2h)      |
 
 ## 🧠 Key Technical Insights
 
 ### NLM-DFA (Critical Architecture Piece)
+
 - Uses LLM with natural language to understand the "logical flow" inside an application
 - Based on a pen-testing paper that used LLM-DFA for repository analysis
 - The orchestrator uses this to understand how changes in one repo affect others
@@ -116,17 +125,20 @@ Born from RevBridge's real need: scale development without scaling the team prop
 - Luiz: "The NLM-DFA is what allowed me to use the LLM to understand the logical flow inside the application"
 
 ### The "Debozo" Technique
+
 - Repeat the prompt 2x in the same context
 - Claims 70-80% more consistency in responses
 - Used in critical prompts where accuracy matters
 
 ### Hallucination Prevention
+
 - Orchestrator monitors streaming output in real-time
 - Detects when agent starts creating things that "don't make sense"
 - Auto-cancels execution when hallucination detected
 - Luiz experienced this: "The AI started creating things that made no sense, started solving problems that didn't exist"
 
 ### Worktrees vs Feature Branches
+
 - Almost migrated to monorepo (came very close one night)
 - Decided worktrees give the same isolation benefit
 - Each agent gets an "org tree" — a copy of the repo
@@ -134,24 +146,29 @@ Born from RevBridge's real need: scale development without scaling the team prop
 - Result would be identical to monorepo approach
 
 ### CLI → SDK Evolution (Strangler Fig Pattern)
+
 1. **Phase 1**: Claude CLI as subprocess, parsing output with regex
 2. **Phase 2**: Gradual migration — new executions use SDK, old ones stay on CLI
 3. **Phase 3**: Full SDK with structured output, native metrics, sub-agent support
 4. **Phase 4**: Feature flags per organization with instant rollback
+
 - Key lesson: "The subprocess with regex worked in production for months"
 
 ### Subscription vs API Tokens
+
 - Uses Anthropic Max subscription (~R$2000/month)
 - Much cheaper than per-token API billing at their volume
 - Allows running multiple Claude sessions simultaneously
 
 ### Junior + AI = Danger
+
 - Junior devs feel empowered but create solutions that break in production
 - "They can make MVPs but when it goes to production — security issues, DB problems, latency, queues breaking"
 - Need senior experience to guide the AI effectively
 - Luiz's analogy: "AI is a super nerdy junior — knows all patterns but you need to give it direction"
 
 ### Rollback Stories
+
 - Had to do full rollback ~5 times
 - Worst case: scaled up, lost DB connection overnight, massive error logs
 - Strategy: `git reset` to last working version, investigate later

@@ -2,7 +2,10 @@
   "mcpServers": {
     "monarch": {
       "command": "python3",
-      "args": ["/absolute/path/to/cawnex/mcp-monarch/venv/bin/python", "/absolute/path/to/cawnex/mcp-monarch/src/monarch.py"],
+      "args": [
+        "/absolute/path/to/cawnex/mcp-monarch/venv/bin/python",
+        "/absolute/path/to/cawnex/mcp-monarch/src/monarch.py"
+      ],
       "env": {
         "PYTHONPATH": "/absolute/path/to/cawnex/mcp-monarch/src"
       }

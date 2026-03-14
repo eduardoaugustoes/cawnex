@@ -13,6 +13,7 @@
 **Input**: Issue title + description (from Linear/GitHub/Jira)
 
 **Output**:
+
 - Refined user story (As a..., I want..., So that...)
 - Acceptance criteria (Given/When/Then)
 - Technical notes (approach suggestions)
@@ -22,6 +23,7 @@
 **Model**: Opus (needs deep reasoning)
 
 **System Prompt Includes**:
+
 - Repository structure knowledge (from CAWNEX.md files)
 - API contracts between services
 - Tech stack constraints
@@ -40,6 +42,7 @@
 **Input**: Approved user story + acceptance criteria + assigned repository
 
 **Output**:
+
 - Code changes in a worktree
 - Passing tests (if test framework exists)
 - Pull Request with descriptive title/body
@@ -47,6 +50,7 @@
 **Model**: Opus (code generation needs highest quality)
 
 **System Prompt Includes**:
+
 - Repository-specific CAWNEX.md
 - Language/framework conventions
 - Existing code patterns (auto-detected)
@@ -55,6 +59,7 @@
 **When it runs**: After human approves refined issue.
 
 **Capabilities**:
+
 - Read files, write files, execute shell commands
 - Create git worktree
 - Install dependencies
@@ -63,6 +68,7 @@
 - Open Pull Request via GitHub API
 
 **Guardrails**:
+
 - Cannot push to main/master directly
 - Cannot delete branches
 - Cannot modify CI/CD config (security boundary)
@@ -80,6 +86,7 @@
 **Input**: Pull Request URL + original acceptance criteria
 
 **Output**:
+
 - Review result (approved/changes_requested)
 - Comments on specific lines (if issues found)
 - Summary of what was checked
@@ -87,6 +94,7 @@
 **Model**: Sonnet (review is faster, less generation needed)
 
 **Workflow**:
+
 1. Get diff from main..HEAD
 2. Review changed files against acceptance criteria
 3. Run type checks (if applicable)
@@ -97,6 +105,7 @@
 **When it runs**: After Dev Crow opens PR.
 
 **Guardrails**:
+
 - Read-only access to main branch
 - Can push fixes to the PR branch
 - Cannot merge PRs (orchestrator handles merge)
@@ -111,6 +120,7 @@
 **Input**: Merged PR + diff + repository docs structure
 
 **Output**:
+
 - Updated documentation files
 - New documentation if new features
 - Commit directly to main (or separate PR if configured)
@@ -120,6 +130,7 @@
 **When it runs**: After PR is merged.
 
 **What it updates**:
+
 - README.md
 - API documentation
 - Configuration docs
@@ -127,7 +138,8 @@
 - Architecture decision records
 
 **Guardrails**:
-- Can only modify documentation files (*.md, docs/*, etc.)
+
+- Can only modify documentation files (_.md, docs/_, etc.)
 - Cannot modify source code
 - Max execution time: 3 minutes
 
@@ -136,24 +148,29 @@
 ## V2 Agents (Post-MVP)
 
 ### ⚙️ Backend Crow (split from Dev)
+
 - Focuses on server code, APIs, DB migrations
 - Communicates API contracts to Frontend Crow
 
 ### 🖥️ Frontend Crow (split from Dev)
+
 - Focuses on UI components, pages, styling
 - Receives API contracts from Backend Crow
 
 ### 📱 Mobile Crow
+
 - iOS/Android specific implementations
 - React Native / Expo / Swift / Kotlin
 
 ### 🔒 Security Crow
+
 - SAST/DAST scanning
 - Dependency vulnerability checks
 - Secret detection
 - Security best practices review
 
 ### 📋 Planning Crow
+
 - Breaks epics into smaller issues
 - Estimates complexity
 - Maps dependencies between issues
@@ -169,6 +186,7 @@ Each repository should have a `CAWNEX.md` file at the root:
 # CAWNEX.md — Repository Agent Instructions
 
 ## Repository
+
 - **Name**: my-api
 - **Type**: backend
 - **Language**: Python 3.12
@@ -177,6 +195,7 @@ Each repository should have a `CAWNEX.md` file at the root:
 - **Test Framework**: pytest
 
 ## Structure
+
 - `src/` — Source code
 - `src/routes/` — API endpoints
 - `src/models/` — Database models
@@ -185,6 +204,7 @@ Each repository should have a `CAWNEX.md` file at the root:
 - `docs/` — Documentation
 
 ## Conventions
+
 - Use type hints everywhere
 - All endpoints need input validation (Pydantic)
 - All DB queries go through repository pattern
@@ -192,10 +212,12 @@ Each repository should have a `CAWNEX.md` file at the root:
 - Use `ruff` for linting
 
 ## API Contracts
+
 - Exports: `GET /api/v1/users`, `POST /api/v1/tasks`
 - Consumes: auth-service `/api/v1/auth/verify`
 
 ## Do NOT
+
 - Modify alembic migration files manually
 - Change database schema without migration
 - Use raw SQL queries
@@ -239,13 +261,13 @@ Backend Crow ←→ Frontend Crow  (API contract sync)
 
 ### Message Types
 
-| Type | Direction | Description |
-|------|-----------|-------------|
-| `issue_assigned` | Orchestrator → Agent | Start working on this |
-| `context_shared` | Orchestrator → Agent | Here's context from another agent |
-| `pr_ready` | Agent → Orchestrator | PR created, ready for QA |
-| `review_complete` | QA → Orchestrator | Approved or changes requested |
-| `fix_applied` | Agent → Orchestrator | Applied fixes from review |
-| `execution_complete` | Agent → Orchestrator | Done |
-| `execution_failed` | Agent → Orchestrator | Failed with error |
-| `heartbeat` | Agent → Orchestrator | Still alive (every 30s) |
+| Type                 | Direction            | Description                       |
+| -------------------- | -------------------- | --------------------------------- |
+| `issue_assigned`     | Orchestrator → Agent | Start working on this             |
+| `context_shared`     | Orchestrator → Agent | Here's context from another agent |
+| `pr_ready`           | Agent → Orchestrator | PR created, ready for QA          |
+| `review_complete`    | QA → Orchestrator    | Approved or changes requested     |
+| `fix_applied`        | Agent → Orchestrator | Applied fixes from review         |
+| `execution_complete` | Agent → Orchestrator | Done                              |
+| `execution_failed`   | Agent → Orchestrator | Failed with error                 |
+| `heartbeat`          | Agent → Orchestrator | Still alive (every 30s)           |

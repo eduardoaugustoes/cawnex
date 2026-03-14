@@ -5,81 +5,81 @@
     // ================================
     // TYPE CHECKING - ULTRA STRICT
     // ================================
-    "strict": true,                              // Enable all strict type checking options
-    "noImplicitAny": true,                      // Error on expressions with an implied 'any' type
-    "strictNullChecks": true,                   // Enable strict null checks
-    "strictFunctionTypes": true,                // Enable strict checking of function types
-    "strictBindCallApply": true,                // Enable strict 'bind', 'call', and 'apply' methods
-    "strictPropertyInitialization": true,       // Enable strict checking of property initialization
-    "noImplicitThis": true,                     // Error on 'this' expressions with an implied 'any' type
-    "alwaysStrict": true,                       // Parse in strict mode and emit "use strict"
-    "useUnknownInCatchVariables": true,         // Default catch clause variables as 'unknown' instead of 'any'
-    "exactOptionalPropertyTypes": true,         // Interpret optional properties exactly as written
-    "noUncheckedIndexedAccess": true,           // Include 'undefined' in index signature results
+    "strict": true, // Enable all strict type checking options
+    "noImplicitAny": true, // Error on expressions with an implied 'any' type
+    "strictNullChecks": true, // Enable strict null checks
+    "strictFunctionTypes": true, // Enable strict checking of function types
+    "strictBindCallApply": true, // Enable strict 'bind', 'call', and 'apply' methods
+    "strictPropertyInitialization": true, // Enable strict checking of property initialization
+    "noImplicitThis": true, // Error on 'this' expressions with an implied 'any' type
+    "alwaysStrict": true, // Parse in strict mode and emit "use strict"
+    "useUnknownInCatchVariables": true, // Default catch clause variables as 'unknown' instead of 'any'
+    "exactOptionalPropertyTypes": false, // Disable for CDK compatibility (AWS constructs have loose optional typing)
+    "noUncheckedIndexedAccess": true, // Include 'undefined' in index signature results
 
     // ================================
     // ADDITIONAL STRICT CHECKS
     // ================================
-    "noUnusedLocals": true,                     // Error when local variables aren't used
-    "noUnusedParameters": true,                 // Error when function parameters aren't used
-    "noImplicitReturns": true,                  // Error when not all code paths in function return a value
-    "noFallthroughCasesInSwitch": true,         // Error for fallthrough cases in switch statements
-    "noImplicitOverride": true,                 // Ensure overriding members are marked with 'override'
-    "allowUnreachableCode": false,              // Error on unreachable code
-    "allowUnusedLabels": false,                 // Error on unused labels
+    "noUnusedLocals": true, // Error when local variables aren't used
+    "noUnusedParameters": true, // Error when function parameters aren't used
+    "noImplicitReturns": true, // Error when not all code paths in function return a value
+    "noFallthroughCasesInSwitch": true, // Error for fallthrough cases in switch statements
+    "noImplicitOverride": true, // Ensure overriding members are marked with 'override'
+    "allowUnreachableCode": false, // Error on unreachable code
+    "allowUnusedLabels": false, // Error on unused labels
 
     // ================================
     // MODULE SYSTEM
     // ================================
-    "target": "ES2022",                         // Latest ECMAScript features
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],   // Standard library to include
-    "module": "NodeNext",                       // Module system
-    "moduleResolution": "NodeNext",             // Module resolution strategy
-    "esModuleInterop": true,                    // Enables interop between CommonJS and ES modules
-    "allowSyntheticDefaultImports": true,       // Allow default imports from modules without default export
-    "forceConsistentCasingInFileNames": true,   // Ensure consistent casing in file names
-    "verbatimModuleSyntax": true,               // Do not transform or elide imports/exports
+    "target": "ES2022", // Latest ECMAScript features
+    "lib": ["ES2022", "DOM", "DOM.Iterable"], // Standard library to include
+    "module": "NodeNext", // Module system
+    "moduleResolution": "NodeNext", // Module resolution strategy
+    "esModuleInterop": true, // Enables interop between CommonJS and ES modules
+    "allowSyntheticDefaultImports": true, // Allow default imports from modules without default export
+    "forceConsistentCasingInFileNames": true, // Ensure consistent casing in file names
+    "verbatimModuleSyntax": false, // Allow TypeScript to transform imports for CDK compatibility
 
     // ================================
     // TYPE RESOLUTION
     // ================================
-    "declaration": true,                        // Generate .d.ts files
-    "declarationMap": true,                     // Generate .d.ts.map files
-    "skipLibCheck": false,                      // Type-check all .d.ts files (strict!)
-    "resolveJsonModule": true,                  // Allow importing JSON files
+    "declaration": true, // Generate .d.ts files
+    "declarationMap": true, // Generate .d.ts.map files
+    "skipLibCheck": false, // Type-check all .d.ts files (strict!)
+    "resolveJsonModule": true, // Allow importing JSON files
 
     // ================================
-    // OUTPUT CONFIGURATION  
+    // OUTPUT CONFIGURATION
     // ================================
-    "outDir": "./dist",                         // Output directory
-    "rootDir": "./src",                         // Root directory of source files
-    "sourceMap": true,                          // Generate .map files
-    "removeComments": false,                    // Keep comments for better debugging
-    "newLine": "lf",                           // Use LF line endings
+    "outDir": "./dist", // Output directory
+    "rootDir": "./src", // Root directory of source files
+    "sourceMap": true, // Generate .map files
+    "removeComments": false, // Keep comments for better debugging
+    "newLine": "lf", // Use LF line endings
 
     // ================================
     // ADVANCED FEATURES
     // ================================
-    "experimentalDecorators": false,            // Disable experimental decorators (prefer standard)
-    "emitDecoratorMetadata": false,             // Disable decorator metadata
-    "downlevelIteration": true,                 // Provide full support for iterables
+    "experimentalDecorators": false, // Disable experimental decorators (prefer standard)
+    "emitDecoratorMetadata": false, // Disable decorator metadata
+    "downlevelIteration": true, // Provide full support for iterables
 
     // ================================
     // ERROR REPORTING
     // ================================
-    "listEmittedFiles": false,                  // Print names of generated files
-    "listFiles": false,                         // Print names of files processed
-    "traceResolution": false,                   // Trace module resolution
-    "pretty": true,                             // Use colors and formatting in output
+    "listEmittedFiles": false, // Print names of generated files
+    "listFiles": false, // Print names of files processed
+    "traceResolution": false, // Trace module resolution
+    "pretty": true, // Use colors and formatting in output
 
     // ================================
     // INCREMENTAL COMPILATION
     // ================================
-    "incremental": true,                        // Enable incremental compilation
-    "composite": true,                          // Enable project references
-    "tsBuildInfoFile": "./dist/.tsbuildinfo"    // Location for build info file
+    "incremental": true, // Enable incremental compilation
+    "composite": true, // Enable project references
+    "tsBuildInfoFile": "./dist/.tsbuildinfo" // Location for build info file
   },
-  
+
   "exclude": [
     "node_modules",
     "dist",
@@ -90,10 +90,6 @@
   ],
 
   "watchOptions": {
-    "excludeDirectories": [
-      "node_modules",
-      "dist",
-      "build"
-    ]
+    "excludeDirectories": ["node_modules", "dist", "build"]
   }
 }

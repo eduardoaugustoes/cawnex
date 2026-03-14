@@ -262,25 +262,25 @@ def gather_code_context(worktree_dir: str, max_files: int = 30) -> str:
 def gather_reviewer_context(worktree_dir: str, base_branch: str = "main") -> str:
     """Optimized context for reviewer: only git diff + modified files."""
     context_parts = []
-    
+
     try:
         # 1. Git diff summary (files changed, lines added/removed)
         diff_summary = run_git(f"git diff --stat {base_branch}..HEAD", cwd=worktree_dir)
         if diff_summary.strip():
             context_parts.append(f"## Changes Summary\n```\n{diff_summary}\n```\n")
-        
+
         # 2. Full diff content showing exact changes
         diff_content = run_git(f"git diff {base_branch}..HEAD", cwd=worktree_dir)
         if diff_content.strip():
             context_parts.append(f"## Git Diff\n```diff\n{diff_content}\n```\n")
-        
+
         # 3. Modified files for context (max 10 files)
         modified_files_cmd = run_git(f"git diff --name-only {base_branch}..HEAD", cwd=worktree_dir)
         modified_files = [f.strip() for f in modified_files_cmd.split('\n') if f.strip()]
-        
+
         if modified_files:
             context_parts.append(f"## Modified Files ({len(modified_files)} files)")
-            
+
             files_read = 0
             for filepath in modified_files[:10]:  # Limit to 10 modified files
                 fullpath = os.path.join(worktree_dir, filepath)
@@ -296,17 +296,17 @@ def gather_reviewer_context(worktree_dir: str, base_branch: str = "main") -> str
                         files_read += 1
                     except Exception as e:
                         context_parts.append(f"### {filepath}\n*Could not read: {e}*\n")
-        
+
         context_text = "\n\n".join(context_parts)
-        
+
         log_event("", "gather_reviewer_context",
                   worktree_dir=worktree_dir,
                   modified_files=len(modified_files),
                   files_read=files_read,
                   context_bytes=len(context_text))
-        
+
         return context_text
-        
+
     except Exception as e:
         logger.error(f"Error gathering reviewer context: {e}")
         # Fallback to regular context if git operations fail
@@ -344,7 +344,7 @@ Output a JSON object:
     "reviewer": """You are a reviewer crow. Review the git diff and code changes.
 
 You will receive:
-- Changes summary (files modified, lines added/removed)  
+- Changes summary (files modified, lines added/removed)
 - Full git diff showing exact changes
 - Content of modified files for context
 

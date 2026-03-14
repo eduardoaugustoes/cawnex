@@ -60,7 +60,7 @@ jobs:
         run: |
           echo "::group::🔒 Production Quality Validation"
           echo "🎯 Running ultra-strict quality checks for PRODUCTION deployment..."
-          
+
           # Check if quality control script exists and run it
           if [ -f "./scripts/quality-control.sh" ]; then
             chmod +x ./scripts/quality-control.sh
@@ -154,7 +154,7 @@ jobs:
           DOMAIN_NAME: ${{ inputs.stage == 'prod' && 'cawnex.ai' || '' }}
         run: |
           cd infra
-          
+
           # Deploy Auth Stack
           if [ "${{ inputs.stage }}" = "prod" ]; then
             npx cdk deploy CawnexAuthStack-${{ inputs.stage }} \
@@ -169,8 +169,8 @@ jobs:
               --require-approval never \
               --outputs-file ../auth-outputs.json
           fi
-          
-          # Deploy Main Stack  
+
+          # Deploy Main Stack
           if [ "${{ inputs.stage }}" = "prod" ]; then
             npx cdk deploy Cawnex-${{ inputs.stage }} \
               --context stage=${{ inputs.stage }} \

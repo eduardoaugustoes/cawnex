@@ -20,6 +20,7 @@
 **Purpose:** App launch, brand moment.
 
 **Layout:**
+
 - Full-screen centered, `$--background`
 - Logo container (centered vertically + horizontally)
 - Crow logo animation
@@ -27,6 +28,7 @@
 **Data:** None.
 
 **Actions:**
+
 - Auto-transition → S02 Sign In (after animation)
 
 **Navigation:** S01 → S02
@@ -38,6 +40,7 @@
 **Purpose:** Authentication entry point.
 
 **Layout:**
+
 - StatusBar
 - Content area (centered vertically, 32px horizontal padding)
   - Logo + app name
@@ -69,6 +72,7 @@
 **Purpose:** Global home. Shows all projects with progress and budget at a glance.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content (16px top, 20px sides)
   - **Header:** greeting + user name | bell button (→ S70) + add button (→ S11)
@@ -114,8 +118,10 @@
 **Purpose:** Manage all Murders across projects. Browse marketplace for templates.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content
+
   - **Header:** "Murders" title + "+ New" button (→ S41)
   - **Your Murders section:**
     - **Murder Card** (repeated):
@@ -161,8 +167,10 @@
 **Purpose:** Skill library — reusable capabilities attached to Crows. Browse + marketplace.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content
+
   - **Header:** "Skills" title + "+ New Skill" button (→ S51)
   - Description: "Skills define what crows can do. Attach skills to murders to shape their capabilities."
   - **Filter Chips:** All (active) | Dev | Editorial | Social | Custom
@@ -208,6 +216,7 @@
 **Purpose:** Account settings, billing access, integrations.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content
   - **Header:** "Settings" title
@@ -235,6 +244,7 @@
 **Purpose:** Quick project creation. Minimal fields — AI refines during Vision setup.
 
 **Layout:**
+
 - StatusBar
 - NavBarModal (Cancel / New Project / Create)
 - Scroll Content (24px top, 20px sides)
@@ -273,6 +283,7 @@
 **Purpose:** Actionable notification center. Founder's inbox for approvals, alerts, and status updates.
 
 **Layout:**
+
 - StatusBar
 - NavBarBack (← Notifications)
 - **Filter Tabs:** All (active) | Action | Info
@@ -322,6 +333,7 @@
 **Purpose:** Define a new Crow — identity, model, skills, personality, constraints.
 
 **Layout:**
+
 - StatusBar
 - NavBarModal (Cancel / New Crow / Save)
 - Scroll Content (20px sides, 28px section gaps)
@@ -381,9 +393,11 @@
 **Purpose:** Configure a Murder — identity, crows, coordination flow, quality gates, escalation, budget.
 
 **Layout:**
+
 - StatusBar
 - NavBarModal (Cancel / New Murder / Save)
 - Scroll Content (20px sides, 28px section gaps)
+
   - **IDENTITY section:**
     - Name field
     - Type picker (Dev | Editorial | Social | Infra | Data | Custom)
@@ -405,7 +419,7 @@
       - Step card: # badge + crow name + role + produces/requires labels
     - Visual chain: Step 1 → Step 2 → Step 3 → Step 4
 
-  *(scrolled variation S41 continues below)*
+  _(scrolled variation S41 continues below)_
 
   - **QUALITY GATES section:**
     - Card with toggle rows:
@@ -456,9 +470,11 @@
 **Purpose:** Define a new Skill — identity, input schema, behavior, security, execution, test.
 
 **Layout:**
+
 - StatusBar
 - NavBarModal (Cancel / New Skill / Save)
 - Scroll Content (20px sides, 28px section gaps)
+
   - **IDENTITY section:**
     - Name field (slug: `read-file`)
     - Display Name field ("Read File")
@@ -476,7 +492,7 @@
       - Destructive (off) — "Irreversible changes"
       - Idempotent (on) — "Safe to retry"
 
-  *(scrolled variation S51 continues below)*
+  _(scrolled variation S51 continues below)_
 
   - **SECURITY & PERMISSIONS section:**
     - Card with:
@@ -541,6 +557,7 @@
 **Purpose:** Central routing screen for a project. Stats overview, document cards, backlog pipeline, assigned murders, cost footer.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content (8px top, 20px sides)
   - **Nav Row:** ← back + project name | dashboard icon
@@ -609,6 +626,7 @@
 **Purpose:** ROI dashboard, credit balance, usage breakdown, per-project budgets, per-crow costs.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content (8px top, 20px sides)
   - **Nav Row:** ← back + "Credits & Billing"
@@ -662,6 +680,7 @@
 **Purpose:** AI-guided conversational document builder for project vision. Purple accent (#7C3AED).
 
 **Layout:**
+
 - StatusBar
 - Scroll Content (8px top, 20px sides)
   - **Nav Row:** ← back + "Vision" | status chip (e.g., "3/6 sections")
@@ -689,6 +708,7 @@
 | chatMessages | array | [{role, content, timestamp}] |
 
 **Sections (Vision):**
+
 1. Problem Statement
 2. Target User
 3. Core Value Proposition
@@ -716,6 +736,7 @@
 **Layout:** Same as S20 with blue accent color.
 
 **Sections (Architecture):**
+
 1. System Overview
 2. Core Services
 3. Data Model
@@ -745,6 +766,7 @@
 **Layout:** Same chat pattern as S20 with orange accent. Visual sections with color swatches, typography preview, spacing tokens.
 
 **Sections (Design System):**
+
 1. Color Palette
 2. Typography
 3. Spacing & Layout
@@ -760,6 +782,7 @@
 **Purpose:** Milestone list with expandable goals. The roadmap view.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content (8px top, 20px sides)
   - **Nav Row:** ← back + "Backlog" | "+ Milestone" button
@@ -798,6 +821,7 @@
 **Purpose:** AI-guided milestone refinement. Shows goals and progress.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content (8px top, 20px sides)
   - Nav Row: ← back + milestone name
@@ -816,6 +840,7 @@
 **Purpose:** Show MVIs within a goal. ROI per MVI. Approve/Steer/Reject flow.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content (8px top, 20px sides)
   - **Nav Row:** ← back + goal name
@@ -872,6 +897,7 @@
 **Purpose:** Live execution monitor. The founder's real-time window into Murder orchestration. Tasks, crows, live feed, merge readiness, ship.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content (8px top, 20px sides)
   - **Nav Row:** ← back + MVI name
@@ -937,9 +963,11 @@
 **Purpose:** AI-guided PR review. Not code inspection — question/steering with plan vs execution comparison. No raw diffs on mobile.
 
 **Layout:**
+
 - StatusBar
 - NavBarBack (← PR Review)
 - Scroll Content (12px top, 20px sides)
+
   - **PR Header Card:**
     - Title: "Add input validation for user registration endpoint"
     - Branch: `feat/input-validation`
@@ -972,7 +1000,7 @@
       - "Is this RFC 5322 issue a risk?"
       - "What would break if I merge?"
 
-  *(scrolled variation S34 continues below)*
+  _(scrolled variation S34 continues below)_
 
   - More Plan vs Execution steps (Step 3 — Reviewer)
   - **AI Conversation:**
@@ -1031,6 +1059,7 @@
 **Purpose:** Single task deep-dive. Estimates, implementation plan, acceptance criteria, PR link.
 
 **Layout:**
+
 - StatusBar
 - Scroll Content (8px top, 20px sides)
   - **Nav Row:** ← back + task name
@@ -1086,64 +1115,67 @@
 ## Scrolled Variations
 
 ### S41 scrolled — Create Murder (scrolled)
+
 Shows the bottom sections visible in viewport: Quality Gates, Escalation Rules, Budget Limits. Same data model as S41.
 
 ### S51 scrolled — Add Skill (scrolled)
+
 Shows Security & Permissions, Execution, and Test sections visible in viewport. Same data model as S51.
 
 ### S34 scrolled — PR Review (scrolled)
+
 Shows the AI conversation thread (user question + crow answer with risk badge), input bar, and action bar. Same data model as S34.
 
 ---
 
 ## API Summary
 
-| Endpoint | Method | Screen |
-|----------|--------|--------|
-| `/auth/sign-in` | POST | S02 |
-| `/projects` | GET | S10 |
-| `/projects` | POST | S11 |
-| `/projects/:id` | GET | S12 |
-| `/projects/:id/documents/:type/chat` | POST | S20-S23 |
-| `/projects/:id/milestones` | GET | S24 |
-| `/projects/:id/milestones/:id` | GET | S30 |
-| `/projects/:id/goals/:id` | GET | S31 |
-| `/projects/:id/mvis/:id` | GET | S32 |
-| `/projects/:id/mvis/:id/ship` | POST | S32 |
-| `/projects/:id/tasks/:id` | GET | S33 |
-| `/prs/:id` | GET | S34 |
-| `/prs/:id/approve` | POST | S34 |
-| `/prs/:id/steer` | POST | S34 |
-| `/prs/:id/reject` | POST | S34 |
-| `/murders` | GET | S40 |
-| `/murders` | POST | S41 |
-| `/murders/:id` | PUT | S41 |
-| `/murders/:id/crows` | POST | S42 |
-| `/skills` | GET | S50 |
-| `/skills` | POST | S51 |
-| `/skills/:id` | PUT | S51 |
-| `/billing/credits` | GET | S61 |
-| `/billing/usage` | GET | S61 |
-| `/notifications` | GET | S70 |
-| `/notifications/:id/actions/:action` | POST | S70 |
+| Endpoint                             | Method | Screen  |
+| ------------------------------------ | ------ | ------- |
+| `/auth/sign-in`                      | POST   | S02     |
+| `/projects`                          | GET    | S10     |
+| `/projects`                          | POST   | S11     |
+| `/projects/:id`                      | GET    | S12     |
+| `/projects/:id/documents/:type/chat` | POST   | S20-S23 |
+| `/projects/:id/milestones`           | GET    | S24     |
+| `/projects/:id/milestones/:id`       | GET    | S30     |
+| `/projects/:id/goals/:id`            | GET    | S31     |
+| `/projects/:id/mvis/:id`             | GET    | S32     |
+| `/projects/:id/mvis/:id/ship`        | POST   | S32     |
+| `/projects/:id/tasks/:id`            | GET    | S33     |
+| `/prs/:id`                           | GET    | S34     |
+| `/prs/:id/approve`                   | POST   | S34     |
+| `/prs/:id/steer`                     | POST   | S34     |
+| `/prs/:id/reject`                    | POST   | S34     |
+| `/murders`                           | GET    | S40     |
+| `/murders`                           | POST   | S41     |
+| `/murders/:id`                       | PUT    | S41     |
+| `/murders/:id/crows`                 | POST   | S42     |
+| `/skills`                            | GET    | S50     |
+| `/skills`                            | POST   | S51     |
+| `/skills/:id`                        | PUT    | S51     |
+| `/billing/credits`                   | GET    | S61     |
+| `/billing/usage`                     | GET    | S61     |
+| `/notifications`                     | GET    | S70     |
+| `/notifications/:id/actions/:action` | POST   | S70     |
 
 ---
 
 ## Real-Time Connections
 
-| Screen | Protocol | Purpose |
-|--------|----------|---------|
-| S32 MVI Blackboard | SSE | Live feed events, crow state changes, task status updates |
-| S34 PR Review | SSE | AI conversation streaming |
-| S70 Notifications | Push + SSE | New notification alerts |
-| S10 Dashboard | SSE | Project status updates (optional) |
+| Screen             | Protocol   | Purpose                                                   |
+| ------------------ | ---------- | --------------------------------------------------------- |
+| S32 MVI Blackboard | SSE        | Live feed events, crow state changes, task status updates |
+| S34 PR Review      | SSE        | AI conversation streaming                                 |
+| S70 Notifications  | Push + SSE | New notification alerts                                   |
+| S10 Dashboard      | SSE        | Project status updates (optional)                         |
 
 ---
 
 ## Pending Screens (Post-MVP)
 
-| ID | Screen | Purpose |
-|----|--------|---------|
-| S03 | Onboarding | First-run experience (project wizard, LLM setup) |
-| S35 | Deployment | Post-merge Infra Crow deploy flow (inside S32) |
-| S62 | Purchase Credits | Payment flow (Stripe) |
+| ID  | Screen           | Purpose                                          |
+| --- | ---------------- | ------------------------------------------------ |
+| S03 | Onboarding       | First-run experience (project wizard, LLM setup) |
+| S35 | Deployment       | Post-merge Infra Crow deploy flow (inside S32)   |
+| S62 | Purchase Credits | Payment flow (Stripe)                            |

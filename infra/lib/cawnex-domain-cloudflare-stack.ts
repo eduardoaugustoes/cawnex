@@ -11,7 +11,11 @@ export class CawnexDomainCloudflareStack extends cdk.Stack {
   /** SES Domain Identity for email sending */
   public readonly sesIdentity: ses.EmailIdentity;
 
-  constructor(scope: Construct, id: string, props: CawnexDomainCloudflareStackProps) {
+  constructor(
+    scope: Construct,
+    id: string,
+    props: CawnexDomainCloudflareStackProps
+  ) {
     super(scope, id, props);
 
     const { domainName, stage } = props;
@@ -70,7 +74,8 @@ export class CawnexDomainCloudflareStack extends cdk.Stack {
 
     // Instructions for manual DNS setup
     new cdk.CfnOutput(this, "CloudflareDNSInstructions", {
-      value: "Add these records in Cloudflare: SPF, DMARC, and 3 DKIM CNAME records. Get DKIM tokens from SES console.",
+      value:
+        "Add these records in Cloudflare: SPF, DMARC, and 3 DKIM CNAME records. Get DKIM tokens from SES console.",
       description: "Manual DNS setup required in Cloudflare",
     });
 

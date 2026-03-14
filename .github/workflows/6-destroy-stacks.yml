@@ -6,63 +6,63 @@ on:
       confirm_destruction:
         description: 'Type "DELETE" to confirm destruction of all POC stacks'
         required: true
-        default: ''
+        default: ""
 
 jobs:
   destroy:
     runs-on: ubuntu-latest
     if: github.event.inputs.confirm_destruction == 'DELETE'
-    
+
     permissions:
       id-token: write
       contents: read
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::961454950210:role/GitHubActionsRole
           aws-region: us-east-1
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
           cache-dependency-path: infra/package-lock.json
-      
+
       - name: Install dependencies
         run: |
           cd infra
           npm ci
-      
+
       - name: Destroy POC6 Stack
         run: |
           cd infra
           cdk destroy CawnexPoc6-dev --force
         continue-on-error: true
-      
-      - name: Destroy POC5 Stack  
+
+      - name: Destroy POC5 Stack
         run: |
           cd infra
           cdk destroy CawnexPoc5-dev --force
         continue-on-error: true
-      
+
       - name: Destroy POC3 Stack
         run: |
           cd infra
           cdk destroy CawnexPoc3-dev --force
         continue-on-error: true
-      
+
       - name: Destroy POC1 Stack
         run: |
-          cd infra  
+          cd infra
           cdk destroy CawnexPoc1-dev --force
         continue-on-error: true
-      
+
       - name: Verify Deletion
         run: |
           echo "🔍 Checking remaining Cawnex stacks..."

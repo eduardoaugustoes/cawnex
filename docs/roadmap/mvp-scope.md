@@ -11,12 +11,14 @@
 ## ✅ IN (MVP)
 
 ### Agents
+
 - Refinement Crow (issue → user story)
 - Dev Crow (implement + open PR)
 - QA Crow (review PR)
 - Docs Crow (update docs post-merge)
 
 ### Orchestration
+
 - Sequential pipeline (refine → dev → qa → docs)
 - Human approval after refinement
 - Guard system (token budget, time limit, loop detection)
@@ -24,15 +26,18 @@
 - Execution state machine
 
 ### Integration
+
 - GitHub (webhooks + API for PRs)
 - Single repo per issue
 
 ### Dashboard
+
 - Executions list (status, duration, cost)
 - Execution detail (streaming events)
 - Basic stats (success rate, total cost)
 
 ### Infrastructure
+
 - Docker Compose (local/VPS deployment)
 - PostgreSQL + Redis
 - SSE for real-time streaming
@@ -41,21 +46,21 @@
 
 ## ❌ OUT (Post-MVP)
 
-| Feature | Why out | When |
-|---------|---------|------|
-| Multi-repo coordination | Complexity. Single repo first. | Phase 2 |
-| Synchronized PR merge | Needs multi-repo first | Phase 2 |
-| Linear/Jira integration | GitHub Issues is enough for MVP | Phase 2 |
-| Multi-tenant | Single org first | Phase 3 |
-| Authentication/billing | Self-hosted first | Phase 3 |
-| Security Crow | Dev+QA+Docs covers 80% of value | Phase 3 |
-| Mobile Crow | Backend+Frontend Crow handles most repos | Phase 3 |
-| Backend/Frontend split | Single Dev Crow handles both initially | Phase 2 |
-| CLI | Dashboard-first | Phase 4 |
-| Skills Marketplace | Need users first | Phase 4 |
-| Kubernetes | Docker Compose is fine for <100 executions/day | Phase 3 |
-| Kafka | Redis Streams handles MVP traffic | Phase 4 |
-| Browser testing | Advanced QA feature | Phase 4 |
+| Feature                 | Why out                                        | When    |
+| ----------------------- | ---------------------------------------------- | ------- |
+| Multi-repo coordination | Complexity. Single repo first.                 | Phase 2 |
+| Synchronized PR merge   | Needs multi-repo first                         | Phase 2 |
+| Linear/Jira integration | GitHub Issues is enough for MVP                | Phase 2 |
+| Multi-tenant            | Single org first                               | Phase 3 |
+| Authentication/billing  | Self-hosted first                              | Phase 3 |
+| Security Crow           | Dev+QA+Docs covers 80% of value                | Phase 3 |
+| Mobile Crow             | Backend+Frontend Crow handles most repos       | Phase 3 |
+| Backend/Frontend split  | Single Dev Crow handles both initially         | Phase 2 |
+| CLI                     | Dashboard-first                                | Phase 4 |
+| Skills Marketplace      | Need users first                               | Phase 4 |
+| Kubernetes              | Docker Compose is fine for <100 executions/day | Phase 3 |
+| Kafka                   | Redis Streams handles MVP traffic              | Phase 4 |
+| Browser testing         | Advanced QA feature                            | Phase 4 |
 
 ---
 
@@ -76,13 +81,13 @@ Without writing a single line of code.
 
 ## MVP Success Metrics
 
-| Metric | Target |
-|--------|--------|
+| Metric                         | Target       |
+| ------------------------------ | ------------ |
 | End-to-end time (simple issue) | < 10 minutes |
-| Success rate | > 60% |
-| Cost per execution | < $2.00 |
-| QA review time | < 3 minutes |
-| Setup time (new repo) | < 5 minutes |
+| Success rate                   | > 60%        |
+| Cost per execution             | < $2.00      |
+| QA review time                 | < 3 minutes  |
+| Setup time (new repo)          | < 5 minutes  |
 
 ---
 

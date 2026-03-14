@@ -33,26 +33,26 @@ def test_imports():
     """Test required imports."""
     try:
         print("🔧 Testing imports...")
-        
+
         # Add src to path
         from pathlib import Path
         sys.path.insert(0, str(Path(__file__).parent / "src"))
-        
+
         # Test core imports
         import asyncio
         print("   ✅ asyncio")
-        
+
         from telegram import Update
         print("   ✅ telegram")
-        
+
         from telegram_bot import MonarchTelegramBot
         print("   ✅ telegram_bot")
-        
+
         from monarch import monarch
         print("   ✅ monarch")
-        
+
         return True
-        
+
     except ImportError as e:
         print(f"   ❌ Import failed: {e}")
         print("   Try: source venv/bin/activate && pip install -r requirements.txt")
@@ -65,28 +65,28 @@ def start_telegram_bot():
     """Start the Telegram bot."""
     try:
         print("🤖 Starting Telegram bot...")
-        
+
         # Import after path setup
         import asyncio
         from pathlib import Path
         sys.path.insert(0, str(Path(__file__).parent / "src"))
         from telegram_bot import MonarchTelegramBot
-        
+
         # Get token
         token = os.getenv("TELEGRAM_BOT_TOKEN")
-        
+
         # Create bot
         bot = MonarchTelegramBot(token)
-        
+
         print("✅ Monarch AI Society is running!")
         print("📱 Chat with your Monarch on Telegram")
         print("🔧 MCP server available for Claude Desktop integration")
         print("Press Ctrl+C to stop")
         print("")
-        
+
         # Run bot
         asyncio.run(bot.start_bot())
-        
+
     except KeyboardInterrupt:
         print("\n🛑 Shutting down Monarch AI Society...")
     except Exception as e:
@@ -100,15 +100,15 @@ def main():
     print("💰 Budget: $500/month")
     print("🎯 Vision: Build autonomous AI platform")
     print("")
-    
+
     # Check telegram token
     if not check_telegram_token():
         return
-    
+
     # Test imports
     if not test_imports():
         return
-    
+
     # Start the bot
     start_telegram_bot()
 
