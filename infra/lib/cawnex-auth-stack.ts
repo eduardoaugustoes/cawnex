@@ -8,6 +8,8 @@ import { Construct } from "constructs";
 
 interface CawnexAuthStackProps extends cdk.StackProps {
   stage: "dev" | "staging" | "prod";
+  domainName?: string; // Optional - for SES integration
+  sesIdentityArn?: string; // Optional - SES identity ARN
 }
 
 export class CawnexAuthStack extends cdk.Stack {
@@ -26,7 +28,7 @@ export class CawnexAuthStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: CawnexAuthStackProps) {
     super(scope, id, props);
 
-    const { stage } = props;
+    const { stage, domainName, sesIdentityArn } = props;
 
     // ─────────────────────────────────────────────
     // DynamoDB — Single-table design, multi-tenant
@@ -82,6 +84,24 @@ export class CawnexAuthStack extends cdk.Stack {
         requireSymbols: false,
       },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+      
+      // Email configuration — SES or Cognito default
+      email: domainName && sesIdentityArn 
+        ? cognito.UserPoolEmail.withSES({
+            fromEmail: `noreply@${domainName}`,
+            fromName: "Cawnex",
+            sesRegion: "us-east-1",
+            sesVerifiedDomain: domainName,
+          })
+        : cognito.UserPoolEmail.withCognito(),
+
+      // Email verification settings
+      userVerification: {
+        emailSubject: "Verify your Cawnex account",
+        emailBody: "Thanks for signing up! Your verification code is {####}. This code expires in 24 hours.",
+        emailStyle: cognito.VerificationEmailStyle.CODE,
+      },
+
       removalPolicy:
         stage === "prod"
           ? cdk.RemovalPolicy.RETAIN
