@@ -11,6 +11,7 @@ import os
 from typing import Any, Dict
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import anthropic
 
 from monarch import monarch
 
@@ -26,6 +27,22 @@ class MonarchTelegramBot:
         self.application = Application.builder().token(token).build()
         # Authorized user ID - only this user can control the Monarch
         self.authorized_user_id = 844996980  # Eduardo's Telegram ID
+        
+        # Initialize Claude client
+        anthropic_api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN")
+        if not anthropic_api_key:
+            logger.warning("No Anthropic API key found. Using fallback responses.")
+            self.claude_client = None
+        else:
+            # Handle both API key and auth token formats
+            if anthropic_api_key.startswith("sk-ant-oat"):
+                # Auth token format
+                self.claude_client = anthropic.Anthropic(auth_token=anthropic_api_key)
+            else:
+                # API key format
+                self.claude_client = anthropic.Anthropic(api_key=anthropic_api_key)
+            logger.info("Claude SDK initialized successfully")
+        
         self.setup_handlers()
     
     def is_authorized(self, user_id: int) -> bool:
@@ -258,33 +275,94 @@ Total agents: {len(monarch.agents)}
         await update.message.reply_text(response, parse_mode='Markdown')
     
     async def generate_monarch_response(self, message: str) -> str:
-        """Generate Monarch response to user message."""
+        """Generate Monarch response using Claude SDK."""
+        
+        # If Claude is not available, use fallback
+        if not self.claude_client:
+            return await self._fallback_response(message)
+        
+        # Get current society status for context
+        status = monarch.get_society_status()
+        workload = monarch.assess_workload()
+        
+        # Create context about the current society state
+        society_context = f"""
+Current Society Status:
+- Agents: {status['total_agents']}
+- Budget: ${monarch.monthly_budget - monarch.spent_this_month:.2f}/${monarch.monthly_budget:.2f} remaining
+- Current tasks: {workload['current_tasks']}
+- Bottlenecks: {', '.join(workload['bottlenecks'])}
+- Vision: {monarch.vision['primary']}
+"""
+        
+        system_prompt = f"""You are the Monarch - the foundational AI agent that leads an autonomous AI society. Your role is to:
+
+1. **Vision Leadership**: Guide all decisions toward building autonomous AI platforms that create software from human intent
+2. **Agent Management**: Spawn specialist agents when efficiency analysis shows ROI >2x 
+3. **Budget Oversight**: Manage a ${monarch.monthly_budget:.0f}/month budget responsibly
+4. **Project Planning**: Help translate human ideas into executable technical plans
+
+**Your Personality:**
+- Authoritative but helpful
+- Data-driven decision maker  
+- Focused on efficiency and ROI
+- Vision-aligned (every decision serves the autonomous AI goal)
+- Practical and action-oriented
+
+**Available Agent Specializations:**
+- api_development ($50-100/month)
+- ui_implementation ($75/month) 
+- testing ($50/month)
+- devops ($60/month)
+- security ($80/month)
+
+**Commands you can suggest:**
+- `/spawn <specialization>` - Create specialist agent
+- `/workload` - Show efficiency analysis
+- `/society` - Show society status
+- `/agents` - List current agents
+
+**Current Society State:**
+{society_context}
+
+**Instructions:**
+- Keep responses concise but helpful (2-3 paragraphs max)
+- Always consider if a project needs specialist agents
+- Include relevant emojis (👑 🤖 💰 🏗️ etc.)
+- Suggest specific commands when appropriate
+- Focus on practical next steps
+- Never spawn agents without explicit approval"""
+
+        try:
+            response = await asyncio.to_thread(
+                self.claude_client.messages.create,
+                model="claude-3-haiku-20240307",  # Fast and cost-effective
+                max_tokens=500,
+                system=system_prompt,
+                messages=[
+                    {"role": "user", "content": message}
+                ]
+            )
+            
+            return response.content[0].text
+            
+        except Exception as e:
+            logger.error(f"Claude API error: {e}")
+            return await self._fallback_response(message)
+    
+    async def _fallback_response(self, message: str) -> str:
+        """Fallback response when Claude is not available."""
         message_lower = message.lower()
         
-        # Specific project requests
         if any(word in message_lower for word in ['build', 'create', 'develop', 'dashboard', 'website', 'app']):
-            return f"🏗️ Interesting project idea! I can help you build that.\n\nTo create software efficiently, I might need to spawn specialist agents. Let me analyze what kind of expertise we'd need:\n\n• **Web Development**: Frontend dashboard creation\n• **Backend Systems**: User management, CSV imports\n• **Mobile Development**: Parent notification app\n\nShould I assess if we need specialist agents for this project? Use `/workload` to see current bottlenecks or `/spawn <specialization>` to create specialists."
+            return "🏗️ I can help you build that! Let me analyze what specialists we might need. Use `/workload` to see current bottlenecks or `/spawn <specialization>` to create agents."
         
         elif any(word in message_lower for word in ['status', 'how', 'progress', 'doing']):
             status = monarch.get_society_status()
-            return f"📊 **Society Status:**\n• Agents: {status['total_agents']}\n• Budget: ${monarch.monthly_budget - monarch.spent_this_month:.2f}/${monarch.monthly_budget:.2f} remaining\n• Vision: {monarch.vision['primary']}\n\nReady to tackle new projects efficiently!"
-        
-        elif any(word in message_lower for word in ['spawn', 'hire', 'need', 'specialist']):
-            workload = monarch.assess_workload()
-            return f"🤖 **Agent Analysis:**\n• Current tasks: {workload['current_tasks']}\n• Bottlenecks: {', '.join(workload['bottlenecks'])}\n\nUse `/spawn <specialization>` for:\n• `api_development`\n• `ui_implementation` \n• `testing`\n• `devops`\n• `security`"
-        
-        elif any(word in message_lower for word in ['vision', 'goal', 'purpose']):
-            return f"🎯 **Our Vision:**\n*{monarch.vision['primary']}*\n\nEvery project serves this purpose. Every agent I spawn aligns with these principles. How can we advance this vision together?"
-        
-        elif any(word in message_lower for word in ['budget', 'cost', 'money', 'price']):
-            return f"💰 **Budget Management:**\n• Allocated: ${monarch.spent_this_month:.2f}/${monarch.monthly_budget:.2f}\n• Remaining: ${monarch.monthly_budget - monarch.spent_this_month:.2f}\n\nI only spawn agents when ROI analysis justifies the investment. Efficiency over expense!"
-        
-        elif any(word in message_lower for word in ['help', 'what', 'can you']):
-            return f"👑 **I can help you:**\n• **Plan projects** efficiently\n• **Spawn specialist agents** when needed\n• **Manage development** with AI coordination\n• **Build software** from your ideas\n\nTell me what you want to build, and I'll determine the best approach!"
+            return f"📊 **Society Status:**\nAgents: {status['total_agents']}\nBudget: ${monarch.monthly_budget - monarch.spent_this_month:.2f}/${monarch.monthly_budget:.2f}"
         
         else:
-            # Avoid generic responses that could loop
-            return f"🤔 Tell me more about what you'd like to accomplish. I can help you:\n\n• Build software projects\n• Manage development teams (AI agents)\n• Assess project needs\n• Plan efficient execution\n\nWhat's your specific goal?"
+            return "👑 I'm here to help you build software efficiently. What would you like to create? I can spawn specialist agents when needed."
 
     async def start_bot(self):
         """Start the Telegram bot."""
