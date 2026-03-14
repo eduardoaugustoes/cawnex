@@ -177,9 +177,13 @@ export class CawnexDomainStack extends cdk.Stack {
 
     // Email sending reputation tracking
     configSet.addEventDestination("ReputationTracking", {
-      destination: ses.EventDestination.cloudWatchDimensions({
-        defaultDimensionValue: "EmailSending",
-      }),
+      destination: ses.EventDestination.cloudWatchDimensions([
+        {
+          name: "MessageTag",
+          defaultValue: "EmailSending",
+          source: ses.DimensionSource.MESSAGE_TAG,
+        },
+      ]),
       events: [
         ses.EmailSendingEvent.SEND,
         ses.EmailSendingEvent.REJECT,

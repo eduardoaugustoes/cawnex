@@ -5,13 +5,26 @@ set -e
 
 # Configuration
 DOMAIN_NAME=${1}
-HOSTED_ZONE_ID=${2}
-STAGE=${3:-dev}
+HOSTED_ZONE_ID=""
+STAGE="dev"
+
+# Smart parameter detection
+if [ -n "${2}" ]; then
+    # Check if second parameter is a stage (dev/staging/prod) or hosted zone ID
+    if [[ "${2}" =~ ^(dev|staging|prod)$ ]]; then
+        STAGE=${2}
+    else
+        HOSTED_ZONE_ID=${2}
+        STAGE=${3:-dev}
+    fi
+fi
 
 if [ -z "$DOMAIN_NAME" ]; then
-    echo "❌ Usage: $0 <domain_name> [hosted_zone_id] [stage]"
-    echo "   Example: $0 cawnex.ai Z123ABCDEFGHIJ dev"
-    echo "   Example: $0 mydomain.com (creates new hosted zone)"
+    echo "❌ Usage: $0 <domain_name> [hosted_zone_id|stage] [stage]"
+    echo "   Examples:"
+    echo "     $0 cawnex.ai prod                    # New hosted zone, prod stage"
+    echo "     $0 cawnex.ai Z123ABCDEFGHIJ dev      # Existing zone, dev stage"
+    echo "     $0 mydomain.com                      # New hosted zone, dev stage"
     exit 1
 fi
 
