@@ -31,10 +31,7 @@ export class CawnexStack extends cdk.Stack {
     const tableName = cdk.Fn.importValue(`CawnexAuthStack-${stage}-TableName`);
     const tableArn = cdk.Fn.importValue(`CawnexAuthStack-${stage}-TableArn`);
     
-    const table = dynamodb.Table.fromTableAttributes(this, "MainTable", {
-      tableName,
-      tableArn,
-    });
+    const table = dynamodb.Table.fromTableArn(this, "MainTable", tableArn);
 
     // ─────────────────────────────────────────────
     // S3 — Artifacts, .pen files, worktree snapshots
