@@ -13,6 +13,7 @@ import os
 import time
 import logging
 import uuid
+import json
 
 import boto3
 
@@ -87,5 +88,26 @@ def handler(event, context):
         ],
     )
     logger.info("Set custom:tenant_id=%s on user %s", tenant_id, username)
+
+    # Send welcome email via custom email sender
+    try:
+        lambda_client = boto3.client("lambda")
+        welcome_payload = {
+            "action": "send_welcome_email",
+            "user_email": email,
+            "user_name": name,
+            "tenant_id": tenant_id,
+        }
+
+        # Invoke custom email sender Lambda asynchronously
+        lambda_client.invoke(
+            FunctionName=os.environ.get("CUSTOM_EMAIL_SENDER_FUNCTION", f"cawnex-custom-email-sender-{os.environ.get('STAGE', 'dev')}"),
+            InvocationType="Event",  # Async invocation
+            Payload=json.dumps(welcome_payload)
+        )
+        logger.info("Welcome email queued for user %s", username)
+    except Exception as e:
+        logger.warning("Failed to send welcome email for user %s: %s", username, str(e))
+        # Don't fail the whole process if welcome email fails
 
     return event
