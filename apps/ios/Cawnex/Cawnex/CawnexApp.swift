@@ -15,7 +15,6 @@ struct CawnexApp: App {
         WindowGroup {
             ContentView()
                 .environment(store)
-                .onAppear { store.seedData() }
         }
     }
 }

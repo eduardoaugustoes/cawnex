@@ -44,7 +44,6 @@ struct ContentView: View {
                         authService: authService!,
                         onSignedIn: { session in
                             store.setUser(from: session)
-                            store.seedData()
                             router.signedIn()
                         },
                         onNeedsConfirmation: { email in

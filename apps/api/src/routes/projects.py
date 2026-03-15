@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.auth.dependencies import get_tenant
 from src.auth.tenant import TenantContext
@@ -14,13 +14,15 @@ from src.db.client import TenantDB
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
+VALID_MURDERS = {"dev", "editorial", "infra", "data", "social"}
+
 
 class CreateProjectRequest(BaseModel):
     """Request body for creating a new project."""
 
     name: str
-    repo: str
-    description: str = ""
+    one_liner: str = ""
+    murders: List[str] = Field(default=["dev"])
 
 
 class CreateProjectResponse(BaseModel):
@@ -28,6 +30,9 @@ class CreateProjectResponse(BaseModel):
 
     project_id: str
     name: str
+    status: str
+    murders: List[str]
+    created_at: str
 
 
 class ProjectSummary(BaseModel):
@@ -35,9 +40,9 @@ class ProjectSummary(BaseModel):
 
     project_id: str
     name: str
-    repo: str
-    description: str
+    one_liner: str
     status: str
+    murders: List[str]
     created_at: str
 
 
@@ -47,8 +52,9 @@ def _slug(text: str) -> str:
 
 
 def _project_id(name: str) -> str:
-    suffix = hex(int(time.time() * 1000))[-6:]
-    return f"{_slug(name)}-{suffix}"
+    ts_suffix = hex(int(time.time() * 1000))[-4:]
+    rand_suffix = hex(int.from_bytes(__import__("os").urandom(1), "big"))[-2:]
+    return f"{_slug(name)}-{ts_suffix}{rand_suffix}"
 
 
 def _now_iso() -> str:
@@ -62,41 +68,51 @@ async def create_project(
 ) -> Dict[str, Any]:
     """Create a new project for the authenticated tenant.
 
-    Stores a project list entry under the tenant PK and a project root
-    snapshot under the project PK so Murder can resolve the project.
+    Writes two records:
+    1. Project list entry (PK: T#{tenant}, SK: P#{id}) for listing
+    2. Project root snapshot (PK: T#{tenant}#P#{id}, SK: S#) for Murder
     """
     db = TenantDB(tenant)
     project_id = _project_id(body.name)
     now = _now_iso()
+    murders = [m for m in body.murders if m in VALID_MURDERS] or ["dev"]
 
-    # Project list entry — queryable via tenant PK
+    # Record 1: Project list entry — queryable via tenant PK
     db.put_item(
         sk=f"P#{project_id}",
         project_id=project_id,
         name=body.name,
-        description=body.description,
-        repo=body.repo,
-        murders=["dev"],
-        status="active",
-        phase="execution",
+        one_liner=body.one_liner,
+        murders=murders,
+        status="draft",
         created_at=now,
-        entityType="Project",
+        updated_at=now,
+        entityType="ProjectEntry",
     )
 
-    # Project root snapshot — used by Murder for project context
+    # Record 2: Project root snapshot — Murder reads this
     db.put_project_item(
         project_id=project_id,
         sk="S#",
         level="root",
-        status="active",
         name=body.name,
-        description=body.description,
-        repo=body.repo,
+        one_liner=body.one_liner,
+        murders=murders,
+        status="draft",
+        repo=None,
+        repo_status="pending",
         created_at=now,
+        updated_at=now,
         entityType="Snapshot",
     )
 
-    return {"project_id": project_id, "name": body.name}
+    return {
+        "project_id": project_id,
+        "name": body.name,
+        "status": "draft",
+        "murders": murders,
+        "created_at": now,
+    }
 
 
 @router.get("", response_model=List[ProjectSummary])
@@ -108,11 +124,11 @@ async def list_projects(
     items = db.query(sk_prefix="P#")
     return [
         {
-            "project_id": item["project_id"],
-            "name": item["name"],
-            "repo": item.get("repo", ""),
-            "description": item.get("description", ""),
-            "status": item.get("status", "active"),
+            "project_id": item.get("project_id", ""),
+            "name": item.get("name", ""),
+            "one_liner": item.get("one_liner", item.get("description", "")),
+            "status": item.get("status", "draft"),
+            "murders": item.get("murders", ["dev"]),
             "created_at": item.get("created_at", ""),
         }
         for item in items

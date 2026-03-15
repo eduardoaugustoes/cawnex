@@ -32,7 +32,7 @@ def clear_dependency_overrides() -> Any:
 @patch("src.db.client.boto3")
 @patch.dict("os.environ", {"TABLE_NAME": "test-table"})
 def test_create_project_returns_201(mock_boto3: Mock) -> None:
-    """POST /projects with valid body returns 201 and project_id + name."""
+    """POST /projects with valid body returns 201 with project data."""
     mock_table = Mock()
     mock_boto3.resource.return_value.Table.return_value = mock_table
 
@@ -40,17 +40,15 @@ def test_create_project_returns_201(mock_boto3: Mock) -> None:
 
     response = client.post(
         "/projects",
-        json={
-            "name": "My Project",
-            "repo": "github.com/org/repo",
-            "description": "desc",
-        },
+        json={"name": "My Project", "one_liner": "A cool project", "murders": ["dev"]},
     )
 
     assert response.status_code == 201
     data = response.json()
     assert "project_id" in data
     assert data["name"] == "My Project"
+    assert data["status"] == "draft"
+    assert data["murders"] == ["dev"]
 
 
 @patch("src.db.client.boto3")
@@ -64,17 +62,27 @@ def test_create_project_generates_slug_id(mock_boto3: Mock) -> None:
 
     response = client.post(
         "/projects",
-        json={"name": "Hello World Project", "repo": "github.com/org/repo"},
+        json={"name": "Hello World Project"},
     )
 
     assert response.status_code == 201
     project_id: str = response.json()["project_id"]
-    # slug portion must start with "hello-world-project" (up to 40 chars)
     assert project_id.startswith("hello-world-project")
-    # suffix appended with a dash
-    parts = project_id.rsplit("-", 1)
-    assert len(parts) == 2
-    assert len(parts[1]) > 0
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_create_project_defaults_murders_to_dev(mock_boto3: Mock) -> None:
+    """When no murders specified, defaults to dev."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    client = _make_client(_make_tenant())
+
+    response = client.post("/projects", json={"name": "Test"})
+
+    assert response.status_code == 201
+    assert response.json()["murders"] == ["dev"]
 
 
 @patch("src.db.client.boto3")
@@ -106,9 +114,9 @@ def test_list_projects_returns_items(mock_boto3: Mock) -> None:
             "SK": "P#my-project-abc123",
             "project_id": "my-project-abc123",
             "name": "My Project",
-            "repo": "github.com/org/repo",
-            "description": "A project",
-            "status": "active",
+            "one_liner": "A cool project",
+            "status": "draft",
+            "murders": ["dev", "infra"],
             "created_at": "2024-01-01T00:00:00+00:00",
         }
     ]
@@ -123,5 +131,6 @@ def test_list_projects_returns_items(mock_boto3: Mock) -> None:
     assert len(items) == 1
     assert items[0]["project_id"] == "my-project-abc123"
     assert items[0]["name"] == "My Project"
-    assert items[0]["repo"] == "github.com/org/repo"
-    assert items[0]["status"] == "active"
+    assert items[0]["one_liner"] == "A cool project"
+    assert items[0]["murders"] == ["dev", "infra"]
+    assert items[0]["status"] == "draft"
