@@ -9,11 +9,21 @@ on:
         default: "update-ios-config"
         type: choice
         options:
+          - setup-aws-secrets
           - update-ios-config
           - ios-quality-check
           - destroy-stacks
           - deploy-staging
           - deploy-production
+      stage:
+        description: "Target stage (for setup-aws-secrets)"
+        required: false
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
 
 permissions:
   id-token: write
@@ -25,6 +35,76 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  setup-aws-secrets:
+    name: 🔐 Setup AWS Secrets Manager
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'setup-aws-secrets'
+    steps:
+      - name: ⚙️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: 🔐 Create/Update Secrets in AWS Secrets Manager
+        env:
+          STAGE: ${{ github.event.inputs.stage }}
+          GH_PAT_TOKEN: ${{ secrets.WORKER_GITHUB_TOKEN }}
+          ANTHROPIC_KEY: ${{ secrets.WORKER_ANTHROPIC_API_KEY }}
+        run: |
+          echo "🔐 Setting up secrets for stage: $STAGE"
+
+          # GitHub PAT for Worker git operations
+          if [ -z "$GH_PAT_TOKEN" ]; then
+            echo "::error::WORKER_GITHUB_TOKEN secret is not set in GitHub Secrets"
+            exit 1
+          fi
+
+          aws secretsmanager create-secret \
+            --name "cawnex/${STAGE}/github-token" \
+            --secret-string "$GH_PAT_TOKEN" \
+            --description "GitHub PAT for Worker git clone/push" \
+            2>/dev/null || \
+          aws secretsmanager update-secret \
+            --secret-id "cawnex/${STAGE}/github-token" \
+            --secret-string "$GH_PAT_TOKEN"
+
+          echo "✅ cawnex/${STAGE}/github-token created/updated"
+
+          # Anthropic API key for Worker Claude calls
+          if [ -z "$ANTHROPIC_KEY" ]; then
+            echo "::error::WORKER_ANTHROPIC_API_KEY secret is not set in GitHub Secrets"
+            exit 1
+          fi
+
+          aws secretsmanager create-secret \
+            --name "cawnex/${STAGE}/anthropic-api-key" \
+            --secret-string "$ANTHROPIC_KEY" \
+            --description "Anthropic API key for Worker Claude calls" \
+            2>/dev/null || \
+          aws secretsmanager update-secret \
+            --secret-id "cawnex/${STAGE}/anthropic-api-key" \
+            --secret-string "$ANTHROPIC_KEY"
+
+          echo "✅ cawnex/${STAGE}/anthropic-api-key created/updated"
+
+      - name: 📊 Summary
+        env:
+          STAGE: ${{ github.event.inputs.stage }}
+        run: |
+          echo "## 🔐 AWS Secrets Manager Setup Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Stage:** $STAGE" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| \`cawnex/$STAGE/github-token\` | ✅ Created/Updated |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`cawnex/$STAGE/anthropic-api-key\` | ✅ Created/Updated |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** GitHub Secrets \`WORKER_GITHUB_TOKEN\` and \`WORKER_ANTHROPIC_API_KEY\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Next:** Run \`deploy-dev\` via the main pipeline or utilities workflow" >> $GITHUB_STEP_SUMMARY
+
   update-ios-config:
     name: 📱 Update iOS Configuration
     runs-on: ubuntu-latest
