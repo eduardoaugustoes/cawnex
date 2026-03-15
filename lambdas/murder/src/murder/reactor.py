@@ -25,7 +25,9 @@ from murder.events import (
 )
 from murder.keys import build_pk, build_sk
 from murder.logging import StructuredLogger
+from murder.memory_store import MemoryStore
 from murder.models import Cost, CrowSnapshot, WaveBudget, WaveSnapshot
+from murder.reflection import reflect_on_crow
 from murder.state_machine import (
     AssignCrow,
     FailMVI,
@@ -138,6 +140,14 @@ def react_to_crow_completion(
     elif isinstance(action, NoAction):
         logger.event("no_action", reason=action.reason, mvi_id=mvi_id)
 
+    # Post-execution reflection: extract learnings and update agent memory
+    memory_store = MemoryStore(blackboard)
+    learnings = reflect_on_crow(
+        memory_store, tenant, project, crow_type.value, outcome or {}, crow_status.value
+    )
+    if learnings:
+        logger.event("reflection_stored", crow_type=crow_type.value, learnings=len(learnings))
+
 
 def _handle_assign(
     blackboard: Blackboard,
@@ -197,6 +207,17 @@ def _handle_assign(
         iteration=retry_count + 1,
         fixer_outcome=fixer_outcome,
     )
+
+    # Inject agent specialization memory so the crow benefits from past learnings
+    memory_store = MemoryStore(blackboard)
+    agent_memory = memory_store.read_memory(
+        tenant, project, f"agent#{action.crow_type.value}"
+    )
+    if agent_memory:
+        instructions = (
+            f"{instructions}\n\n"
+            f"## Agent Memory (learnings from previous executions)\n{agent_memory}"
+        )
 
     crow_id = _next_crow_id(blackboard, pk, wave_id, mvi_id, action.crow_type)
     crow = CrowSnapshot(
