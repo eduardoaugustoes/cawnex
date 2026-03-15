@@ -50,14 +50,6 @@ struct InMemoryAuthService: AuthService {
     }
 
     func currentSession() async -> AuthSession? {
-        AuthSession(
-            accessToken: "preview-access-token",
-            idToken: "preview-id-token",
-            refreshToken: "preview-refresh-token",
-            tenantId: "t_preview_tenant",
-            userSub: "preview-sub-123",
-            email: "preview@cawnex.io",
-            expiresAt: Date().addingTimeInterval(3600)
-        )
+        nil
     }
 }

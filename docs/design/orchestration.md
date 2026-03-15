@@ -1,286 +1,192 @@
-# 🎭 Orchestration — The Murder
+# Orchestration Engine — Design Index
 
-> The orchestrator is the product. Everything else is a commodity.
-
----
-
-## Core Responsibility
-
-The Murder (orchestrator) is the central brain that:
-
-1. **Receives** events (issue created, PR opened, review completed)
-2. **Routes** to the correct agent(s)
-3. **Monitors** agent execution in real-time
-4. **Coordinates** multi-repo changes
-5. **Enforces** synchronized merges
-6. **Handles** failures and retries
+> From idea to software, guided by human direction.
+> A murder of crows, guided by a monarch, advised by a council,
+> building what humans envision.
 
 ---
 
-## Routing Logic
+## Design Documents
 
-### V1 — LLM-Based Router (Simple)
+Read in this order for full context:
 
-For MVP, routing is a single Claude call:
+### 1. Foundation
+
+| Doc | What It Covers |
+|-----|----------------|
+| [orchestration-problems.md](orchestration-problems.md) | **22 core problems** the engine must solve. Every component traces back here. |
+| [layered-snapshots.md](layered-snapshots.md) | **Core data structure** — recursive snapshots that serve operational, memory, and training data purposes simultaneously. The 3D matrix (features x concerns x time). |
+| [agent-memory.md](agent-memory.md) | **How agents learn** — layered CLAUDE.md pattern (not RAG). Three memory layers: dynasty, project, specialization. |
+
+### 2. Data Model
+
+| Doc | What It Covers |
+|-----|----------------|
+| [data-model-v2.md](data-model-v2.md) | **DynamoDB schema** — partition patterns, SK patterns, GSIs, snapshot primitive, materialized views, size estimates. |
+| [screen-queries-all.md](screen-queries-all.md) | **Access patterns per screen** — every iOS screen mapped to exact PK/SK queries. |
+| [decisions-log.md](decisions-log.md) | **Architecture Decision Records** — DynamoDB over MongoDB, CLAUDE.md over RAG, dual hierarchy, materialized views, config vs snapshot. |
+
+### 3. Protocols
+
+| Doc | What It Covers |
+|-----|----------------|
+| [council-protocol.md](council-protocol.md) | **Advisory decision-making** — 6 advisors, parallel voting, max 3 debate rounds, Security+Clarity veto, dissent recording, human override. |
+| [wave-lifecycle.md](wave-lifecycle.md) | **State machine** — 11 wave states, 9 MVI states, pause/steer/budget enforcement, ordering constraints, wave-to-wave continuity. |
+| [context-assembly.md](context-assembly.md) | **Prompt engineering** — 5-layer prompt, scoped context per crow type, artifact chain, prompt caching, large repo strategy. |
+
+### 4. Per-Screen Deep Dives
+
+| Doc | Screens |
+|-----|---------|
+| [screen-queries-s01-s02.md](screen-queries-s01-s02.md) | Splash, Sign In |
+| [screen-queries-s11.md](screen-queries-s11.md) | Create Project |
+| [screen-queries-s24-s30-s31.md](screen-queries-s24-s30-s31.md) | Backlog, Milestone, Goal |
+| [screen-queries-s32.md](screen-queries-s32.md) | MVI Blackboard (most critical) |
+| [screen-queries-s33-s34.md](screen-queries-s33-s34.md) | Task Detail, PR Review |
+| [screen-queries-s40-s41-s42.md](screen-queries-s40-s41-s42.md) | Murders, Crows |
+| [screen-queries-s70.md](screen-queries-s70.md) | Notifications |
+
+### 5. Legacy (superseded)
+
+| Doc | Status |
+|-----|--------|
+| [orchestration.md](orchestration.md) | V1 orchestration spec. Superseded by this design system. Retained for reference. |
+| [agents.md](agents.md) | V1 agent specs. Crow types and behavior states still relevant. |
+| [architecture.md](architecture.md) | V1 design architecture. DynamoDB blackboard pattern still foundational. |
+
+---
+
+## The Hierarchy
 
 ```
-System: You are a router. Given an issue and a list of repositories with their CAWNEX.md
-files, determine which repositories are affected and what type of agent is needed.
-
-Respond in JSON:
-{
-  "affected_repos": ["repo-a", "repo-b"],
-  "agent_assignments": [
-    {"repo": "repo-a", "agent_type": "dev", "reason": "API endpoint change"},
-    {"repo": "repo-b", "agent_type": "dev", "reason": "Frontend component update"}
-  ],
-  "cross_repo_dependencies": [
-    {"from": "repo-a", "to": "repo-b", "type": "api_contract"}
-  ]
-}
-```
-
-**Model**: Sonnet (routing is classification, not generation)
-**Cost**: Minimal — one call per issue
-
-### V2 — LLM-DFA Router (Advanced)
-
-Formalize the routing into a state machine:
-
-- States: issue types × repo combinations
-- Transitions: based on code analysis results
-- LLM determines the current state and valid transitions
-- More deterministic, fewer hallucination risks
-
----
-
-## Execution Flow
-
-```python
-async def handle_issue(issue: Issue):
-    # 1. Refine
-    refined = await run_crow("refinement", issue)
-    await notify_human(refined)
-    await wait_for_approval(refined)
-
-    # 2. Route
-    plan = await route_issue(refined)
-
-    # 3. Execute dev crows in parallel
-    dev_tasks = []
-    for assignment in plan.agent_assignments:
-        task = run_crow("dev", refined, assignment.repo)
-        dev_tasks.append(task)
-
-    dev_results = await asyncio.gather(*dev_tasks)
-
-    # 4. QA review each PR
-    qa_tasks = []
-    for result in dev_results:
-        if result.pr_url:
-            task = run_crow("qa", refined, result.pr_url)
-            qa_tasks.append(task)
-
-    qa_results = await asyncio.gather(*qa_tasks)
-
-    # 5. All approved? Merge together
-    if all(r.approved for r in qa_results):
-        await synchronized_merge(dev_results)
-        # 6. Docs update
-        await run_crow("docs", refined, merged_prs)
-        await notify_team("completed", issue)
-    else:
-        # Handle rejections
-        await handle_qa_rejection(qa_results, dev_results)
+Human (founder)
+  sets directive, approves, steers, rejects
+       |
+Dynasty (org/tenant)
+  org-wide standards, policies, memory
+       |
+Monarch (per project)
+  strategic decisions, convenes council, plans waves
+       |
+Council (6 advisors)
+  Security, Quality, Performance, Market, Maturity, Clarity
+  parallel voting, max 3 debate rounds, 2 veto powers
+       |
+Murder (execution orchestrator)
+  dispatches crows, judges output, manages retries
+  stream-triggered state machine (POC5 pattern)
+       |
+Crows (specialist workers)
+  Planner, Implementer, Reviewer, Fixer, Documenter
+  each in isolated git worktree (POC6 pattern)
 ```
 
 ---
 
-## Synchronized Merge Strategy
-
-The hardest problem. AgentOps's key innovation.
-
-### The Problem
-
-- Backend PR changes API contract
-- Frontend PR depends on new API
-- If backend merges first and frontend fails → broken state
-- If frontend merges first → broken state (API doesn't exist yet)
-
-### The Solution
+## The Loop
 
 ```
-1. All PRs created and reviewed ✅
-2. All PRs pass CI ✅
-3. Orchestrator verifies no conflicts between PRs
-4. Merge ALL PRs in rapid succession (within seconds)
-5. If any merge fails → revert all others
+Human sets directive
+  -> Monarch + Council plan wave
+    -> Human approves
+      -> Murder dispatches crows
+        -> Guards enforce limits
+          -> Work gets done, PR created
+            -> Human reviews
+              -> Ship -> next wave -> loop
 ```
 
-### Implementation (V1 — GitHub API)
-
-```python
-async def synchronized_merge(results: list[DevResult]):
-    # Pre-check: all PRs mergeable?
-    for r in results:
-        status = await github.get_pr_status(r.pr_url)
-        if not status.mergeable:
-            raise MergeBlockedError(f"PR {r.pr_url} not mergeable")
-
-    # Atomic-ish merge
-    merged = []
-    try:
-        for r in results:
-            await github.merge_pr(r.pr_url, method="squash")
-            merged.append(r)
-    except Exception as e:
-        # Rollback: revert merged PRs
-        for r in merged:
-            await github.revert_merge(r.pr_url)
-        raise SynchronizedMergeError(str(e))
-```
-
-**Note**: Not truly atomic (GitHub API doesn't support transactions). But fast enough for most cases. True atomicity would require a git-level solution.
+Each cycle produces:
+- **Code** — merged to main
+- **Learnings** — added to agent memory
+- **Training data** — ask + reasoning + code + outcome
+- **Cost tracking** — bubbled up through snapshot tree
 
 ---
 
-## Guard — Anti-Hallucination
+## Key Principles
+
+1. **The data structure IS the algorithm** — recursive snapshots make traceability, rewind, and budget tracking automatic
+2. **Scoped context, not full repo** — each crow gets only what it needs
+3. **Human controls, AI advises** — approval gates at every level, steer/pause/reject anytime
+4. **Disagreement is a feature** — council dissent is preserved, not suppressed
+5. **Resource discipline** — budgets, limits, max rounds at every layer
+6. **Agents get smarter** — memory accumulates, advisors evolve, training data compounds
+7. **Config vs snapshot** — mutable templates frozen at execution start
+8. **Write-time aggregation** — materialized views via Streams, not query-time fan-out
+
+---
+
+## Guard System
 
 ### Detection Strategies
 
-#### 1. Output Coherence Check
+| Guard | What It Catches | Action |
+|-------|----------------|--------|
+| Token budget | Agent consuming too many tokens | Warn at 80%, cancel at 100% |
+| Time limit | Agent taking too long | Hard cancel (planner: 5m, dev: 15m, QA: 5m, docs: 3m) |
+| Scope boundary | Agent modifying files outside its area | Warn or cancel |
+| Output coherence | Solving problems not in the issue | Cancel |
+| Loop detection | >3 similar outputs in sequence | Cancel |
 
-Monitor streaming output for:
+### Retry Engine
 
-- Solving problems not mentioned in the issue
-- Creating files in unexpected locations
-- Installing dependencies not related to the task
-- Repetitive loops (agent doing the same thing multiple times)
+| Failure Type | Retryable? | Strategy |
+|-------------|------------|----------|
+| LLM timeout | Yes | Retry with same context |
+| LLM rate limit | Yes | Exponential backoff |
+| Git conflict | Yes | Pull latest, rebase, retry |
+| Test failure | Yes | Send error to agent, ask for fix |
+| QA rejection | Yes | Send feedback to fixer crow |
+| Hallucination detected | No | Cancel, notify human |
+| Token budget exceeded | No | Cancel, notify human |
+| Repeated failure (>3x) | No | Cancel, escalate to human |
 
-#### 2. Scope Boundary Check
+### Max Retries by Crow Type
 
-- Count files changed vs. expected scope
-- Flag if agent modifies files outside its assigned area
-- Alert if agent tries to change CI/CD or security config
-
-#### 3. Token Budget Guard
-
-- Set max tokens per execution
-- Warn at 80% budget
-- Cancel at 100%
-
-#### 4. Time Guard
-
-- Set max execution time per agent type
-- Refinement: 5 min, Dev: 15 min, QA: 5 min, Docs: 3 min
-
-#### 5. Conversation Loop Detector
-
-- Track if agent is repeating similar messages
-- If >3 similar outputs in sequence → cancel
-- This prevents the infinite loop problem Luiz mentioned
-
-### Implementation (V1)
-
-```python
-class Guard:
-    def __init__(self, execution: Execution):
-        self.max_tokens = execution.agent.token_budget
-        self.max_time = execution.agent.time_limit
-        self.output_history = []
-
-    async def check_event(self, event: Event) -> GuardAction:
-        self.output_history.append(event)
-
-        # Token budget
-        if self.tokens_used > self.max_tokens:
-            return GuardAction.CANCEL
-
-        # Time limit
-        if self.elapsed > self.max_time:
-            return GuardAction.CANCEL
-
-        # Loop detection (simple: similarity of last 3 outputs)
-        if len(self.output_history) >= 3:
-            if self._is_loop(self.output_history[-3:]):
-                return GuardAction.CANCEL
-
-        # Scope check (files outside expected area)
-        if event.type == "file_write":
-            if not self._in_scope(event.metadata.file_path):
-                return GuardAction.WARN
-
-        return GuardAction.CONTINUE
-```
+| Crow | Max Retries | Backoff |
+|------|-------------|---------|
+| Planner | 2 | None |
+| Implementer | 3 | Linear (1m, 2m, 3m) |
+| Reviewer | 2 | None |
+| Fixer | 3 | Linear |
+| Documenter | 1 | None |
 
 ---
 
-## Retry Engine
+## Cost Model
 
-### Decision Matrix
-
-| Failure Type           | Retryable? | Strategy                         |
-| ---------------------- | ---------- | -------------------------------- |
-| LLM timeout            | ✅ Yes     | Retry with same context          |
-| LLM rate limit         | ✅ Yes     | Exponential backoff              |
-| Git conflict           | ✅ Yes     | Pull latest, rebase, retry       |
-| Test failure           | ✅ Yes     | Send error to agent, ask for fix |
-| QA rejection           | ✅ Yes     | Send feedback to dev agent       |
-| Hallucination detected | ❌ No      | Cancel, notify human             |
-| Token budget exceeded  | ❌ No      | Cancel, notify human             |
-| Repeated failure (>3x) | ❌ No      | Cancel, escalate to human        |
-| Auth failure           | ❌ No      | Notify admin                     |
-
-### Max Retries by Agent Type
-
-| Agent      | Max Retries | Backoff             |
-| ---------- | ----------- | ------------------- |
-| Refinement | 2           | None (fast retry)   |
-| Dev        | 3           | Linear (1m, 2m, 3m) |
-| QA         | 2           | None                |
-| Docs       | 1           | None                |
+| Component | Cost | Notes |
+|-----------|------|-------|
+| Council session (consensus) | ~$0.09 | 6 Sonnet calls |
+| Council session (3 rounds) | ~$0.27 | Worst case |
+| Full crow pipeline | ~$0.56 (Sonnet) / ~$2.78 (Opus) | Planner + Implementer + Reviewer + Documenter |
+| With prompt caching | ~40-60% of above | Layers 1-3 cached at 90% discount |
+| Infrastructure (MVP) | ~$10-25/month | DynamoDB on-demand + Lambda |
 
 ---
 
-## Context Sharing Between Agents
+## DynamoDB Schema (Summary)
 
-### What Gets Shared
-
-| From                    | To                                                    | Context Shared |
-| ----------------------- | ----------------------------------------------------- | -------------- |
-| Refinement → Dev        | Full user story, acceptance criteria, technical notes |
-| Orchestrator → Dev      | Other repos' CAWNEX.md (API contracts)                |
-| Dev → QA                | PR URL, acceptance criteria, what was implemented     |
-| QA → Dev (on rejection) | Specific feedback, failing checks                     |
-| Dev → Docs              | Merged PR diff, what changed and why                  |
-
-### Context Format
-
-```json
-{
-  "issue": {
-    "title": "...",
-    "refined_story": "...",
-    "acceptance_criteria": ["..."],
-    "technical_notes": "..."
-  },
-  "repository": {
-    "name": "...",
-    "cawnex_md": "...",
-    "structure": "..."
-  },
-  "related_repos": [
-    {
-      "name": "other-repo",
-      "api_contracts": "...",
-      "recent_changes": "..."
-    }
-  ],
-  "execution_history": [
-    {
-      "agent": "refinement",
-      "output_summary": "..."
-    }
-  ]
-}
 ```
+6 partition patterns:
+  T#{tenant}#P#{project}       snapshots, events, docs, memory
+  T#{tenant}#PROJECTS          project list
+  T#{tenant}#DYNASTY           org config (murders, skills)
+  T#{tenant}#NOTIFICATIONS     cross-project inbox
+  T#{tenant}#BILLING           credits, rollups
+  MARKETPLACE                  global templates
+
+1-2 GSIs:
+  DISPATCH#{status}            worker pickup
+  T#{tenant}#W#{wave}          wave-to-MVI lookup (optional)
+
+5 materialized views (Streams-powered):
+  SUMMARY                      project summary for Dashboard
+  HUB                          project hub for S12
+  Milestone/Goal counters      planning hierarchy
+  ROLLUP#CURRENT               billing aggregates
+  unread_notification_count    badge count
+```
+
+Full schema: [data-model-v2.md](data-model-v2.md)
