@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(AppStore.self) private var store
     var onSignOut: () -> Void = {}
+    var apiClient: APIClient?
     @State private var selectedTab: CawnexTab = .projects
     @State private var tabRouter = TabRouter()
     @State private var isCreatingProject: Bool = false
@@ -12,7 +13,7 @@ struct MainTabView: View {
     @State private var isShowingCredits: Bool = false
 
     private var services: ServiceFactory {
-        ServiceFactory(store: store)
+        ServiceFactory(store: store, apiClient: apiClient)
     }
 
     var body: some View {
@@ -234,7 +235,7 @@ struct MainTabView: View {
             projectId: projectId,
             type: type,
             viewModel: DocumentViewModel(
-                documentService: services.makeDocumentService(),
+                documentService: services.makeDocumentService(projectId: projectId),
                 documentType: type
             ),
             onBack: { tabRouter.projectPath.removeLast() }

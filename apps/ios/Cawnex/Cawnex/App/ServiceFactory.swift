@@ -2,9 +2,25 @@ import Foundation
 
 struct ServiceFactory {
     let store: AppStore
+    let apiClient: APIClient?
+
+    init(store: AppStore, apiClient: APIClient? = nil) {
+        self.store = store
+        self.apiClient = apiClient
+    }
 
     func makeProjectService() -> any ProjectService {
-        InMemoryProjectService(store: store)
+        if let apiClient {
+            return APIProjectService(client: apiClient, store: store)
+        }
+        return InMemoryProjectService(store: store)
+    }
+
+    func makeDocumentService(projectId: String = "") -> any DocumentService {
+        if let apiClient, !projectId.isEmpty {
+            return APIDocumentService(client: apiClient, projectId: projectId)
+        }
+        return InMemoryDocumentService()
     }
 
     func makeProjectHubService() -> any ProjectHubService {
@@ -17,10 +33,6 @@ struct ServiceFactory {
 
     func makeMilestoneService() -> any MilestoneService {
         InMemoryMilestoneService(store: store)
-    }
-
-    func makeDocumentService() -> any DocumentService {
-        InMemoryDocumentService()
     }
 
     func makeGoalService() -> any GoalService {

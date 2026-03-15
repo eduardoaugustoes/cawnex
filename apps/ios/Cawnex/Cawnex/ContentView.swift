@@ -5,6 +5,7 @@ struct ContentView: View {
     @State private var store = AppStore()
     @State private var remoteConfig = RemoteConfig()
     @State private var authService: (any AuthService)?
+    @State private var apiClient: APIClient?
     @State private var splashDone = false
 
     var body: some View {
@@ -44,6 +45,7 @@ struct ContentView: View {
                         authService: authService!,
                         onSignedIn: { session in
                             store.setUser(from: session)
+                            apiClient = APIClient(authService: authService!)
                             router.signedIn()
                         },
                         onNeedsConfirmation: { email in
@@ -81,12 +83,13 @@ struct ContentView: View {
 
             case .main:
                 MainTabView(onSignOut: {
+                    apiClient = nil
                     Task {
                         await authService?.signOut()
                         store.clearUser()
                         router.signedOut()
                     }
-                })
+                }, apiClient: apiClient)
                     .transition(.opacity)
             }
         }
@@ -97,6 +100,8 @@ struct ContentView: View {
     /// Whichever finishes last triggers the transition — user never sees a spinner.
     private func transitionIfReady() {
         guard splashDone, let service = authService else { return }
+        // Create API client for authenticated requests
+        apiClient = APIClient(authService: service)
         router.splashFinished(authService: service)
     }
 }
