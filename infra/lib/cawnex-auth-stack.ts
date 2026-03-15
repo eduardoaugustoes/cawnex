@@ -189,16 +189,21 @@ export class CawnexAuthStack extends cdk.Stack {
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
 
-    // Grant permissions to update user attributes and write to DynamoDB
+    // Grant permissions to write to DynamoDB
+    this.table.grantWriteData(postConfirmationFn);
+
+    // Grant cognito-idp:AdminUpdateUserAttributes using account-scoped ARN
+    // to avoid circular dependency (UserPool → Lambda → IAM ref UserPool ARN → UserPool)
     postConfirmationFn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["cognito-idp:AdminUpdateUserAttributes"],
-        resources: [this.userPool.userPoolArn],
+        resources: [
+          `arn:aws:cognito-idp:${this.region}:${this.account}:userpool/*`,
+        ],
       })
     );
 
-    this.table.grantWriteData(postConfirmationFn);
-
+    // Attach trigger — must come AFTER the IAM policy to avoid circular ref
     this.userPool.addTrigger(
       cognito.UserPoolOperation.POST_CONFIRMATION,
       postConfirmationFn
