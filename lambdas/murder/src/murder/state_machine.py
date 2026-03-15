@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from murder.config import FIX_CYCLE_LIMIT
 from murder.enums import CrowStatus, CrowType
 
 
@@ -44,7 +45,7 @@ def determine_next(
 ) -> NextAction:
     """Given a completed/failed crow, return the next action Murder should take."""
     if crow_status == CrowStatus.COMPLETED:
-        return _on_completed(crow_type, outcome)
+        return _on_completed(crow_type, outcome, retry_count)
     if crow_status == CrowStatus.FAILED:
         return _on_failed(crow_type, retry_count)
     return NoAction(reason=f"unexpected status: {crow_status.value}")
@@ -53,6 +54,7 @@ def determine_next(
 def _on_completed(
     crow_type: CrowType,
     outcome: dict[str, Any] | None,
+    retry_count: int,
 ) -> NextAction:
     if crow_type == CrowType.PLANNER:
         tasks = (outcome or {}).get("tasks", [])
@@ -70,6 +72,8 @@ def _on_completed(
         return AssignCrow(CrowType.FIXER, reason="reviewer found issues")
 
     if crow_type == CrowType.FIXER:
+        if retry_count >= FIX_CYCLE_LIMIT:
+            return FailMVI(reason=f"max fix cycles ({FIX_CYCLE_LIMIT}) exceeded")
         return AssignCrow(CrowType.REVIEWER, reason="fixer completed, re-review needed")
 
     return NoAction(reason=f"unexpected crow type: {crow_type.value}")

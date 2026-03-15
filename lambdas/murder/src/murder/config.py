@@ -27,3 +27,6 @@ PRICE_PER_OUTPUT_TOKEN: int = 15
 
 # Budget warning threshold (percentage as integer, 80 = 80%)
 BUDGET_WARNING_PCT: int = 80
+
+# Fix cycle cap: after this many fixer completions without approval, fail the MVI
+FIX_CYCLE_LIMIT: int = 2

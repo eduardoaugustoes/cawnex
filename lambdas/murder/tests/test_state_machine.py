@@ -105,12 +105,19 @@ class TestReviewerFailed:
 
 
 class TestFixerCompleted:
-    def test_assigns_reviewer_for_re_review(self) -> None:
+    def test_fixer_completed_within_limit_assigns_reviewer(self) -> None:
         action = determine_next(
-            CrowType.FIXER, CrowStatus.COMPLETED, {}, 0,
+            CrowType.FIXER, CrowStatus.COMPLETED, {}, 1,
         )
         assert isinstance(action, AssignCrow)
         assert action.crow_type == CrowType.REVIEWER
+
+    def test_fixer_completed_exceeds_limit_fails_mvi(self) -> None:
+        action = determine_next(
+            CrowType.FIXER, CrowStatus.COMPLETED, {}, 2,
+        )
+        assert isinstance(action, FailMVI)
+        assert "max fix cycles" in action.reason
 
 
 class TestFixerFailed:
