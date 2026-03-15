@@ -16,7 +16,7 @@ ENV/
 **/.env/
 **/ENV/
 **/virtualenv/
-**/mypy_cache/
+**/.mypy_cache/
 
 # Environment
 .env
