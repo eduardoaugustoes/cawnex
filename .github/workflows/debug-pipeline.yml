@@ -1,0 +1,57 @@
+name: 🔧 Debug Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "README.md"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  debug-test:
+    name: 🔍 Debug Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: 🔍 Test Change Detection
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs:
+              - 'docs/**'
+              - '*.md'
+              - '.gitignore'
+              - 'LICENSE'
+            api:
+              - 'apps/api/**'
+            infrastructure:
+              - 'infra/**'
+              - '.github/workflows/main-pipeline.yml'
+
+      - name: 📊 Debug Output
+        run: |
+          echo "🔍 Change Detection Results:"
+          echo "  docs: ${{ steps.changes.outputs.docs }}"
+          echo "  api: ${{ steps.changes.outputs.api }}"
+          echo "  infrastructure: ${{ steps.changes.outputs.infrastructure }}"
+
+          echo ""
+          echo "📝 Environment Info:"
+          echo "  Event: ${{ github.event_name }}"
+          echo "  Ref: ${{ github.ref }}"
+          echo "  SHA: ${{ github.sha }}"
+
+          if [[ "${{ steps.changes.outputs.docs }}" == "true" ]]; then
+            echo "✅ Documentation changes detected"
+          else
+            echo "❌ No documentation changes"
+          fi

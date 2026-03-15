@@ -58,8 +58,8 @@ jobs:
           filters: |
             infrastructure:
               - 'infra/**'
-              - '.github/workflows/optimized-pipeline.yml'
               - '.github/workflows/main-pipeline.yml'
+              - '.github/workflows/infrastructure-only.yml'
             api:
               - 'apps/api/**'
             ios:
