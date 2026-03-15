@@ -62,7 +62,9 @@ async def save_document(
     Overwrites any existing document of the same type.
     """
     if doc_type not in ("vision", "architecture", "glossary", "design"):
-        raise HTTPException(status_code=400, detail=f"Invalid document type: {doc_type}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid document type: {doc_type}"
+        )
 
     db = TenantDB(tenant)
     now = _now_iso()
@@ -103,7 +105,9 @@ async def get_document(
 ) -> Any:
     """Retrieve a saved document for a project. Returns null if not saved yet."""
     if doc_type not in ("vision", "architecture", "glossary", "design"):
-        raise HTTPException(status_code=400, detail=f"Invalid document type: {doc_type}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid document type: {doc_type}"
+        )
 
     db = TenantDB(tenant)
     item = db.get_project_item(project_id=project_id, sk=f"DOC#{doc_type}")
