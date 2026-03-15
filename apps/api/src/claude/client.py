@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import Any, Dict, List
 
 import anthropic
-
+from anthropic.types import MessageParam
 
 # Pricing per 1M tokens (USD)
 PRICING: Dict[str, Dict[str, float]] = {
@@ -61,7 +61,7 @@ def _get_token() -> str:
 
         client = boto3.client("secretsmanager")
         resp = client.get_secret_value(SecretId=secret_arn)
-        token = resp["SecretString"]
+        token = str(resp["SecretString"])  # Explicit string cast for mypy
         _cached_token = token
         return token
 
@@ -79,7 +79,7 @@ def _get_client() -> anthropic.Anthropic:
 
 def chat(
     system: str,
-    messages: List[Dict[str, str]],
+    messages: List[MessageParam],
     model: str = DEFAULT_MODEL,
     max_tokens: int = 2048,
 ) -> ChatResult:
