@@ -28,7 +28,8 @@ class MemoryStrategy:
         self._memory = memory_markdown
 
     def build_identities(self) -> dict[str, str]:
+        # memory_markdown already starts with "## Project Memory\n"
         return {
-            k: f"{v}\n\n## Project Memory\n{self._memory}"
+            k: f"{v}\n\n{self._memory}"
             for k, v in CROW_IDENTITIES.items()
         }

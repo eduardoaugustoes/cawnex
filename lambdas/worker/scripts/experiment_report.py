@@ -60,6 +60,10 @@ class RunMetrics:
     wall_time_seconds: float
     final_status: str
     log_file: str
+    # Richer quality metrics
+    reviewer_issue_count: int = 0
+    reviewer_suggestion_count: int = 0
+    files_changed: int = 0
 
 
 @dataclass
@@ -153,6 +157,10 @@ def print_statistical_report(
         m_cost = [r.total_credits / MICROS_PER_DOLLAR for r in memory_runs]
         b_approve = sum(1 for r in baseline_runs if r.first_review_approved)
         m_approve = sum(1 for r in memory_runs if r.first_review_approved)
+        b_issues = [float(r.reviewer_issue_count) for r in baseline_runs]
+        m_issues = [float(r.reviewer_issue_count) for r in memory_runs]
+        b_files = [float(r.files_changed) for r in baseline_runs]
+        m_files = [float(r.files_changed) for r in memory_runs]
 
         all_baseline_iters.extend(b_iters)
         all_memory_iters.extend(m_iters)
@@ -163,6 +171,10 @@ def print_statistical_report(
         s_m_iter = compute_stats(m_iters)
         s_b_cost = compute_stats(b_cost)
         s_m_cost = compute_stats(m_cost)
+        s_b_issues = compute_stats(b_issues)
+        s_m_issues = compute_stats(m_issues)
+        s_b_files = compute_stats(b_files)
+        s_m_files = compute_stats(m_files)
 
         print(f"\n  Directive: {directive_id}")
         print(f"  {'-' * 106}")
@@ -172,12 +184,17 @@ def print_statistical_report(
 
         sig_iter = _sig_indicator(s_b_iter, s_m_iter)
         sig_cost = _sig_indicator(s_b_cost, s_m_cost)
+        sig_issues = _sig_indicator(s_b_issues, s_m_issues)
 
         print(f"  {'Iterations (mean±sd):':<28s}{_fmt_stat(s_b_iter):{col_w}s}{_fmt_stat(s_m_iter):{col_w}s}{_delta(s_b_iter.mean, s_m_iter.mean)}{sig_iter}")
         print(f"  {'  95% CI:':<28s}{_fmt_ci(s_b_iter):{col_w}s}{_fmt_ci(s_m_iter):{col_w}s}")
         print(f"  {'Cost $ (mean±sd):':<28s}{_fmt_stat(s_b_cost, '.3f'):{col_w}s}{_fmt_stat(s_m_cost, '.3f'):{col_w}s}{_delta(s_b_cost.mean, s_m_cost.mean)}{sig_cost}")
         print(f"  {'  95% CI:':<28s}{_fmt_ci(s_b_cost, '.3f'):{col_w}s}{_fmt_ci(s_m_cost, '.3f'):{col_w}s}")
-        print(f"  {'1st review approved:':<28s}{b_approve}/{len(baseline_runs):{col_w-2}s}{m_approve}/{len(memory_runs)}")
+        b_approve_str = f"{b_approve}/{len(baseline_runs)}"
+        m_approve_str = f"{m_approve}/{len(memory_runs)}"
+        print(f"  {'1st review approved:':<28s}{b_approve_str:{col_w}s}{m_approve_str}")
+        print(f"  {'Reviewer issues (mean±sd):':<28s}{_fmt_stat(s_b_issues):{col_w}s}{_fmt_stat(s_m_issues):{col_w}s}{_delta(s_b_issues.mean, s_m_issues.mean)}{sig_issues}")
+        print(f"  {'Files changed (mean±sd):':<28s}{_fmt_stat(s_b_files):{col_w}s}{_fmt_stat(s_m_files):{col_w}s}{_delta(s_b_files.mean, s_m_files.mean)}")
 
     # Aggregate
     s_all_b_iter = compute_stats(all_baseline_iters)

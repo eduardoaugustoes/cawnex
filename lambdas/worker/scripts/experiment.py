@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 """Prompt experiment harness: statistical comparison of prompt strategies.
 
-Multi-directive, multi-run paired comparison (baseline vs memory injection).
-Zero changes to production code.
+Cross-directive memory design: builds a memory pool from a warmup directive,
+then tests whether that memory helps on a harder target directive.
+This eliminates future-information bias (memory never comes from the same problem).
 
 Usage:
-    python scripts/experiment.py --runs 3 --directives all
-    python scripts/experiment.py --runs 1 --directives health --dry-run
-    python scripts/experiment.py --runs 3 --directives health,crud
+    # Warmup on health, test auth with N=5 (recommended)
+    python scripts/experiment.py --runs 5 --target auth
+
+    # Warmup on health, test crud
+    python scripts/experiment.py --runs 5 --target crud
+
+    # Dry run
+    python scripts/experiment.py --runs 1 --target auth --dry-run
+
+    # Legacy mode: same-directive pairing (biased, for comparison only)
+    python scripts/experiment.py --runs 3 --target crud --same-directive
 """
 
 from __future__ import annotations
@@ -99,6 +108,9 @@ DIRECTIVES: dict[str, dict[str, str]] = {
     },
 }
 
+# Warmup directive used to build memory pool (always health — simple, fast, cheap)
+WARMUP_DIRECTIVE = "health"
+
 
 def _decimal_default(obj: Any) -> Any:
     if isinstance(obj, Decimal):
@@ -160,7 +172,6 @@ class CallLogger:
             model: str = "",
             max_tokens: int = 8192,
         ) -> Any:
-            # Use original defaults if model is empty
             import worker.config as wc
             if not model:
                 model = wc.ANTHROPIC_MODEL
@@ -169,7 +180,6 @@ class CallLogger:
                 system_prompt, user_prompt, model=model, max_tokens=max_tokens
             )
 
-            # Infer crow type from system prompt
             crow_type = "unknown"
             for ct in ("planner", "implementer", "reviewer", "fixer"):
                 if ct in system_prompt.lower()[:200]:
@@ -180,7 +190,7 @@ class CallLogger:
                 run_id=logger.run_id,
                 crow_type=crow_type,
                 system_prompt=system_prompt,
-                user_prompt=user_prompt[:2000],  # truncate for logging
+                user_prompt=user_prompt[:2000],
                 output=result.raw_output[:2000],
                 tokens_in=result.tokens_in,
                 tokens_out=result.tokens_out,
@@ -188,7 +198,6 @@ class CallLogger:
             )
             logger.calls.append(entry)
 
-            # Append to JSONL log
             logger.log_file.parent.mkdir(parents=True, exist_ok=True)
             with open(logger.log_file, "a") as f:
                 f.write(json.dumps(entry.to_dict()) + "\n")
@@ -214,13 +223,9 @@ def patched_executor(
     original_call = executor_mod.call_claude
 
     try:
-        # Patch identities in both modules
         prompts_mod.CROW_IDENTITIES = identities
         executor_mod.CROW_IDENTITIES = identities
-
-        # Patch call_claude in executor
         executor_mod.call_claude = call_logger.make_wrapper(original_call_claude)
-
         yield
     finally:
         prompts_mod.CROW_IDENTITIES = original_identities
@@ -228,7 +233,7 @@ def patched_executor(
         executor_mod.call_claude = original_call
 
 
-# -- DynamoDB + prereqs (reused from smoke_test_e2e) --
+# -- DynamoDB + prereqs --
 
 def check_prereqs(dry_run: bool = False) -> None:
     errors: list[str] = []
@@ -292,7 +297,7 @@ def get_table() -> Any:
     return table
 
 
-# -- Seed + execute (adapted from smoke_test_e2e) --
+# -- Seed + execute --
 
 def seed_wave_and_mvi(
     blackboard: Blackboard,
@@ -415,6 +420,43 @@ def _reset_test_repo(github_token: str, branch: str) -> None:
         print(f"  Branch {branch} did not exist on remote (OK)")
 
 
+# -- Extract quality metrics from completed run --
+
+def _extract_quality_metrics(
+    blackboard: Blackboard,
+    wave_id: str,
+    mvi_id: str,
+) -> dict[str, int]:
+    """Extract richer metrics from completed crows for a run."""
+    pk = build_pk(TENANT, PROJECT)
+    crow_prefix = f"S#{wave_id}#m{mvi_id}#cr_"
+    crows = blackboard.query(pk, crow_prefix)
+
+    reviewer_issues = 0
+    reviewer_suggestions = 0
+    files_changed = 0
+
+    for crow in crows:
+        if crow.get("status") != "completed":
+            continue
+        outcome = crow.get("outcome", {})
+        if not isinstance(outcome, dict):
+            continue
+
+        crow_type = crow.get("crow_type", "")
+        if crow_type == "reviewer":
+            reviewer_issues += len(outcome.get("issues", []))
+            reviewer_suggestions += len(outcome.get("suggestions", []))
+        elif crow_type in ("implementer", "fixer"):
+            files_changed += len(outcome.get("files_changed", []))
+
+    return {
+        "reviewer_issue_count": reviewer_issues,
+        "reviewer_suggestion_count": reviewer_suggestions,
+        "files_changed": files_changed,
+    }
+
+
 # -- Run a single experiment variant --
 
 def run_variant(
@@ -438,13 +480,9 @@ def run_variant(
         "directive": directive_cfg["directive"][:80],
     })
 
-    # Reset test repo branch
     _reset_test_repo(config.github_token, branch)
-
-    # Seed
     seed_wave_and_mvi(blackboard, wave_id, branch, directive_cfg)
 
-    # Murder reacts to MVI queued -> assigns planner
     pk = build_pk(TENANT, PROJECT)
     mvi_sk = build_sk(wave_id=wave_id, mvi_id=mvi_id)
     mvi_item = blackboard.read(pk, mvi_sk)
@@ -464,7 +502,6 @@ def run_variant(
             final_status="dry_run", log_file=str(log_file),
         )
 
-    # Build identities and logging wrapper
     identities = strategy.build_identities()
     call_logger = CallLogger(run_id, log_file)
 
@@ -482,7 +519,6 @@ def run_variant(
 
             crow_sequence.append(result["crow_type"])
 
-            # Track first review result
             if result["crow_type"] == "reviewer" and first_review_approved is None:
                 outcome = result.get("outcome", {})
                 first_review_approved = outcome.get("approved", False)
@@ -507,7 +543,6 @@ def run_variant(
 
     wall_time = time.time() - wall_start
 
-    # Collect metrics
     total_tokens_in = sum(c.tokens_in for c in call_logger.calls)
     total_tokens_out = sum(c.tokens_out for c in call_logger.calls)
     total_credits = sum(c.tokens_in * 3 + c.tokens_out * 15 for c in call_logger.calls)
@@ -515,6 +550,8 @@ def run_variant(
 
     mvi = blackboard.read(pk, mvi_sk)
     final_status = mvi["status"] if mvi else "unknown"
+
+    quality = _extract_quality_metrics(blackboard, wave_id, mvi_id)
 
     return RunMetrics(
         run_id=run_id,
@@ -530,31 +567,76 @@ def run_variant(
         wall_time_seconds=wall_time,
         final_status=final_status,
         log_file=str(log_file),
+        reviewer_issue_count=quality["reviewer_issue_count"],
+        reviewer_suggestion_count=quality["reviewer_suggestion_count"],
+        files_changed=quality["files_changed"],
     )
+
+
+# -- Warmup: build memory pool from a simpler directive --
+
+def build_memory_pool(
+    blackboard: Blackboard,
+    config: ExecutionConfig,
+    log_dir: Path,
+    dry_run: bool,
+) -> str:
+    """Run warmup directive once and extract memory. Returns memory markdown."""
+    warmup_cfg = DIRECTIVES[WARMUP_DIRECTIVE]
+    ts = int(time.time())
+    wave_id = f"w{ts}_warmup_{WARMUP_DIRECTIVE}"
+
+    pp("WARMUP PHASE", {
+        "directive": WARMUP_DIRECTIVE,
+        "purpose": "Build cross-directive memory pool (no future-information bias)",
+    })
+
+    metrics = run_variant(
+        blackboard, config,
+        strategy=BaselineStrategy(),
+        run_id=f"warmup_{WARMUP_DIRECTIVE}",
+        wave_id=wave_id,
+        directive_cfg=warmup_cfg,
+        log_file=log_dir / f"warmup_{WARMUP_DIRECTIVE}.jsonl",
+        dry_run=dry_run,
+    )
+
+    if dry_run:
+        return "## Project Memory\n- (dry run — no data)"
+
+    memory_md = extract_memory(
+        blackboard, TENANT, PROJECT, wave_id, warmup_cfg["mvi_id"]
+    )
+    pp("WARMUP MEMORY POOL", memory_md)
+
+    pp("WARMUP RESULT", {
+        "status": metrics.final_status,
+        "iterations": metrics.iterations_to_ship,
+        "cost": f"${metrics.total_credits / MICROS_PER_DOLLAR:.3f}",
+        "sequence": "->".join(t[0].upper() for t in metrics.crow_sequence),
+    })
+
+    return memory_md
 
 
 # -- Main --
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prompt experiment harness")
-    parser.add_argument("--runs", type=int, default=3,
-                        help="Number of runs per directive per strategy (default: 3)")
-    parser.add_argument("--directives", default="all",
-                        help="Comma-separated directive IDs or 'all' (default: all)")
+    parser.add_argument("--runs", type=int, default=5,
+                        help="Number of runs per strategy (default: 5)")
+    parser.add_argument("--target", required=True,
+                        help="Target directive to test (health, crud, refactor, auth)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Seed only, don't call Claude")
+    parser.add_argument("--same-directive", action="store_true",
+                        help="Legacy mode: use same-directive memory (biased)")
     args = parser.parse_args()
 
-    # Resolve directives
-    if args.directives == "all":
-        directive_ids = list(DIRECTIVES.keys())
-    else:
-        directive_ids = [d.strip() for d in args.directives.split(",")]
-        for d in directive_ids:
-            if d not in DIRECTIVES:
-                print(f"Unknown directive: {d}")
-                print(f"Available: {', '.join(DIRECTIVES.keys())}")
-                sys.exit(1)
+    if args.target not in DIRECTIVES:
+        print(f"Unknown directive: {args.target}")
+        print(f"Available: {', '.join(DIRECTIVES.keys())}")
+        sys.exit(1)
 
     check_prereqs(dry_run=args.dry_run)
     table = get_table()
@@ -568,72 +650,79 @@ def main() -> None:
     date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     log_dir = Path(__file__).resolve().parent.parent / "experiments" / date_str
 
-    total_runs = len(directive_ids) * args.runs * 2  # baseline + memory
+    target_cfg = DIRECTIVES[args.target]
+    memory_source = "same-directive (biased)" if args.same_directive else f"cross-directive ({WARMUP_DIRECTIVE})"
+    total_runs = args.runs * 2 + (0 if args.same_directive else 1)  # +1 for warmup
+
     pp("EXPERIMENT CONFIG", {
-        "directives": directive_ids,
-        "runs_per_directive": args.runs,
+        "target_directive": args.target,
+        "memory_source": memory_source,
+        "runs_per_strategy": args.runs,
         "total_runs": total_runs,
         "repo": REPO,
         "budget_per_run": f"${BUDGET_MICROS / MICROS_PER_DOLLAR:.2f}",
         "dry_run": args.dry_run,
     })
 
-    # Collect results for statistical report
-    # {directive_id: {"baseline": [RunMetrics], "memory": [RunMetrics]}}
-    directive_results: dict[str, dict[str, list[RunMetrics]]] = {}
+    # Phase 1: Build memory pool (unless same-directive mode)
+    if not args.same_directive:
+        memory_pool = build_memory_pool(blackboard, config, log_dir, args.dry_run)
+    else:
+        memory_pool = ""  # Will be overwritten per-run
 
-    for directive_id in directive_ids:
-        directive_cfg = DIRECTIVES[directive_id]
-        directive_results[directive_id] = {"baseline": [], "memory": []}
+    # Phase 2: Paired runs on target directive
+    directive_results: dict[str, dict[str, list[RunMetrics]]] = {
+        args.target: {"baseline": [], "memory": []},
+    }
 
-        for run_num in range(1, args.runs + 1):
-            ts = int(time.time())
+    for run_num in range(1, args.runs + 1):
+        ts = int(time.time())
 
-            # Baseline run
-            wave_baseline = f"w{ts}_{directive_id}_{run_num}_baseline"
-            metrics_baseline = run_variant(
-                blackboard, config,
-                strategy=BaselineStrategy(),
-                run_id=f"{directive_id}_r{run_num}_baseline",
-                wave_id=wave_baseline,
-                directive_cfg=directive_cfg,
-                log_file=log_dir / f"{directive_id}_r{run_num}_baseline.jsonl",
-                dry_run=args.dry_run,
-            )
-            directive_results[directive_id]["baseline"].append(metrics_baseline)
+        # Baseline run
+        wave_baseline = f"w{ts}_{args.target}_{run_num}_baseline"
+        metrics_baseline = run_variant(
+            blackboard, config,
+            strategy=BaselineStrategy(),
+            run_id=f"{args.target}_r{run_num}_baseline",
+            wave_id=wave_baseline,
+            directive_cfg=target_cfg,
+            log_file=log_dir / f"{args.target}_r{run_num}_baseline.jsonl",
+            dry_run=args.dry_run,
+        )
+        directive_results[args.target]["baseline"].append(metrics_baseline)
 
-            # Extract memory from baseline run
+        # Determine memory source
+        if args.same_directive:
             if not args.dry_run:
-                memory_md = extract_memory(
-                    blackboard, TENANT, PROJECT, wave_baseline, directive_cfg["mvi_id"]
+                memory_pool = extract_memory(
+                    blackboard, TENANT, PROJECT, wave_baseline, target_cfg["mvi_id"]
                 )
-                pp("EXTRACTED MEMORY", memory_md)
+                pp("EXTRACTED SAME-DIRECTIVE MEMORY (biased)", memory_pool)
             else:
-                memory_md = "## Project Memory\n- (dry run — no data)"
+                memory_pool = "## Project Memory\n- (dry run — no data)"
 
-            # Memory run (paired with same directive)
-            time.sleep(1)  # ensure unique timestamp
-            wave_memory = f"w{int(time.time())}_{directive_id}_{run_num}_memory"
-            metrics_memory = run_variant(
-                blackboard, config,
-                strategy=MemoryStrategy(memory_md),
-                run_id=f"{directive_id}_r{run_num}_memory",
-                wave_id=wave_memory,
-                directive_cfg=directive_cfg,
-                log_file=log_dir / f"{directive_id}_r{run_num}_memory.jsonl",
-                dry_run=args.dry_run,
+        # Memory run
+        time.sleep(1)
+        wave_memory = f"w{int(time.time())}_{args.target}_{run_num}_memory"
+        metrics_memory = run_variant(
+            blackboard, config,
+            strategy=MemoryStrategy(memory_pool),
+            run_id=f"{args.target}_r{run_num}_memory",
+            wave_id=wave_memory,
+            directive_cfg=target_cfg,
+            log_file=log_dir / f"{args.target}_r{run_num}_memory.jsonl",
+            dry_run=args.dry_run,
+        )
+        directive_results[args.target]["memory"].append(metrics_memory)
+
+        if not args.dry_run:
+            print_comparison(
+                f"{args.target} run {run_num}",
+                metrics_baseline,
+                metrics_memory,
             )
-            directive_results[directive_id]["memory"].append(metrics_memory)
 
-            # Print per-run comparison
-            if not args.dry_run:
-                print_comparison(
-                    f"{directive_id} run {run_num}",
-                    metrics_baseline,
-                    metrics_memory,
-                )
-
-    # Print statistical summary across all runs
+    # Statistical summary
     if not args.dry_run:
         print_statistical_report(directive_results)
 
