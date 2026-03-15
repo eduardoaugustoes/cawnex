@@ -40,13 +40,8 @@ def handler(event, context):
 
     user_pool_id = event["userPoolId"]
     username = event["userName"]
-    user_attrs = {
-        attr["Name"]: attr["Value"]
-        for attr in event["request"].get("userAttributes", [])
-    }
-    # Cognito passes userAttributes as a flat dict in the event
-    if not user_attrs:
-        user_attrs = event["request"].get("userAttributes", {})
+    # Cognito passes userAttributes as a flat dict: {"email": "...", "sub": "..."}
+    user_attrs = event["request"].get("userAttributes", {})
 
     email = user_attrs.get("email", "")
     name = user_attrs.get("name", username)
