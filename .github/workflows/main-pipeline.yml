@@ -30,14 +30,15 @@ jobs:
     name: 🔍 Smart Change Detection
     runs-on: ubuntu-latest
     outputs:
-      infrastructure: ${{ steps.changes.outputs.infrastructure }}
-      api: ${{ steps.changes.outputs.api }}
-      auth_lambdas: ${{ steps.changes.outputs.auth_lambdas }}
-      murder_crow: ${{ steps.changes.outputs.murder_crow }}
-      docs_only: ${{ steps.changes.outputs.docs_only }}
+      infrastructure: ${{ steps.changes.outputs.infrastructure || steps.initial-changes.outputs.infrastructure }}
+      api: ${{ steps.changes.outputs.api || steps.initial-changes.outputs.api }}
+      auth_lambdas: ${{ steps.changes.outputs.auth_lambdas || steps.initial-changes.outputs.auth_lambdas }}
+      murder_crow: ${{ steps.changes.outputs.murder_crow || steps.initial-changes.outputs.murder_crow }}
+      docs_only: ${{ steps.changes.outputs.docs_only || steps.initial-changes.outputs.docs_only }}
       any_code: ${{ steps.check.outputs.any_code }}
       last_deploy_tag: ${{ steps.find-tag.outputs.tag }}
       changes_since_deploy: ${{ steps.find-tag.outputs.has_changes }}
+      is_initial: ${{ steps.find-tag.outputs.is_initial }}
     steps:
       - name: 📥 Checkout with full history
         uses: actions/checkout@v5
@@ -54,10 +55,12 @@ jobs:
             echo "⚠️  No previous deployment tag found - treating as initial deployment"
             echo "tag=" >> $GITHUB_OUTPUT
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "compare_ref=HEAD~1" >> $GITHUB_OUTPUT
+            echo "is_initial=true" >> $GITHUB_OUTPUT
+            echo "compare_ref=" >> $GITHUB_OUTPUT
           else
             echo "📍 Last deployment tag: $LAST_TAG"
             echo "tag=$LAST_TAG" >> $GITHUB_OUTPUT
+            echo "is_initial=false" >> $GITHUB_OUTPUT
 
             # Check if there are any changes since last deployment
             CHANGES=$(git rev-list $LAST_TAG..HEAD --count)
@@ -73,7 +76,7 @@ jobs:
 
       - name: 🔍 Detect Changes Since Last Deployment
         id: changes
-        if: steps.find-tag.outputs.has_changes == 'true'
+        if: steps.find-tag.outputs.has_changes == 'true' && steps.find-tag.outputs.is_initial == 'false'
         uses: dorny/paths-filter@v3
         with:
           base: ${{ steps.find-tag.outputs.compare_ref }}
@@ -95,12 +98,26 @@ jobs:
               - '*.md'
               - '.gitignore'
 
+      - name: 🔍 Handle Initial Deployment (No Previous Tags)
+        id: initial-changes
+        if: steps.find-tag.outputs.is_initial == 'true'
+        run: |
+          echo "🎯 Initial deployment - treating infrastructure as changed"
+          echo "infrastructure=true" >> $GITHUB_OUTPUT
+          echo "api=false" >> $GITHUB_OUTPUT
+          echo "auth_lambdas=false" >> $GITHUB_OUTPUT
+          echo "murder_crow=false" >> $GITHUB_OUTPUT
+          echo "docs_only=false" >> $GITHUB_OUTPUT
+
       - name: ✅ Check Any Code Changes
         id: check
         run: |
           if [[ "${{ steps.find-tag.outputs.has_changes }}" == "false" ]]; then
             echo "any_code=false" >> $GITHUB_OUTPUT
             echo "::notice::⏸️  No changes since last deployment - skipping pipeline"
+          elif [[ "${{ steps.find-tag.outputs.is_initial }}" == "true" ]]; then
+            echo "any_code=true" >> $GITHUB_OUTPUT
+            echo "::notice::🎯 Initial deployment - deploying infrastructure"
           elif [[ "${{ steps.changes.outputs.infrastructure }}" == "true" ||
                   "${{ steps.changes.outputs.api }}" == "true" ||
                   "${{ steps.changes.outputs.auth_lambdas }}" == "true" ||
@@ -117,14 +134,15 @@ jobs:
           echo "## 🔍 Change Detection Summary" >> $GITHUB_STEP_SUMMARY
           echo "| Component | Changed Since Last Deploy |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|---------------------------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🏗️ Infrastructure | ${{ steps.changes.outputs.infrastructure || 'false' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🐍 API | ${{ steps.changes.outputs.api || 'false' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔐 Auth Lambdas | ${{ steps.changes.outputs.auth_lambdas || 'false' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🤖 Murder/Crow | ${{ steps.changes.outputs.murder_crow || 'false' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 📚 Docs Only | ${{ steps.changes.outputs.docs_only || 'false' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏗️ Infrastructure | ${{ steps.changes.outputs.infrastructure || steps.initial-changes.outputs.infrastructure || 'false' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐍 API | ${{ steps.changes.outputs.api || steps.initial-changes.outputs.api || 'false' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔐 Auth Lambdas | ${{ steps.changes.outputs.auth_lambdas || steps.initial-changes.outputs.auth_lambdas || 'false' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🤖 Murder/Crow | ${{ steps.changes.outputs.murder_crow || steps.initial-changes.outputs.murder_crow || 'false' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📚 Docs Only | ${{ steps.changes.outputs.docs_only || steps.initial-changes.outputs.docs_only || 'false' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Last Deployment:** ${{ steps.find-tag.outputs.tag || 'None (initial)' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Changes Since:** ${{ steps.find-tag.outputs.has_changes }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Is Initial:** ${{ steps.find-tag.outputs.is_initial }}" >> $GITHUB_STEP_SUMMARY
 
   # ================================
   # QUALITY CHECKS
