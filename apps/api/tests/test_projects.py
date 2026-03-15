@@ -40,7 +40,11 @@ def test_create_project_returns_201(mock_boto3: Mock) -> None:
 
     response = client.post(
         "/projects",
-        json={"name": "My Project", "repo": "github.com/org/repo", "description": "desc"},
+        json={
+            "name": "My Project",
+            "repo": "github.com/org/repo",
+            "description": "desc",
+        },
     )
 
     assert response.status_code == 201

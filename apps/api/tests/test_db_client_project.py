@@ -26,7 +26,9 @@ def test_project_pk_format(tenant_context: TenantContext) -> None:
 
 @patch("src.db.client.boto3")
 @patch.dict("os.environ", {"TABLE_NAME": "test-table"})
-def test_put_and_get_project_item(mock_boto3: Mock, tenant_context: TenantContext) -> None:
+def test_put_and_get_project_item(
+    mock_boto3: Mock, tenant_context: TenantContext
+) -> None:
     """put_project_item stores with project PK; get_project_item retrieves it."""
     mock_table = Mock()
     mock_boto3.resource.return_value.Table.return_value = mock_table
@@ -40,7 +42,9 @@ def test_put_and_get_project_item(mock_boto3: Mock, tenant_context: TenantContex
     mock_table.get_item.return_value = {"Item": stored}
 
     db = TenantDB(tenant_context)
-    db.put_project_item(project_id="proj-123", sk="S#wave-1", level="wave", status="planning")
+    db.put_project_item(
+        project_id="proj-123", sk="S#wave-1", level="wave", status="planning"
+    )
 
     mock_table.put_item.assert_called_once_with(
         Item={
@@ -111,7 +115,9 @@ def test_update_project_item(mock_boto3: Mock, tenant_context: TenantContext) ->
 
 @patch("src.db.client.boto3")
 @patch.dict("os.environ", {"TABLE_NAME": "test-table"})
-def test_get_project_item_not_found(mock_boto3: Mock, tenant_context: TenantContext) -> None:
+def test_get_project_item_not_found(
+    mock_boto3: Mock, tenant_context: TenantContext
+) -> None:
     """get_project_item returns None when item does not exist."""
     mock_table = Mock()
     mock_boto3.resource.return_value.Table.return_value = mock_table
