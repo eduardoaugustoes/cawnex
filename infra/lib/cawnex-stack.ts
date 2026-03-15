@@ -111,6 +111,9 @@ export class CawnexStack extends cdk.Stack {
         QUEUE_URL: taskQueue.queueUrl,
         USER_POOL_ID: userPoolId,
         USER_POOL_CLIENT_ID: webClientId,
+        IOS_CLIENT_ID: iosClientId,
+        COGNITO_DOMAIN: cognitoDomain,
+        AWS_REGION_NAME: this.region,
       },
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
@@ -148,9 +151,15 @@ export class CawnexStack extends cdk.Stack {
       apiFunction
     );
 
-    // Health endpoint — no auth required (monitoring, deployment checks)
+    // Public endpoints — no auth required
     httpApi.addRoutes({
       path: "/health",
+      methods: [apigw.HttpMethod.GET],
+      integration: apiIntegration,
+    });
+
+    httpApi.addRoutes({
+      path: "/config",
       methods: [apigw.HttpMethod.GET],
       integration: apiIntegration,
     });
