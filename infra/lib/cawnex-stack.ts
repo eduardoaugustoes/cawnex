@@ -118,6 +118,17 @@ export class CawnexStack extends cdk.Stack {
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
 
+    // Anthropic auth token for AI chat proxy
+    const anthropicAuthForApi = secretsmanager.Secret.fromSecretNameV2(
+      this, "AnthropicAuthForApi", `cawnex/${stage}/anthropic-auth-token`
+    );
+    anthropicAuthForApi.grantRead(apiFunction);
+
+    // Pass secret ARN so Lambda can fetch at runtime
+    apiFunction.addEnvironment(
+      "ANTHROPIC_AUTH_SECRET_ARN", anthropicAuthForApi.secretArn
+    );
+
     // Grant API access to resources
     table.grantReadWriteData(apiFunction);
     artifactsBucket.grantReadWrite(apiFunction);
