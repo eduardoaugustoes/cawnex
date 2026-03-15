@@ -11,7 +11,7 @@ No conversation persistence — the app manages that.
 
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 class ChatMessageRequest(BaseModel):
     """A single message in the conversation."""
 
-    role: str
+    role: Literal["user", "assistant"]
     content: str
 
 
@@ -84,9 +84,7 @@ async def ai_chat(
     }
 
 
-def _track_cost(
-    tenant: TenantContext, project_id: str, result: ChatResult
-) -> None:
+def _track_cost(tenant: TenantContext, project_id: str, result: ChatResult) -> None:
     """Increment AI cost tracking on the project root snapshot."""
     try:
         db = TenantDB(tenant)
