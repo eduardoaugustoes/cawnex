@@ -283,6 +283,7 @@ class CrowSnapshot:
         item: dict[str, Any] = {
             "PK": self.pk,
             "SK": self.sk,
+            "crow_id": self.crow_id,
             "level": self.level.value,
             "status": self.status.value,
             "crow_type": self.crow_type.value,

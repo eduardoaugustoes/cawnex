@@ -273,6 +273,8 @@ def _build_outcome(crow_type: CrowType, parsed: dict[str, Any]) -> dict[str, Any
     if crow_type == CrowType.REVIEWER:
         return {
             "approved": parsed.get("approved", False),
+            "blocking_issues": parsed.get("blocking_issues", []),
+            "non_blocking_issues": parsed.get("non_blocking_issues", []),
             "issues": parsed.get("issues", []),
             "suggestions": parsed.get("suggestions", []),
             "summary": parsed.get("summary", ""),

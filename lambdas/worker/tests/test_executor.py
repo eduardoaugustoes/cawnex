@@ -63,10 +63,27 @@ class TestBuildOutcome:
         assert result["commit_message"] == "feat: auth"
 
     def test_reviewer_outcome(self) -> None:
-        parsed = {"approved": True, "issues": [], "suggestions": ["nice"], "summary": "lgtm"}
+        parsed = {
+            "approved": True,
+            "blocking_issues": [],
+            "non_blocking_issues": ["rename x to user_id"],
+            "issues": ["rename x to user_id"],
+            "suggestions": ["nice"],
+            "summary": "lgtm",
+        }
         result = _build_outcome(CrowType.REVIEWER, parsed)
         assert result["approved"] is True
+        assert result["blocking_issues"] == []
+        assert result["non_blocking_issues"] == ["rename x to user_id"]
+        assert result["issues"] == ["rename x to user_id"]
         assert result["suggestions"] == ["nice"]
+
+    def test_reviewer_outcome_defaults_empty_lists_when_fields_absent(self) -> None:
+        parsed = {"approved": False, "issues": ["bug"], "suggestions": [], "summary": "needs fix"}
+        result = _build_outcome(CrowType.REVIEWER, parsed)
+        assert result["blocking_issues"] == []
+        assert result["non_blocking_issues"] == []
+        assert result["issues"] == ["bug"]
 
     def test_fixer_outcome(self) -> None:
         parsed = {
