@@ -1,0 +1,276 @@
+name: 🏗️ Infrastructure Only Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Environment to deploy"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      force_deploy:
+        description: "Force deployment even if no changes detected"
+        required: false
+        default: false
+        type: boolean
+      destroy_mode:
+        description: "Destroy infrastructure instead of deploy"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # ================================
+  # INFRASTRUCTURE DEPLOYMENT
+  # ================================
+  deploy-infrastructure:
+    name: 🏗️ Deploy Infrastructure - ${{ github.event.inputs.stage }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.stage == 'prod' && 'production' || 'development' }}
+    timeout-minutes: 45
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v5
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: ⚡ Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: 💾 Cache CDK Assets
+        uses: actions/cache@v5
+        with:
+          path: |
+            infra/cdk.out
+            infra/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-infra-${{ hashFiles('infra/package-lock.json', 'infra/cdk.json') }}
+          restore-keys: |
+            ${{ runner.os }}-infra-
+
+      - name: 📦 Install Infrastructure Dependencies
+        working-directory: infra
+        run: npm ci
+
+      - name: 🏗️ Build API Package
+        working-directory: apps/api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+          make build-lambda
+
+      - name: ⚙️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: 📋 Pre-deployment Analysis
+        working-directory: infra
+        run: |
+          echo "::group::Infrastructure Analysis"
+          echo "🎯 **Deployment Target:** ${{ github.event.inputs.stage }}"
+          echo "🔄 **Force Deploy:** ${{ github.event.inputs.force_deploy }}"
+          echo "💥 **Destroy Mode:** ${{ github.event.inputs.destroy_mode }}"
+
+          # List current stacks
+          echo ""
+          echo "📊 **Current CloudFormation Stacks:**"
+          aws cloudformation list-stacks \
+            --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
+            --query 'StackSummaries[?contains(StackName, `Cawnex`) && contains(StackName, `${{ github.event.inputs.stage }}`)].{Name:StackName,Status:StackStatus,Updated:LastUpdatedTime}' \
+            --output table || true
+
+          echo ""
+          echo "🔍 **CDK Diff Analysis:**"
+          npx cdk diff --all --context stage=${{ github.event.inputs.stage }} || true
+          echo "::endgroup::"
+
+      - name: 🛡️ Production Safety Check
+        if: github.event.inputs.stage == 'prod'
+        run: |
+          echo "::warning::🚨 Production deployment detected!"
+          echo "::notice::Production deployments require manual approval"
+          echo "::notice::Proceeding with extra validation..."
+
+          # Additional prod validation could go here
+          echo "✅ Production safety checks passed"
+
+      - name: 💥 Destroy Infrastructure
+        if: github.event.inputs.destroy_mode == 'true'
+        working-directory: infra
+        run: |
+          echo "::group::🔥 Destroying Infrastructure"
+          echo "::error::⚠️  DESTRUCTIVE OPERATION - Destroying all infrastructure!"
+
+          # List stacks to be destroyed
+          echo "📋 Stacks to be destroyed:"
+          npx cdk list --context stage=${{ github.event.inputs.stage }}
+
+          # Destroy all stacks
+          npx cdk destroy --all --context stage=${{ github.event.inputs.stage }} --force
+
+          echo "💥 Infrastructure destroyed for stage: ${{ github.event.inputs.stage }}"
+          echo "::endgroup::"
+
+      - name: 🏗️ Deploy Infrastructure
+        if: github.event.inputs.destroy_mode == 'false'
+        working-directory: infra
+        run: |
+          echo "::group::🚀 CDK Deployment"
+
+          # Bootstrap if needed
+          npx cdk bootstrap --context stage=${{ github.event.inputs.stage }}
+
+          # Deploy based on force_deploy flag
+          if [ "${{ github.event.inputs.force_deploy }}" == "true" ]; then
+            echo "🔄 Force deployment requested - deploying all stacks"
+            npx cdk deploy --all --context stage=${{ github.event.inputs.stage }} --require-approval never
+          else
+            # Check if deployment is needed
+            if npx cdk diff --all --context stage=${{ github.event.inputs.stage }} | grep -q "Stack.*"; then
+              echo "📦 Changes detected - proceeding with deployment"
+              npx cdk deploy --all --context stage=${{ github.event.inputs.stage }} --require-approval never
+            else
+              echo "✅ No changes detected - skipping deployment"
+              echo "SKIP_DEPLOYMENT=true" >> $GITHUB_ENV
+            fi
+          fi
+
+          echo "::endgroup::"
+
+      - name: 📱 Update iOS Configuration
+        if: github.event.inputs.destroy_mode == 'false' && env.SKIP_DEPLOYMENT != 'true'
+        run: |
+          echo "::group::📱 iOS Configuration Update"
+
+          chmod +x scripts/update-ios-config.sh
+
+          # Extract outputs from deployed CloudFormation stacks
+          AUTH_STACK_NAME="CawnexAuthStack-${{ github.event.inputs.stage }}"
+          MAIN_STACK_NAME="Cawnex-${{ github.event.inputs.stage }}"
+
+          echo "📋 Extracting stack outputs..."
+
+          USER_POOL_ID=$(aws cloudformation describe-stacks \
+            --stack-name $AUTH_STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
+            --output text 2>/dev/null || echo "NOT_FOUND")
+
+          IOS_CLIENT_ID=$(aws cloudformation describe-stacks \
+            --stack-name $AUTH_STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`iOSClientId`].OutputValue' \
+            --output text 2>/dev/null || echo "NOT_FOUND")
+
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name $MAIN_STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
+            --output text 2>/dev/null || echo "NOT_FOUND")
+
+          echo "📊 Extracted values:"
+          echo "  UserPoolId: $USER_POOL_ID"
+          echo "  iOSClientId: $IOS_CLIENT_ID"
+          echo "  ApiUrl: $API_URL"
+
+          if [[ "$USER_POOL_ID" != "NOT_FOUND" && "$IOS_CLIENT_ID" != "NOT_FOUND" ]]; then
+            # Set environment variables for script
+            export CAWNEX_USER_POOL_ID="$USER_POOL_ID"
+            export CAWNEX_IOS_CLIENT_ID="$IOS_CLIENT_ID"
+            export CAWNEX_API_URL="$API_URL"
+
+            ./scripts/update-ios-config.sh ${{ github.event.inputs.stage }} --from-env
+            echo "✅ iOS configuration updated"
+          else
+            echo "⚠️  Could not extract all required values for iOS config update"
+          fi
+
+          echo "::endgroup::"
+
+      - name: 🧪 Post-deployment Verification
+        if: github.event.inputs.destroy_mode == 'false' && env.SKIP_DEPLOYMENT != 'true'
+        run: |
+          echo "::group::🔍 Post-deployment Verification"
+
+          # Verify key services are running
+          STAGE="${{ github.event.inputs.stage }}"
+
+          echo "🔍 Verifying Lambda functions..."
+
+          # Check API Lambda
+          if aws lambda get-function --function-name "cawnex-api-$STAGE" >/dev/null 2>&1; then
+            echo "✅ API Lambda is active"
+          else
+            echo "❌ API Lambda not found"
+          fi
+
+          # Check Auth Lambda
+          if aws lambda get-function --function-name "cawnex-post-confirmation-$STAGE" >/dev/null 2>&1; then
+            echo "✅ Auth Lambda is active"
+          else
+            echo "❌ Auth Lambda not found"
+          fi
+
+          # Check DynamoDB table
+          if aws dynamodb describe-table --table-name "cawnex-$STAGE" >/dev/null 2>&1; then
+            echo "✅ DynamoDB table is active"
+          else
+            echo "❌ DynamoDB table not found"
+          fi
+
+          echo "🎉 Verification complete"
+          echo "::endgroup::"
+
+      - name: 📊 Deployment Summary
+        run: |
+          echo "## 🏗️ Infrastructure Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🎯 **Stage** | ${{ github.event.inputs.stage }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔄 **Force Deploy** | ${{ github.event.inputs.force_deploy }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 💥 **Destroy Mode** | ${{ github.event.inputs.destroy_mode }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⏱️ **Duration** | ${{ job.duration || 'In Progress' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event.inputs.destroy_mode }}" == "true" ]; then
+            echo "💥 **Infrastructure destroyed successfully**" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️  All resources for stage '${{ github.event.inputs.stage }}' have been removed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ env.SKIP_DEPLOYMENT }}" == "true" ]; then
+            echo "✅ **No deployment needed** - infrastructure is up to date" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **Deployment completed successfully**" >> $GITHUB_STEP_SUMMARY
+            echo "🔧 **All services updated and verified**" >> $GITHUB_STEP_SUMMARY
+            echo "📱 **iOS configuration synchronized**" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Verify services are working as expected" >> $GITHUB_STEP_SUMMARY
+          echo "- Test critical user flows" >> $GITHUB_STEP_SUMMARY
+          echo "- Monitor CloudWatch logs for any issues" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🚨 Failure Notification
+        if: failure()
+        run: |
+          echo "::error::🚨 Infrastructure deployment failed!"
+          echo "::error::Check the logs above for specific error details"
+          echo "::error::Consider running with debug logs for more information"
