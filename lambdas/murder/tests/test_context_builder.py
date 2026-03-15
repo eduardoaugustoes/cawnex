@@ -21,6 +21,10 @@ class TestBuildPlannerInstructions:
         result = build_planner_instructions("Add auth", "JWT")
         assert "tasks" in result
 
+    def test_includes_estimated_hours_in_output_contract(self) -> None:
+        result = build_planner_instructions("Add auth", "JWT")
+        assert "estimated_hours" in result
+
 
 class TestBuildPlannerSplitInstructions:
     def test_mentions_oversized_task_names(self) -> None:
@@ -115,6 +119,26 @@ class TestBuildReviewerInstructions:
         assert "approved" in result
 
 
+class TestBuildReviewerInstructionsWithFixerContext:
+    def test_includes_fixer_context_when_provided(self) -> None:
+        fixer_outcome = {
+            "summary": "Added null guard and wrote tests",
+            "files_changed": ["src/handler.py", "tests/test_handler.py"],
+            "issues_addressed": ["missing null check", "no test coverage"],
+        }
+        result = build_instructions(
+            CrowType.REVIEWER, {}, "JWT auth", fixer_outcome=fixer_outcome
+        )
+        assert "Recent Fixes Applied" in result
+        assert "Added null guard and wrote tests" in result
+        assert "src/handler.py" in result
+        assert "missing null check" in result
+
+    def test_no_fixer_context_when_not_provided(self) -> None:
+        result = build_instructions(CrowType.REVIEWER, {}, "JWT auth")
+        assert "Recent Fixes Applied" not in result
+
+
 class TestBuildFixerInstructions:
     def test_includes_issues_and_suggestions(self) -> None:
         outcome = {
@@ -156,6 +180,36 @@ class TestBuildFixerInstructions:
         assert "src/handler.py" in result
         assert "Reviewer still found issues" in result
         assert "still broken" in result
+
+    def test_fixer_uses_blocking_issues_when_present(self) -> None:
+        """Fixer uses blocking_issues when available, falls back to issues."""
+        outcome = {
+            "blocking_issues": ["SQL injection at db.py:42"],
+            "non_blocking_issues": ["rename x to user_id"],
+            "issues": ["SQL injection at db.py:42", "rename x to user_id"],
+            "suggestions": [],
+        }
+        result = build_instructions(CrowType.FIXER, outcome, "JWT auth")
+        assert "SQL injection at db.py:42" in result
+        assert "blocking_issues" in result
+
+    def test_fixer_falls_back_to_issues_when_blocking_issues_absent(self) -> None:
+        outcome = {
+            "issues": ["missing error handling"],
+            "suggestions": [],
+        }
+        result = build_instructions(CrowType.FIXER, outcome, "JWT auth")
+        assert "missing error handling" in result
+
+    def test_fixer_includes_non_blocking_as_informational(self) -> None:
+        outcome = {
+            "blocking_issues": ["SQL injection"],
+            "non_blocking_issues": ["rename x to y"],
+            "issues": ["SQL injection", "rename x to y"],
+        }
+        result = build_instructions(CrowType.FIXER, outcome, "JWT auth")
+        assert "rename x to y" in result
+        assert "do NOT prioritize" in result
 
     def test_fixer_instructions_with_multiple_history_entries(self) -> None:
         outcome = {"issues": ["still wrong"], "suggestions": []}

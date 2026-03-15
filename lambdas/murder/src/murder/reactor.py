@@ -119,7 +119,8 @@ def react_to_crow_completion(
         _increment_wave_budget(blackboard, pk, wave_id, crow_cost)
 
     split_count = _count_completed_planners(blackboard, pk, wave_id, mvi_id)
-    action = determine_next(crow_type, crow_status, outcome, retry_count, split_count)
+    fix_count = _count_completed_fixers(blackboard, pk, wave_id, mvi_id)
+    action = determine_next(crow_type, crow_status, outcome, retry_count, split_count, fix_count)
 
     if isinstance(action, AssignCrow):
         _handle_assign(
@@ -177,8 +178,12 @@ def _handle_assign(
 
     # For reviewer, find the planner outcome so reviewer sees what was planned
     planner_outcome = None
+    fixer_outcome = None
     if action.crow_type == CrowType.REVIEWER:
         planner_outcome = _find_planner_outcome(blackboard, pk, wave_id, mvi_id)
+        # When assigning reviewer after a fixer, pass what the fixer changed
+        if previous_type == CrowType.FIXER:
+            fixer_outcome = previous_outcome
 
     # For fixer, build history of previous fix cycles so it avoids repeating failed approaches
     fix_history = None
@@ -190,6 +195,7 @@ def _handle_assign(
         planner_outcome=planner_outcome,
         fix_history=fix_history,
         iteration=retry_count + 1,
+        fixer_outcome=fixer_outcome,
     )
 
     crow_id = _next_crow_id(blackboard, pk, wave_id, mvi_id, action.crow_type)
@@ -411,6 +417,21 @@ def _count_completed_planners(
     )
 
 
+def _count_completed_fixers(
+    blackboard: Blackboard,
+    pk: str,
+    wave_id: str,
+    mvi_id: str,
+) -> int:
+    """Count how many fixer crows have completed for this MVI."""
+    crow_prefix = f"S#{wave_id}#m{mvi_id}#cr_"
+    crows = blackboard.query(pk, crow_prefix)
+    return sum(
+        1 for c in crows
+        if c.get("crow_type") == "fixer" and c.get("status") == "completed"
+    )
+
+
 def _find_planner_outcome(
     blackboard: Blackboard,
     pk: str,
@@ -467,11 +488,16 @@ def _find_fix_history(
     while i < len(crows_sorted) - 1:
         current = crows_sorted[i]
         nxt = crows_sorted[i + 1]
+        outcome_dict = current.get("outcome", {}) if isinstance(current.get("outcome"), dict) else {}
+        if "blocking_issues" in outcome_dict:
+            _reviewer_rejected_flag = len(outcome_dict["blocking_issues"]) > 0
+        else:
+            _reviewer_rejected_flag = not outcome_dict.get("approved", True)
         reviewer_rejected = (
             current.get("crow_type") == "reviewer"
             and current.get("status") == "completed"
             and isinstance(current.get("outcome"), dict)
-            and not current["outcome"].get("approved", True)
+            and _reviewer_rejected_flag
         )
         fixer_completed = (
             nxt.get("crow_type") == "fixer"
@@ -480,12 +506,16 @@ def _find_fix_history(
         if reviewer_rejected and fixer_completed:
             iteration += 1
             reviewer_outcome = current.get("outcome", {})
-            fixer_outcome = nxt.get("outcome", {})
+            fixer_outcome_hist = nxt.get("outcome", {})
+            if "blocking_issues" in reviewer_outcome:
+                reviewer_issues = reviewer_outcome.get("blocking_issues", [])
+            else:
+                reviewer_issues = reviewer_outcome.get("issues", [])
             history.append({
                 "iteration": iteration,
-                "reviewer_issues": reviewer_outcome.get("issues", []),
-                "fixer_summary": fixer_outcome.get("summary", ""),
-                "fixer_files_changed": fixer_outcome.get("files_changed", []),
+                "reviewer_issues": reviewer_issues,
+                "fixer_summary": fixer_outcome_hist.get("summary", ""),
+                "fixer_files_changed": fixer_outcome_hist.get("files_changed", []),
             })
             i += 2
         else:

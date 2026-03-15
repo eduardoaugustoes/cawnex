@@ -500,3 +500,172 @@ class TestReactToCrowCompletion:
         assert mvi is not None
         assert mvi["status"] == "ready_to_ship"
         assert mvi["can_ship"] is True
+
+    def test_reviewer_rejects_after_max_fix_cycles_fails_mvi(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """After FIX_CYCLE_LIMIT completed fixers, a rejecting reviewer fails the MVI."""
+        _seed_wave(blackboard)
+        _seed_mvi(blackboard, status=MVIStatus.EXECUTING)
+
+        # Two completed fixers already exist
+        _seed_crow(
+            blackboard,
+            crow_id="cr_fix_01",
+            crow_type=CrowType.FIXER,
+            status=CrowStatus.COMPLETED,
+            outcome={"summary": "first fix", "files_changed": [], "issues_addressed": []},
+        )
+        _seed_crow(
+            blackboard,
+            crow_id="cr_fix_02",
+            crow_type=CrowType.FIXER,
+            status=CrowStatus.COMPLETED,
+            outcome={"summary": "second fix", "files_changed": [], "issues_addressed": []},
+        )
+
+        # Reviewer still rejects (triggering crow)
+        reviewer = _seed_crow(
+            blackboard,
+            crow_id="cr_rev_03",
+            crow_type=CrowType.REVIEWER,
+            status=CrowStatus.COMPLETED,
+            outcome={"blocking_issues": ["still broken"], "approved": False},
+        )
+        reviewer_item = blackboard.read(reviewer.pk, reviewer.sk)
+        assert reviewer_item is not None
+
+        react_to_crow_completion(blackboard, reviewer_item, logger)
+
+        pk = build_pk("t1", "p1")
+        mvi_sk = build_sk(wave_id="w01", mvi_id="01")
+        mvi = blackboard.read(pk, mvi_sk)
+        assert mvi is not None
+        assert mvi["status"] == "failed"
+
+        # No new fixer should have been assigned
+        crows = blackboard.query(pk, "S#w01#m01#cr_")
+        fixer_pending = [c for c in crows if c["crow_type"] == "fixer" and c["status"] == "pending"]
+        assert len(fixer_pending) == 0
+
+    def test_reviewer_rejects_within_fix_limit_assigns_fixer(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """When fix_count < FIX_CYCLE_LIMIT, a rejecting reviewer still assigns another fixer."""
+        _seed_wave(blackboard)
+        _seed_mvi(blackboard, status=MVIStatus.EXECUTING)
+
+        # Only one completed fixer exists (limit is 2)
+        _seed_crow(
+            blackboard,
+            crow_id="cr_fix_01",
+            crow_type=CrowType.FIXER,
+            status=CrowStatus.COMPLETED,
+            outcome={"summary": "first fix", "files_changed": [], "issues_addressed": []},
+        )
+
+        reviewer = _seed_crow(
+            blackboard,
+            crow_id="cr_rev_02",
+            crow_type=CrowType.REVIEWER,
+            status=CrowStatus.COMPLETED,
+            outcome={"blocking_issues": ["still broken"], "approved": False},
+        )
+        reviewer_item = blackboard.read(reviewer.pk, reviewer.sk)
+        assert reviewer_item is not None
+
+        react_to_crow_completion(blackboard, reviewer_item, logger)
+
+        pk = build_pk("t1", "p1")
+        crows = blackboard.query(pk, "S#w01#m01#cr_")
+        fixer_pending = [c for c in crows if c["crow_type"] == "fixer" and c["status"] == "pending"]
+        assert len(fixer_pending) == 1
+
+    def test_fix_history_built_with_blocking_issues_field(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """Fix history uses blocking_issues field when present in reviewer outcome."""
+        _seed_wave(blackboard)
+        _seed_mvi(blackboard, status=MVIStatus.EXECUTING)
+
+        # Reviewer using new blocking_issues field (no approved field)
+        _seed_crow(
+            blackboard,
+            crow_id="cr_rev_01",
+            crow_type=CrowType.REVIEWER,
+            status=CrowStatus.COMPLETED,
+            outcome={
+                "blocking_issues": ["SQL injection at db.py:42"],
+                "non_blocking_issues": ["rename x to y"],
+                "issues": ["SQL injection at db.py:42", "rename x to y"],
+            },
+        )
+
+        # Fixer completed
+        _seed_crow(
+            blackboard,
+            crow_id="cr_fix_02",
+            crow_type=CrowType.FIXER,
+            status=CrowStatus.COMPLETED,
+            outcome={
+                "summary": "Fixed SQL injection",
+                "files_changed": ["src/db.py"],
+                "issues_addressed": ["SQL injection"],
+            },
+        )
+
+        # Second reviewer rejects again
+        second_reviewer = _seed_crow(
+            blackboard,
+            crow_id="cr_rev_03",
+            crow_type=CrowType.REVIEWER,
+            status=CrowStatus.COMPLETED,
+            outcome={"blocking_issues": ["still broken"], "approved": False},
+        )
+        reviewer_item = blackboard.read(second_reviewer.pk, second_reviewer.sk)
+        assert reviewer_item is not None
+
+        react_to_crow_completion(blackboard, reviewer_item, logger)
+
+        pk = build_pk("t1", "p1")
+        crows = blackboard.query(pk, "S#w01#m01#cr_")
+        fixer_pending = [c for c in crows if c["crow_type"] == "fixer" and c["status"] == "pending"]
+        assert len(fixer_pending) == 1
+
+        instructions = fixer_pending[0]["instructions"]
+        assert "Previous Fix Attempts" in instructions
+        assert "SQL injection at db.py:42" in instructions
+        assert "Fixed SQL injection" in instructions
+
+    def test_reviewer_after_fixer_includes_fixer_context(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """Reviewer assigned after fixer receives the fixer's outcome as context."""
+        _seed_wave(blackboard)
+        _seed_mvi(blackboard, status=MVIStatus.EXECUTING)
+
+        fixer = _seed_crow(
+            blackboard,
+            crow_id="cr_fix_01",
+            crow_type=CrowType.FIXER,
+            status=CrowStatus.COMPLETED,
+            outcome={
+                "summary": "Added null guard",
+                "files_changed": ["src/handler.py"],
+                "issues_addressed": ["null pointer exception"],
+            },
+        )
+        fixer_item = blackboard.read(fixer.pk, fixer.sk)
+        assert fixer_item is not None
+
+        react_to_crow_completion(blackboard, fixer_item, logger)
+
+        pk = build_pk("t1", "p1")
+        crows = blackboard.query(pk, "S#w01#m01#cr_")
+        reviewer_pending = [c for c in crows if c["crow_type"] == "reviewer" and c["status"] == "pending"]
+        assert len(reviewer_pending) == 1
+
+        instructions = reviewer_pending[0]["instructions"]
+        assert "Recent Fixes Applied" in instructions
+        assert "Added null guard" in instructions
+        assert "src/handler.py" in instructions

@@ -172,6 +172,29 @@ class TestReviewerCompleted:
         assert isinstance(action, AssignCrow)
         assert action.crow_type == CrowType.FIXER
 
+    def test_reviewer_rejects_after_max_fix_cycles_fails_mvi(self) -> None:
+        """When fix_count >= FIX_CYCLE_LIMIT and reviewer still rejects, fail the MVI."""
+        action = determine_next(
+            CrowType.REVIEWER, CrowStatus.COMPLETED,
+            {"blocking_issues": ["SQL injection at db.py:42"]},
+            0,
+            fix_count=2,
+        )
+        assert isinstance(action, FailMVI)
+        assert "max fix cycles" in action.reason
+        assert "2" in action.reason
+
+    def test_reviewer_rejects_within_fix_limit_assigns_fixer(self) -> None:
+        """When fix_count < FIX_CYCLE_LIMIT and reviewer rejects, assign fixer."""
+        action = determine_next(
+            CrowType.REVIEWER, CrowStatus.COMPLETED,
+            {"blocking_issues": ["SQL injection at db.py:42"]},
+            0,
+            fix_count=1,
+        )
+        assert isinstance(action, AssignCrow)
+        assert action.crow_type == CrowType.FIXER
+
 
 class TestReviewerFailed:
     def test_retry_under_max(self) -> None:
@@ -196,12 +219,13 @@ class TestFixerCompleted:
         assert isinstance(action, AssignCrow)
         assert action.crow_type == CrowType.REVIEWER
 
-    def test_fixer_completed_exceeds_limit_fails_mvi(self) -> None:
+    def test_fixer_completed_always_assigns_reviewer_regardless_of_retry_count(self) -> None:
+        """Fix limit is now checked on REVIEWER path, not FIXER path."""
         action = determine_next(
-            CrowType.FIXER, CrowStatus.COMPLETED, {}, 2,
+            CrowType.FIXER, CrowStatus.COMPLETED, {}, 5,
         )
-        assert isinstance(action, FailMVI)
-        assert "max fix cycles" in action.reason
+        assert isinstance(action, AssignCrow)
+        assert action.crow_type == CrowType.REVIEWER
 
 
 class TestFixerFailed:

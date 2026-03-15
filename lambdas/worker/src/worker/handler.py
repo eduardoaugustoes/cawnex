@@ -127,6 +127,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             repo=item.get("repo", ""),
             branch=item.get("branch", ""),
             budget_remaining=int(item.get("budget_remaining", 0)) - cost.credits,
+            retry_count=int(item.get("retry_count", 0)),
             outcome=completion.get("outcome"),
             cost=cost,
             git_commit=completion.get("git_commit", ""),

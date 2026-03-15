@@ -32,6 +32,7 @@ def build_planner_instructions(
         f"Return a JSON object with a 'tasks' array. Each task must have:\n"
         f"- name: short task name\n"
         f"- description: what to implement\n"
+        f"- estimated_hours: estimated human-equivalent hours (must be \u2264 8)\n"
         f"- files_to_modify: list of file paths to change\n"
         f"- context_files: list of file paths to read for context"
     )
@@ -71,6 +72,7 @@ def build_instructions(
     planner_outcome: dict[str, Any] | None = None,
     fix_history: list[dict[str, Any]] | None = None,
     iteration: int = 1,
+    fixer_outcome: dict[str, Any] | None = None,
 ) -> str:
     """Build instructions for a non-planner crow based on previous outcome."""
     outcome = previous_outcome or {}
@@ -78,7 +80,7 @@ def build_instructions(
     if next_type == CrowType.IMPLEMENTER:
         return _build_implementer_instructions(outcome, mvi_description)
     if next_type == CrowType.REVIEWER:
-        return _build_reviewer_instructions(mvi_description, planner_outcome, iteration)
+        return _build_reviewer_instructions(mvi_description, planner_outcome, iteration, fixer_outcome)
     if next_type == CrowType.FIXER:
         return _build_fixer_instructions(outcome, mvi_description, fix_history)
 
@@ -112,6 +114,7 @@ def _build_reviewer_instructions(
     mvi_description: str,
     planner_outcome: dict[str, Any] | None = None,
     iteration: int = 1,
+    fixer_outcome: dict[str, Any] | None = None,
 ) -> str:
     plan_section = ""
     if planner_outcome:
@@ -131,10 +134,23 @@ def _build_reviewer_instructions(
             f"Focus only on blocking issues — approve if no blocking issues remain.\n\n"
         )
 
+    fixer_section = ""
+    if fixer_outcome:
+        fixer_section = (
+            f"## Recent Fixes Applied\n"
+            f"The fixer made the following changes in response to the last review:\n"
+            f"- Summary: {fixer_outcome.get('summary', '')}\n"
+            f"- Files changed: {fixer_outcome.get('files_changed', [])}\n"
+            f"- Issues addressed: {fixer_outcome.get('issues_addressed', [])}\n\n"
+            f"Focus your review on whether these fixes adequately address "
+            f"the blocking issues from the previous review.\n\n"
+        )
+
     return (
         f"You are a reviewer. Review the changes made for this MVI.\n\n"
         f"MVI: {mvi_description}\n\n"
         f"{iteration_note}"
+        f"{fixer_section}"
         f"{plan_section}"
         f"Check for:\n"
         f"- Correctness: does the code do what it should?\n"
@@ -154,17 +170,26 @@ def _build_fixer_instructions(
     mvi_description: str,
     fix_history: list[dict[str, Any]] | None = None,
 ) -> str:
-    issues = outcome.get("issues", [])
+    issues = outcome.get("blocking_issues", outcome.get("issues", []))
+    non_blocking = outcome.get("non_blocking_issues", [])
     suggestions = outcome.get("suggestions", [])
     payload = {
-        "issues": issues,
+        "blocking_issues": issues,
         "suggestions": suggestions,
     }
     base = (
-        f"You are a fixer. Address the reviewer's feedback.\n\n"
+        f"You are a fixer. Address the reviewer's blocking feedback.\n\n"
         f"MVI: {mvi_description}\n\n"
         f"Reviewer feedback:\n{json.dumps(payload, indent=2, default=_json_default)}"
     )
+    if non_blocking:
+        non_blocking_payload = {"non_blocking_issues": non_blocking}
+        base += (
+            f"\n\n## For Your Awareness (do NOT prioritize these)\n"
+            f"The reviewer also noted these non-blocking issues. "
+            f"You do not need to fix them now:\n"
+            f"{json.dumps(non_blocking_payload, indent=2, default=_json_default)}"
+        )
 
     if not fix_history:
         return base

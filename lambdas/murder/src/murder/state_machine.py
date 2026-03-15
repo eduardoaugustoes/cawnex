@@ -50,10 +50,11 @@ def determine_next(
     outcome: dict[str, Any] | None,
     retry_count: int,
     split_count: int = 0,
+    fix_count: int = 0,
 ) -> NextAction:
     """Given a completed/failed crow, return the next action Murder should take."""
     if crow_status == CrowStatus.COMPLETED:
-        return _on_completed(crow_type, outcome, retry_count, split_count)
+        return _on_completed(crow_type, outcome, retry_count, split_count, fix_count)
     if crow_status == CrowStatus.FAILED:
         return _on_failed(crow_type, retry_count)
     return NoAction(reason=f"unexpected status: {crow_status.value}")
@@ -64,6 +65,7 @@ def _on_completed(
     outcome: dict[str, Any] | None,
     retry_count: int,
     split_count: int = 0,
+    fix_count: int = 0,
 ) -> NextAction:
     if crow_type == CrowType.PLANNER:
         tasks = (outcome or {}).get("tasks", [])
@@ -89,11 +91,16 @@ def _on_completed(
             approved = o.get("approved", False)
         if approved:
             return MarkMVIReady()
+        if fix_count >= FIX_CYCLE_LIMIT:
+            return FailMVI(
+                reason=(
+                    f"max fix cycles ({FIX_CYCLE_LIMIT}) exceeded — reviewer still has "
+                    f"blocking issues after {fix_count} fix attempts"
+                )
+            )
         return AssignCrow(CrowType.FIXER, reason="reviewer found issues")
 
     if crow_type == CrowType.FIXER:
-        if retry_count >= FIX_CYCLE_LIMIT:
-            return FailMVI(reason=f"max fix cycles ({FIX_CYCLE_LIMIT}) exceeded")
         return AssignCrow(CrowType.REVIEWER, reason="fixer completed, re-review needed")
 
     return NoAction(reason=f"unexpected crow type: {crow_type.value}")

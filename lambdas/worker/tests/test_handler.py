@@ -18,6 +18,7 @@ def _seed_pending_crow(
     blackboard: Blackboard,
     crow_id: str = "cr_plan_01",
     crow_type: str = "planner",
+    retry_count: int = 0,
 ) -> CrowSnapshot:
     """Write a pending crow to the table and return it."""
     crow = CrowSnapshot(
@@ -32,6 +33,7 @@ def _seed_pending_crow(
         repo="owner/repo",
         branch="cawnex/w001-auth",
         budget_remaining=5_000_000,
+        retry_count=retry_count,
     )
     blackboard.write_item(crow.to_item())
     return crow
@@ -274,6 +276,29 @@ class TestHandlerIntegration:
             result = lambda_handler({}, None)
 
         assert result == {"processed": 0, "errors": 0}
+
+    @patch("worker.handler.TABLE_NAME", "cawnex-test")
+    @patch("worker.handler.execute")
+    def test_handler_preserves_retry_count_in_completed_snapshot(
+        self,
+        mock_execute: MagicMock,
+        dynamodb_table: Any,
+    ) -> None:
+        """Completed snapshot must preserve retry_count from the original pending item."""
+        mock_execute.side_effect = _mock_execute_success
+        blackboard = Blackboard(dynamodb_table)
+        crow = _seed_pending_crow(blackboard, crow_id="cr_impl_01", crow_type="implementer", retry_count=1)
+
+        with patch("worker.handler.boto3") as mock_boto:
+            mock_boto.resource.return_value.Table.return_value = dynamodb_table
+            result = lambda_handler({}, None)
+
+        assert result["processed"] == 1
+
+        item = blackboard.read(crow.pk, crow.sk)
+        assert item is not None
+        assert item["status"] == "completed"
+        assert int(item["retry_count"]) == 1
 
     @patch("worker.handler.TABLE_NAME", "cawnex-test")
     @patch("worker.handler.execute")
