@@ -37,11 +37,40 @@ def build_planner_instructions(
     )
 
 
+def build_planner_split_instructions(
+    oversized_tasks: list[dict[str, Any]],
+    human_directive: str,
+    mvi_description: str,
+) -> str:
+    """Build instructions for a planner re-invocation to split oversized tasks."""
+    task_lines = "\n".join(
+        f'- "{t.get("name", "unnamed")}" (estimated: {t.get("estimated_hours", "?")}h)'
+        f" \u2014 split into 2-3 smaller tasks"
+        for t in oversized_tasks
+    )
+    return (
+        f"Your previous plan included tasks that exceed the 8-hour limit.\n"
+        f"Split these oversized tasks into smaller subtasks (each \u2264 8 hours):\n\n"
+        f"{task_lines}\n\n"
+        f"Original directive: {human_directive}\n\n"
+        f"MVI description: {mvi_description}\n\n"
+        f"Produce a new plan where ALL tasks are \u2264 8 hours.\n\n"
+        f"Return a JSON object with a 'tasks' array. Each task must have:\n"
+        f"- name: short task name\n"
+        f"- description: what to implement\n"
+        f"- estimated_hours: estimated hours (must be \u2264 8)\n"
+        f"- files_to_modify: list of file paths to change\n"
+        f"- context_files: list of file paths to read for context"
+    )
+
+
 def build_instructions(
     next_type: CrowType,
     previous_outcome: dict[str, Any] | None,
     mvi_description: str,
     planner_outcome: dict[str, Any] | None = None,
+    fix_history: list[dict[str, Any]] | None = None,
+    iteration: int = 1,
 ) -> str:
     """Build instructions for a non-planner crow based on previous outcome."""
     outcome = previous_outcome or {}
@@ -49,9 +78,9 @@ def build_instructions(
     if next_type == CrowType.IMPLEMENTER:
         return _build_implementer_instructions(outcome, mvi_description)
     if next_type == CrowType.REVIEWER:
-        return _build_reviewer_instructions(mvi_description, planner_outcome)
+        return _build_reviewer_instructions(mvi_description, planner_outcome, iteration)
     if next_type == CrowType.FIXER:
-        return _build_fixer_instructions(outcome, mvi_description)
+        return _build_fixer_instructions(outcome, mvi_description, fix_history)
 
     return f"Execute task for MVI: {mvi_description}"
 
@@ -82,6 +111,7 @@ def _build_implementer_instructions(
 def _build_reviewer_instructions(
     mvi_description: str,
     planner_outcome: dict[str, Any] | None = None,
+    iteration: int = 1,
 ) -> str:
     plan_section = ""
     if planner_outcome:
@@ -94,17 +124,27 @@ def _build_reviewer_instructions(
                 f"Verify each task was implemented correctly.\n\n"
             )
 
+    iteration_note = ""
+    if iteration > 1:
+        iteration_note = (
+            f"This is review iteration {iteration}. "
+            f"Focus only on blocking issues — approve if no blocking issues remain.\n\n"
+        )
+
     return (
         f"You are a reviewer. Review the changes made for this MVI.\n\n"
         f"MVI: {mvi_description}\n\n"
+        f"{iteration_note}"
         f"{plan_section}"
         f"Check for:\n"
         f"- Correctness: does the code do what it should?\n"
         f"- Quality: clean code, proper error handling, no security issues\n"
         f"- Tests: are there adequate tests?\n\n"
         f"Return a JSON object with:\n"
-        f"- approved: boolean\n"
-        f"- issues: list of issues found (empty if approved)\n"
+        f"- approved: boolean (true when blocking_issues is empty)\n"
+        f"- blocking_issues: list of blocking issues (security, correctness, data loss)\n"
+        f"- non_blocking_issues: list of non-blocking issues (style, naming, minor improvements)\n"
+        f"- issues: all issues combined (backward compat)\n"
         f"- suggestions: list of optional improvements"
     )
 
@@ -112,6 +152,7 @@ def _build_reviewer_instructions(
 def _build_fixer_instructions(
     outcome: dict[str, Any],
     mvi_description: str,
+    fix_history: list[dict[str, Any]] | None = None,
 ) -> str:
     issues = outcome.get("issues", [])
     suggestions = outcome.get("suggestions", [])
@@ -119,8 +160,26 @@ def _build_fixer_instructions(
         "issues": issues,
         "suggestions": suggestions,
     }
-    return (
+    base = (
         f"You are a fixer. Address the reviewer's feedback.\n\n"
         f"MVI: {mvi_description}\n\n"
         f"Reviewer feedback:\n{json.dumps(payload, indent=2, default=_json_default)}"
     )
+
+    if not fix_history:
+        return base
+
+    history_lines = ["", "", "## Previous Fix Attempts", "Do NOT repeat approaches that already failed."]
+    for entry in fix_history:
+        iteration = entry.get("iteration", "?")
+        reviewer_issues = entry.get("reviewer_issues", [])
+        fixer_summary = entry.get("fixer_summary", "")
+        fixer_files_changed = entry.get("fixer_files_changed", [])
+
+        history_lines.append(f"\n### Attempt {iteration}")
+        history_lines.append(f"- Issues presented: {', '.join(reviewer_issues)}")
+        history_lines.append(f"- Approach taken: {fixer_summary}")
+        history_lines.append(f"- Files changed: {', '.join(fixer_files_changed)}")
+        history_lines.append("- Result: Reviewer still found issues (see current issues above)")
+
+    return base + "\n".join(history_lines)

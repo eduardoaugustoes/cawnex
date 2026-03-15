@@ -3,7 +3,11 @@
 import json
 
 from murder.enums import CrowType
-from murder.context_builder import build_instructions, build_planner_instructions
+from murder.context_builder import (
+    build_instructions,
+    build_planner_instructions,
+    build_planner_split_instructions,
+)
 
 
 class TestBuildPlannerInstructions:
@@ -16,6 +20,31 @@ class TestBuildPlannerInstructions:
     def test_mentions_tasks_format(self) -> None:
         result = build_planner_instructions("Add auth", "JWT")
         assert "tasks" in result
+
+
+class TestBuildPlannerSplitInstructions:
+    def test_mentions_oversized_task_names(self) -> None:
+        oversized = [
+            {"name": "Implement JWT auth", "estimated_hours": 16},
+            {"name": "Setup CI/CD pipeline", "estimated_hours": 12},
+        ]
+        result = build_planner_split_instructions(oversized, "Build auth system", "JWT MVI")
+        assert "Implement JWT auth" in result
+        assert "16h" in result
+        assert "Setup CI/CD pipeline" in result
+        assert "12h" in result
+
+    def test_includes_original_directive_and_description(self) -> None:
+        oversized = [{"name": "Big task", "estimated_hours": 10}]
+        result = build_planner_split_instructions(oversized, "Build auth system", "JWT MVI")
+        assert "Build auth system" in result
+        assert "JWT MVI" in result
+
+    def test_instructs_to_produce_tasks_within_limit(self) -> None:
+        oversized = [{"name": "Big task", "estimated_hours": 10}]
+        result = build_planner_split_instructions(oversized, "directive", "desc")
+        assert "8" in result
+        assert "tasks" in result.lower()
 
 
 class TestBuildImplementerInstructions:
@@ -100,3 +129,52 @@ class TestBuildFixerInstructions:
     def test_handles_none_outcome(self) -> None:
         result = build_instructions(CrowType.FIXER, None, "desc")
         assert "fixer" in result.lower()
+
+    def test_fixer_instructions_without_fix_history(self) -> None:
+        outcome = {"issues": ["null pointer"], "suggestions": []}
+        result = build_instructions(CrowType.FIXER, outcome, "JWT auth")
+        assert "Previous Fix Attempts" not in result
+        assert "null pointer" in result
+
+    def test_fixer_instructions_with_fix_history(self) -> None:
+        outcome = {"issues": ["still broken"], "suggestions": []}
+        fix_history = [
+            {
+                "iteration": 1,
+                "reviewer_issues": ["null pointer", "missing test"],
+                "fixer_summary": "Added null check in handler",
+                "fixer_files_changed": ["src/handler.py"],
+            }
+        ]
+        result = build_instructions(CrowType.FIXER, outcome, "JWT auth", fix_history=fix_history)
+        assert "Previous Fix Attempts" in result
+        assert "Do NOT repeat approaches that already failed" in result
+        assert "Attempt 1" in result
+        assert "null pointer" in result
+        assert "missing test" in result
+        assert "Added null check in handler" in result
+        assert "src/handler.py" in result
+        assert "Reviewer still found issues" in result
+        assert "still broken" in result
+
+    def test_fixer_instructions_with_multiple_history_entries(self) -> None:
+        outcome = {"issues": ["still wrong"], "suggestions": []}
+        fix_history = [
+            {
+                "iteration": 1,
+                "reviewer_issues": ["bug A"],
+                "fixer_summary": "tried approach X",
+                "fixer_files_changed": ["a.py"],
+            },
+            {
+                "iteration": 2,
+                "reviewer_issues": ["bug B"],
+                "fixer_summary": "tried approach Y",
+                "fixer_files_changed": ["b.py"],
+            },
+        ]
+        result = build_instructions(CrowType.FIXER, outcome, "desc", fix_history=fix_history)
+        assert "Attempt 1" in result
+        assert "Attempt 2" in result
+        assert "tried approach X" in result
+        assert "tried approach Y" in result

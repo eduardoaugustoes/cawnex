@@ -10,7 +10,11 @@ from __future__ import annotations
 from typing import Any
 
 from murder.blackboard import Blackboard
-from murder.context_builder import build_instructions, build_planner_instructions
+from murder.context_builder import (
+    build_instructions,
+    build_planner_instructions,
+    build_planner_split_instructions,
+)
 from murder.contracts import validate_crow_assignment, validate_mvi_ready_to_ship
 from murder.cost import check_wave_budget
 from murder.enums import CrowStatus, CrowType, MVIStatus
@@ -27,6 +31,7 @@ from murder.state_machine import (
     FailMVI,
     MarkMVIReady,
     NoAction,
+    SplitRequired,
     determine_next,
 )
 
@@ -113,12 +118,17 @@ def react_to_crow_completion(
     if crow_cost > 0:
         _increment_wave_budget(blackboard, pk, wave_id, crow_cost)
 
-    action = determine_next(crow_type, crow_status, outcome, retry_count)
+    split_count = _count_completed_planners(blackboard, pk, wave_id, mvi_id)
+    action = determine_next(crow_type, crow_status, outcome, retry_count, split_count)
 
     if isinstance(action, AssignCrow):
         _handle_assign(
             blackboard, pk, tenant, project, wave_id, mvi_id,
             action, crow_type, retry_count, outcome, logger,
+        )
+    elif isinstance(action, SplitRequired):
+        _handle_split_required(
+            blackboard, pk, tenant, project, wave_id, mvi_id, action, logger,
         )
     elif isinstance(action, MarkMVIReady):
         _handle_mvi_ready(blackboard, pk, tenant, project, wave_id, mvi_id, logger)
@@ -170,9 +180,16 @@ def _handle_assign(
     if action.crow_type == CrowType.REVIEWER:
         planner_outcome = _find_planner_outcome(blackboard, pk, wave_id, mvi_id)
 
+    # For fixer, build history of previous fix cycles so it avoids repeating failed approaches
+    fix_history = None
+    if action.crow_type == CrowType.FIXER:
+        fix_history = _find_fix_history(blackboard, pk, wave_id, mvi_id)
+
     instructions = build_instructions(
         action.crow_type, previous_outcome, mvi_item.get("description", ""),
         planner_outcome=planner_outcome,
+        fix_history=fix_history,
+        iteration=retry_count + 1,
     )
 
     crow_id = _next_crow_id(blackboard, pk, wave_id, mvi_id, action.crow_type)
@@ -271,6 +288,70 @@ def _handle_fail_mvi(
     logger.event("mvi_failed", mvi_id=mvi_id, reason=reason)
 
 
+def _handle_split_required(
+    blackboard: Blackboard,
+    pk: str,
+    tenant: str,
+    project: str,
+    wave_id: str,
+    mvi_id: str,
+    action: SplitRequired,
+    logger: StructuredLogger,
+) -> None:
+    wave_item = blackboard.read(pk, build_sk(wave_id=wave_id))
+    if not wave_item:
+        logger.error("wave_not_found", wave_id=wave_id)
+        return
+    wave = WaveSnapshot.from_item(wave_item)
+
+    budget_check = check_wave_budget(wave.budget.spent, 0, wave.budget.limit)
+    if budget_check.exceeded:
+        mvi_sk = build_sk(wave_id=wave_id, mvi_id=mvi_id)
+        mvi_item = blackboard.read(pk, mvi_sk)
+        _fail_mvi_budget(
+            blackboard, pk, wave_id, mvi_id, mvi_item or {}, wave.budget, logger
+        )
+        return
+
+    mvi_sk = build_sk(wave_id=wave_id, mvi_id=mvi_id)
+    mvi_item = blackboard.read(pk, mvi_sk)
+    if not mvi_item:
+        logger.error("mvi_not_found", mvi_id=mvi_id)
+        return
+
+    instructions = build_planner_split_instructions(
+        action.oversized_tasks,
+        wave.human_directive,
+        mvi_item.get("description", ""),
+    )
+
+    crow_id = _next_crow_id(blackboard, pk, wave_id, mvi_id, CrowType.PLANNER)
+    crow = CrowSnapshot(
+        tenant=tenant,
+        project=project,
+        wave_id=wave_id,
+        mvi_id=mvi_id,
+        crow_id=crow_id,
+        crow_type=CrowType.PLANNER,
+        status=CrowStatus.PENDING,
+        instructions=instructions,
+        repo=mvi_item.get("repo", ""),
+        branch=mvi_item.get("branch", ""),
+        budget_remaining=wave.budget.remaining,
+    )
+
+    item = crow.to_item()
+    validate_crow_assignment(item)
+    blackboard.write_item(item)
+
+    evt = build_crow_assigned_event(
+        tenant, project, wave_id, CrowType.PLANNER, action.reason
+    )
+    blackboard.write_item(evt.to_item())
+
+    logger.event("planner_split_assigned", crow_id=crow_id, mvi_id=mvi_id)
+
+
 def _fail_mvi_budget(
     blackboard: Blackboard,
     pk: str,
@@ -313,7 +394,22 @@ def _increment_wave_budget(
     blackboard.increment_nested(pk, wave_sk, "budget", "spent", credits)
 
 
-# --- Planner outcome lookup ---
+# --- Planner helpers ---
+
+def _count_completed_planners(
+    blackboard: Blackboard,
+    pk: str,
+    wave_id: str,
+    mvi_id: str,
+) -> int:
+    """Count how many planner crows have completed for this MVI."""
+    crow_prefix = f"S#{wave_id}#m{mvi_id}#cr_"
+    crows = blackboard.query(pk, crow_prefix)
+    return sum(
+        1 for c in crows
+        if c.get("crow_type") == "planner" and c.get("status") == "completed"
+    )
+
 
 def _find_planner_outcome(
     blackboard: Blackboard,
@@ -332,6 +428,70 @@ def _find_planner_outcome(
         ):
             return crow["outcome"]
     return None
+
+
+# --- Fix history lookup ---
+
+def _find_fix_history(
+    blackboard: Blackboard,
+    pk: str,
+    wave_id: str,
+    mvi_id: str,
+) -> list[dict[str, Any]]:
+    """Return completed (reviewer_rejected, fixer_completed) pairs chronologically.
+
+    Walks all crows sorted by sequence number extracted from crow_id
+    (e.g. cr_rev_03 -> 3). Sorting by SK string would mis-order crows
+    because type abbreviations (fix, rev) sort alphabetically, not by
+    insertion order. For each reviewer rejection followed by a completed
+    fixer, records one history entry. The triggering reviewer is excluded
+    because it is not yet written back as completed when this runs.
+    """
+    crow_prefix = f"S#{wave_id}#m{mvi_id}#cr_"
+    crows = blackboard.query(pk, crow_prefix)
+
+    def _seq(crow: dict[str, Any]) -> int:
+        sk = crow.get("SK", "")
+        crow_id_part = sk.rsplit("#", 1)[-1]
+        seq_part = crow_id_part.rsplit("_", 1)[-1]
+        try:
+            return int(seq_part)
+        except ValueError:
+            return 0
+
+    crows_sorted = sorted(crows, key=_seq)
+
+    history: list[dict[str, Any]] = []
+    iteration = 0
+    i = 0
+    while i < len(crows_sorted) - 1:
+        current = crows_sorted[i]
+        nxt = crows_sorted[i + 1]
+        reviewer_rejected = (
+            current.get("crow_type") == "reviewer"
+            and current.get("status") == "completed"
+            and isinstance(current.get("outcome"), dict)
+            and not current["outcome"].get("approved", True)
+        )
+        fixer_completed = (
+            nxt.get("crow_type") == "fixer"
+            and nxt.get("status") == "completed"
+        )
+        if reviewer_rejected and fixer_completed:
+            iteration += 1
+            reviewer_outcome = current.get("outcome", {})
+            fixer_outcome = nxt.get("outcome", {})
+            history.append({
+                "iteration": iteration,
+                "reviewer_issues": reviewer_outcome.get("issues", []),
+                "fixer_summary": fixer_outcome.get("summary", ""),
+                "fixer_files_changed": fixer_outcome.get("files_changed", []),
+            })
+            i += 2
+        else:
+            i += 1
+
+    return history
 
 
 # --- Key parsing helpers ---

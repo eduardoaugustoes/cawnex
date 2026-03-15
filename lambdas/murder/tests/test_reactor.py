@@ -367,6 +367,90 @@ class TestReactToCrowCompletion:
         assert "add test" in instructions
         assert "Planned tasks" in instructions
 
+    def test_fixer_receives_fix_history(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """Second fixer assignment includes history from the first reviewer/fixer cycle."""
+        _seed_wave(blackboard)
+        _seed_mvi(blackboard, status=MVIStatus.EXECUTING)
+
+        # First reviewer: rejected with issues
+        _seed_crow(
+            blackboard,
+            crow_id="cr_rev_01",
+            crow_type=CrowType.REVIEWER,
+            status=CrowStatus.COMPLETED,
+            outcome={
+                "approved": False,
+                "issues": ["missing null check", "no test coverage"],
+            },
+        )
+
+        # First fixer: completed with a summary and files changed
+        _seed_crow(
+            blackboard,
+            crow_id="cr_fix_02",
+            crow_type=CrowType.FIXER,
+            status=CrowStatus.COMPLETED,
+            outcome={
+                "summary": "Added null guard in handler, wrote unit test",
+                "files_changed": ["src/handler.py", "tests/test_handler.py"],
+            },
+        )
+
+        # Second reviewer: rejected again (this is the triggering crow)
+        second_reviewer = _seed_crow(
+            blackboard,
+            crow_id="cr_rev_03",
+            crow_type=CrowType.REVIEWER,
+            status=CrowStatus.COMPLETED,
+            outcome={
+                "approved": False,
+                "issues": ["test coverage still insufficient"],
+            },
+        )
+        reviewer_item = blackboard.read(second_reviewer.pk, second_reviewer.sk)
+        assert reviewer_item is not None
+
+        react_to_crow_completion(blackboard, reviewer_item, logger)
+
+        pk = build_pk("t1", "p1")
+        crows = blackboard.query(pk, "S#w01#m01#cr_")
+        fixer_crows = [c for c in crows if c["crow_type"] == "fixer" and c["status"] == "pending"]
+        assert len(fixer_crows) == 1
+
+        instructions = fixer_crows[0]["instructions"]
+        assert "Previous Fix Attempts" in instructions
+        assert "missing null check" in instructions
+        assert "Added null guard in handler" in instructions
+        assert "src/handler.py" in instructions
+        assert "Attempt 1" in instructions
+
+    def test_first_fixer_has_no_history(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """First fixer assignment has no history section."""
+        _seed_wave(blackboard)
+        _seed_mvi(blackboard, status=MVIStatus.EXECUTING)
+
+        reviewer = _seed_crow(
+            blackboard,
+            crow_id="cr_rev_01",
+            crow_type=CrowType.REVIEWER,
+            status=CrowStatus.COMPLETED,
+            outcome={"approved": False, "issues": ["bug"]},
+        )
+        reviewer_item = blackboard.read(reviewer.pk, reviewer.sk)
+        assert reviewer_item is not None
+
+        react_to_crow_completion(blackboard, reviewer_item, logger)
+
+        pk = build_pk("t1", "p1")
+        crows = blackboard.query(pk, "S#w01#m01#cr_")
+        fixer_crows = [c for c in crows if c["crow_type"] == "fixer"]
+        assert len(fixer_crows) == 1
+        assert "Previous Fix Attempts" not in fixer_crows[0]["instructions"]
+
     def test_full_pipeline_planner_to_ready(
         self, blackboard: Blackboard, logger: StructuredLogger
     ) -> None:
