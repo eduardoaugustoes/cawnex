@@ -25,6 +25,9 @@ export class CawnexAuthStack extends cdk.Stack {
   /** DynamoDB Table — shared between auth and app */
   public readonly table: dynamodb.Table;
 
+  /** DynamoDB Table Stream ARN — for Murder Lambda event source */
+  public readonly tableStreamArn: string;
+
   constructor(scope: Construct, id: string, props: CawnexAuthStackProps) {
     super(scope, id, props);
 
@@ -42,7 +45,10 @@ export class CawnexAuthStack extends cdk.Stack {
       removalPolicy:
         stage === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
       timeToLiveAttribute: "ttl",
+      stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
     });
+
+    this.tableStreamArn = this.table.tableStreamArn!;
 
     // GSI1: Query by type within tenant (e.g., all projects for tenant)
     this.table.addGlobalSecondaryIndex({
@@ -207,6 +213,12 @@ export class CawnexAuthStack extends cdk.Stack {
       value: this.table.tableArn,
       exportName: `CawnexAuthStack-${stage}-TableArn`,
       description: "DynamoDB table ARN",
+    });
+
+    new cdk.CfnOutput(this, "TableStreamArn", {
+      value: this.tableStreamArn,
+      exportName: `CawnexAuthStack-${stage}-TableStreamArn`,
+      description: "DynamoDB table stream ARN",
     });
 
     // ─────────────────────────────────────────────

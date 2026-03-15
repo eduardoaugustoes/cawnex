@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 
 # DynamoDB
-TABLE_NAME: str = os.environ.get("BLACKBOARD_TABLE", "cawnex")
+TABLE_NAME: str = os.environ.get("TABLE_NAME", "cawnex")
 
 # Claude / Anthropic
 ANTHROPIC_MODEL: str = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")

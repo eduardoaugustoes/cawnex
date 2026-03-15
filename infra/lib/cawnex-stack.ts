@@ -4,6 +4,7 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as apigw from "aws-cdk-lib/aws-apigatewayv2";
 import * as apigwIntegrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import * as apigwAuthorizers from "aws-cdk-lib/aws-apigatewayv2-authorizers";
@@ -28,8 +29,12 @@ export class CawnexStack extends cdk.Stack {
     // ─────────────────────────────────────────────
     const tableName = cdk.Fn.importValue(`CawnexAuthStack-${stage}-TableName`);
     const tableArn = cdk.Fn.importValue(`CawnexAuthStack-${stage}-TableArn`);
+    const tableStreamArn = cdk.Fn.importValue(`CawnexAuthStack-${stage}-TableStreamArn`);
 
-    const table = dynamodb.Table.fromTableArn(this, "MainTable", tableArn);
+    const table = dynamodb.Table.fromTableAttributes(this, "MainTable", {
+      tableArn,
+      tableStreamArn,
+    });
 
     // ─────────────────────────────────────────────
     // S3 — Artifacts, .pen files, worktree snapshots
@@ -158,6 +163,37 @@ export class CawnexStack extends cdk.Stack {
     });
 
     // ─────────────────────────────────────────────
+    // Lambda — Murder (DynamoDB Streams orchestrator)
+    // ─────────────────────────────────────────────
+    const murderFn = new lambda.Function(this, "MurderFunction", {
+      functionName: `cawnex-murder-${stage}`,
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: "murder.handler.lambda_handler",
+      code: lambda.Code.fromAsset("../lambdas/murder/src"),
+      memorySize: 512,
+      timeout: cdk.Duration.seconds(60),
+      architecture: lambda.Architecture.ARM_64,
+      environment: {
+        TABLE_NAME: tableName,
+        STAGE: stage,
+        ANTHROPIC_MODEL: "claude-sonnet-4-20250514",
+      },
+      logRetention: logs.RetentionDays.ONE_MONTH,
+    });
+
+    table.grantReadWriteData(murderFn);
+    table.grantStreamRead(murderFn);
+
+    murderFn.addEventSource(
+      new lambdaEventSources.DynamoEventSource(table, {
+        startingPosition: lambda.StartingPosition.TRIM_HORIZON,
+        batchSize: 10,
+        bisectBatchOnError: true,
+        retryAttempts: 3,
+      })
+    );
+
+    // ─────────────────────────────────────────────
     // ECS Fargate — Worker (Murder orchestrator)
     // ─────────────────────────────────────────────
     const vpc = new ec2.Vpc(this, "Vpc", {
@@ -196,7 +232,9 @@ export class CawnexStack extends cdk.Stack {
 
     workerTaskDef.addContainer("worker", {
       containerName: "murder",
-      image: ecs.ContainerImage.fromAsset("../apps/worker"),
+      image: ecs.ContainerImage.fromAsset("..", {
+        file: "apps/worker/Dockerfile",
+      }),
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: "murder",
         logRetention: logs.RetentionDays.ONE_MONTH,
@@ -206,6 +244,10 @@ export class CawnexStack extends cdk.Stack {
         TABLE_NAME: tableName,
         BUCKET_NAME: artifactsBucket.bucketName,
         QUEUE_URL: taskQueue.queueUrl,
+        GITHUB_TOKEN: "",
+        ANTHROPIC_MODEL: "claude-sonnet-4-20250514",
+        EFS_MOUNT: "/mnt/repos",
+        MEMORY_INJECTION_ENABLED: "false",
       },
     });
 
