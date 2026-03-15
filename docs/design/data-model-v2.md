@@ -238,12 +238,12 @@ Every snapshot at every level has the same shape:
 
 ### Level-Specific Fields
 
-| Level | Extra Fields |
-|-------|-------------|
-| **Wave** | `mvis_shipped`, `mvis_total`, `wave_budget`, `human_directive` |
-| **Council** | `round` (debate round number), `advisor_votes[]`, `dissent[]`, `consensus` |
-| **Murder** | `tasks_done`, `tasks_total`, `merge_checklist[]`, `can_ship`, `murder_config_snapshot` |
-| **Crow** | `crow_type`, `behavior_state`, `git_commit`, `git_diff_ref`, `pr`, `retry_count` |
+| Level       | Extra Fields                                                                           |
+| ----------- | -------------------------------------------------------------------------------------- |
+| **Wave**    | `mvis_shipped`, `mvis_total`, `wave_budget`, `human_directive`                         |
+| **Council** | `round` (debate round number), `advisor_votes[]`, `dissent[]`, `consensus`             |
+| **Murder**  | `tasks_done`, `tasks_total`, `merge_checklist[]`, `can_ship`, `murder_config_snapshot` |
+| **Crow**    | `crow_type`, `behavior_state`, `git_commit`, `git_diff_ref`, `pr`, `retry_count`       |
 
 ---
 
@@ -264,7 +264,7 @@ The MVI item lives in the planning hierarchy but references the execution hierar
     "goal_id": "g1",
     "order": 1,
     "human_estimate_hours": 24,
-    "human_equiv_cost": 1200.00
+    "human_equiv_cost": 1200.0
   },
 
   "execution": {
@@ -277,8 +277,8 @@ The MVI item lives in the planning hierarchy but references the execution hierar
     "tasks_done": 4,
     "tasks_total": 4,
     "ai_minutes": 23,
-    "ai_cost": 18.00,
-    "human_equiv_cost": 1200.00,
+    "ai_cost": 18.0,
+    "human_equiv_cost": 1200.0,
     "roi": 67
   },
 
@@ -300,8 +300,8 @@ The MVI item lives in the planning hierarchy but references the execution hierar
   "tasks_active": 3,
   "tasks_refined": 8,
   "tasks_draft": 5,
-  "credits_spent": 247.50,
-  "human_equiv_saved": 4200.00,
+  "credits_spent": 247.5,
+  "human_equiv_saved": 4200.0,
   "active_crow_count": 3,
   "updated_at": "2026-03-14T10:32:00Z"
 }
@@ -358,8 +358,8 @@ Milestone and Goal items include pre-computed counters:
   "roi_multiplier": 8.4,
   "ai_minutes": 1240,
   "human_hours": 312,
-  "ai_cost": 574.20,
-  "human_cost": 15600.00,
+  "ai_cost": 574.2,
+  "human_cost": 15600.0,
   "monthly_burn": 1200,
   "days_remaining": 42
 }
@@ -425,42 +425,42 @@ Export: `Query PK=T#acme#P#cawnex, SK begins_with S#w001` → full tree = one wa
 
 ## Query Count Per Screen
 
-| Screen | Reads | Writes | SSE | Total DDB Ops |
-|--------|-------|--------|-----|---------------|
-| S01 Splash | 0 | 0 | No | 0 |
-| S02 Sign In | 0 | 0 | No | 0 |
-| S10 Dashboard | 2 | 0 | Optional | 2 |
-| S11 Create Project | 0 | 3 | No | 3 |
-| S12 Project Hub | 1 | 0 | WS | 1 |
-| S20-S23 Documents | 2 | 2 | SSE | 4 |
-| S24 Backlog | 1 | 0 | No | 1 |
-| S30 Milestone | 3 | 0 | No | 3 |
-| S31 Goal Detail | 3 | 1 | No | 4 |
-| S32 MVI Blackboard | 3 | 1 | SSE | 4 |
-| S33 Task Detail | 1 | 0 | No | 1 |
-| S34 PR Review | 3 | 2 | SSE | 5 |
-| S40 Murders | 3 | 0 | No | 3 |
-| S41 Create Murder | 1 | 1 | No | 2 |
-| S42 Create Crow | 1 | 1 | No | 2 |
-| S50 Skills | 2 | 0 | No | 2 |
-| S51 Add Skill | 1 | 1 | No | 2 |
-| S60 Settings | 2 | 0 | No | 2 |
-| S61 Billing | 4 | 0 | No | 4 |
-| S70 Notifications | 2 | 1 | SSE+Push | 3 |
+| Screen             | Reads | Writes | SSE      | Total DDB Ops |
+| ------------------ | ----- | ------ | -------- | ------------- |
+| S01 Splash         | 0     | 0      | No       | 0             |
+| S02 Sign In        | 0     | 0      | No       | 0             |
+| S10 Dashboard      | 2     | 0      | Optional | 2             |
+| S11 Create Project | 0     | 3      | No       | 3             |
+| S12 Project Hub    | 1     | 0      | WS       | 1             |
+| S20-S23 Documents  | 2     | 2      | SSE      | 4             |
+| S24 Backlog        | 1     | 0      | No       | 1             |
+| S30 Milestone      | 3     | 0      | No       | 3             |
+| S31 Goal Detail    | 3     | 1      | No       | 4             |
+| S32 MVI Blackboard | 3     | 1      | SSE      | 4             |
+| S33 Task Detail    | 1     | 0      | No       | 1             |
+| S34 PR Review      | 3     | 2      | SSE      | 5             |
+| S40 Murders        | 3     | 0      | No       | 3             |
+| S41 Create Murder  | 1     | 1      | No       | 2             |
+| S42 Create Crow    | 1     | 1      | No       | 2             |
+| S50 Skills         | 2     | 0      | No       | 2             |
+| S51 Add Skill      | 1     | 1      | No       | 2             |
+| S60 Settings       | 2     | 0      | No       | 2             |
+| S61 Billing        | 4     | 0      | No       | 4             |
+| S70 Notifications  | 2     | 1      | SSE+Push | 3             |
 
 ---
 
 ## Size Estimates
 
-| Entity | Count per project (mature) | Avg item size | Total |
-|--------|---------------------------|---------------|-------|
-| Snapshots | ~500 (50 waves × 10 tasks) | 2-5 KB | ~1.5 MB |
-| Events | ~2000 | 0.5 KB | ~1 MB |
-| Planning items | ~50 | 1 KB | ~50 KB |
-| Documents | 4 | 2 KB | ~8 KB |
-| Doc chat messages | ~800 (200 per doc) | 2 KB | ~1.6 MB |
-| Conversations | ~200 | 1 KB | ~200 KB |
-| **Total per project** | | | **~4.4 MB** |
+| Entity                | Count per project (mature) | Avg item size | Total       |
+| --------------------- | -------------------------- | ------------- | ----------- |
+| Snapshots             | ~500 (50 waves × 10 tasks) | 2-5 KB        | ~1.5 MB     |
+| Events                | ~2000                      | 0.5 KB        | ~1 MB       |
+| Planning items        | ~50                        | 1 KB          | ~50 KB      |
+| Documents             | 4                          | 2 KB          | ~8 KB       |
+| Doc chat messages     | ~800 (200 per doc)         | 2 KB          | ~1.6 MB     |
+| Conversations         | ~200                       | 1 KB          | ~200 KB     |
+| **Total per project** |                            |               | **~4.4 MB** |
 
 At 1000 projects per tenant: ~4.4 GB. Well within DynamoDB limits.
 
@@ -470,13 +470,13 @@ Large blobs (git diffs, raw LLM output) stored in S3 with reference in snapshot.
 
 ## Capacity Estimates (MVP: 10-50 tenants)
 
-| Metric | Estimate |
-|--------|----------|
-| Items in table | ~50,000 |
-| Table size | ~500 MB |
-| WCU (peak, during execution) | ~50 |
-| RCU (peak, dashboard load) | ~100 |
-| Stream Lambda invocations/day | ~5,000 |
-| Monthly cost (DynamoDB on-demand) | ~$5-15 |
-| Monthly cost (Lambda) | ~$1-5 |
-| **Total monthly infra** | **~$10-25** |
+| Metric                            | Estimate    |
+| --------------------------------- | ----------- |
+| Items in table                    | ~50,000     |
+| Table size                        | ~500 MB     |
+| WCU (peak, during execution)      | ~50         |
+| RCU (peak, dashboard load)        | ~100        |
+| Stream Lambda invocations/day     | ~5,000      |
+| Monthly cost (DynamoDB on-demand) | ~$5-15      |
+| Monthly cost (Lambda)             | ~$1-5       |
+| **Total monthly infra**           | **~$10-25** |

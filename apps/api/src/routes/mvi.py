@@ -17,6 +17,8 @@ router = APIRouter(
 
 
 class ShipResponse(BaseModel):
+    """Response after shipping an MVI."""
+
     status: str
 
 

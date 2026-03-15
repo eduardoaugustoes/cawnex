@@ -28,6 +28,7 @@ Layers 1-3 hit prompt cache (~90% token discount). Layer 4 is small (~2000 token
 Sees the big picture. Never writes code.
 
 **Identity prompt:**
+
 ```
 You are a Planner crow. You break work into tasks.
 Output structured JSON with tasks, each ≤8 hours human equivalent.
@@ -36,23 +37,24 @@ Never write code. Never implement. Only plan.
 
 **Task context (Layer 5):**
 
-| Included | Why |
-|----------|-----|
-| MVI description and acceptance criteria | What to plan for |
-| File tree of the repo (full listing, no contents) | Understand project structure |
-| Key files: README, package.json, configs | Understand tech stack and conventions |
-| Existing test structure (what's tested, what's not) | Know where tests need to be added |
-| Previous planner outputs for this project (from memory) | Avoid repeating past mistakes |
+| Included                                                | Why                                   |
+| ------------------------------------------------------- | ------------------------------------- |
+| MVI description and acceptance criteria                 | What to plan for                      |
+| File tree of the repo (full listing, no contents)       | Understand project structure          |
+| Key files: README, package.json, configs                | Understand tech stack and conventions |
+| Existing test structure (what's tested, what's not)     | Know where tests need to be added     |
+| Previous planner outputs for this project (from memory) | Avoid repeating past mistakes         |
 
-| NOT Included | Why |
-|--------------|-----|
-| Full source code | Planner doesn't need implementation details |
-| Git history | Not relevant to planning |
-| Other MVIs' details | Scope isolation |
+| NOT Included        | Why                                         |
+| ------------------- | ------------------------------------------- |
+| Full source code    | Planner doesn't need implementation details |
+| Git history         | Not relevant to planning                    |
+| Other MVIs' details | Scope isolation                             |
 
 **Token budget:** ~10K in, ~2K out
 
 **Output contract:**
+
 ```json
 {
   "tasks": [
@@ -61,8 +63,14 @@ Never write code. Never implement. Only plan.
       "description": "Create async middleware for JWT validation",
       "human_estimate_hours": 4,
       "files_to_read": ["src/auth/jwt.py", "src/middleware/__init__.py"],
-      "files_to_modify": ["src/middleware/auth.py", "tests/test_auth_middleware.py"],
-      "acceptance_criteria": ["Validates JWT on protected routes", "Returns 401 with clear error"]
+      "files_to_modify": [
+        "src/middleware/auth.py",
+        "tests/test_auth_middleware.py"
+      ],
+      "acceptance_criteria": [
+        "Validates JWT on protected routes",
+        "Returns 401 with clear error"
+      ]
     }
   ],
   "context_files": ["src/config.py", "src/models/user.py"],
@@ -77,6 +85,7 @@ Never write code. Never implement. Only plan.
 Sees specific files from the plan. Not the full repo.
 
 **Identity prompt:**
+
 ```
 You are an Implementer crow. You write production-quality code.
 Follow the project's conventions. Write tests for new code.
@@ -86,26 +95,27 @@ Only modify files relevant to your task.
 
 **Task context (Layer 5):**
 
-| Included | Why |
-|----------|-----|
-| Task description from planner | What to implement |
-| Acceptance criteria | Definition of done |
-| Specific files to read (from planner's `files_to_read[]`) | Understand existing code |
-| Specific files to modify (from planner's `files_to_modify[]`) | Know what to change |
-| Content of those files (full source) | Need actual code to modify |
-| Related test files | Write tests alongside implementation |
-| Previous implementation attempts (if retry) | Don't repeat failed approach |
+| Included                                                      | Why                                  |
+| ------------------------------------------------------------- | ------------------------------------ |
+| Task description from planner                                 | What to implement                    |
+| Acceptance criteria                                           | Definition of done                   |
+| Specific files to read (from planner's `files_to_read[]`)     | Understand existing code             |
+| Specific files to modify (from planner's `files_to_modify[]`) | Know what to change                  |
+| Content of those files (full source)                          | Need actual code to modify           |
+| Related test files                                            | Write tests alongside implementation |
+| Previous implementation attempts (if retry)                   | Don't repeat failed approach         |
 
-| NOT Included | Why |
-|--------------|-----|
-| Full file tree | Planner already scoped the work |
-| Files outside task scope | Avoid accidental changes |
-| Other tasks' details | Scope isolation |
-| Git history | Not relevant to implementation |
+| NOT Included             | Why                             |
+| ------------------------ | ------------------------------- |
+| Full file tree           | Planner already scoped the work |
+| Files outside task scope | Avoid accidental changes        |
+| Other tasks' details     | Scope isolation                 |
+| Git history              | Not relevant to implementation  |
 
 **Token budget:** ~30K in, ~8K out
 
 **Output contract:**
+
 ```json
 {
   "changes": [
@@ -132,6 +142,7 @@ Only modify files relevant to your task.
 Sees only what changed. Judges, never writes code.
 
 **Identity prompt:**
+
 ```
 You are a Reviewer crow. You review code changes for quality,
 security, performance, and correctness against acceptance criteria.
@@ -142,29 +153,35 @@ You do NOT write code. You judge code.
 
 **Task context (Layer 5):**
 
-| Included | Why |
-|----------|-----|
-| Original task description and acceptance criteria | Judge against intent |
-| Planner's plan (what was supposed to happen) | Plan-vs-execution comparison |
-| Git diff (what actually changed) | The thing being reviewed |
-| Changed files (full content of modified files only) | Context around the diff |
-| Test results (pass/fail summary) | Quality signal |
-| Previous review feedback (if re-review after fix) | Track improvement |
+| Included                                            | Why                          |
+| --------------------------------------------------- | ---------------------------- |
+| Original task description and acceptance criteria   | Judge against intent         |
+| Planner's plan (what was supposed to happen)        | Plan-vs-execution comparison |
+| Git diff (what actually changed)                    | The thing being reviewed     |
+| Changed files (full content of modified files only) | Context around the diff      |
+| Test results (pass/fail summary)                    | Quality signal               |
+| Previous review feedback (if re-review after fix)   | Track improvement            |
 
-| NOT Included | Why |
-|--------------|-----|
-| Unchanged files | Noise — focus on what changed |
-| Full repo tree | Not relevant to review |
-| Other tasks' changes | Scope isolation |
+| NOT Included         | Why                           |
+| -------------------- | ----------------------------- |
+| Unchanged files      | Noise — focus on what changed |
+| Full repo tree       | Not relevant to review        |
+| Other tasks' changes | Scope isolation               |
 
 **Token budget:** ~15K in, ~2K out
 
 **Output contract:**
+
 ```json
 {
   "approved": false,
-  "issues": ["No test for token expiration edge case", "Missing rate limit header"],
-  "suggestions": ["Consider using a decorator pattern for cleaner middleware chain"],
+  "issues": [
+    "No test for token expiration edge case",
+    "Missing rate limit header"
+  ],
+  "suggestions": [
+    "Consider using a decorator pattern for cleaner middleware chain"
+  ],
   "summary": "Implementation is solid but missing edge case test coverage.",
   "plan_vs_execution": [
     {
@@ -197,6 +214,7 @@ You do NOT write code. You judge code.
 Sees the reviewer's feedback and current code. Makes minimal targeted changes.
 
 **Identity prompt:**
+
 ```
 You are a Fixer crow. You fix specific issues identified by the Reviewer.
 Make minimal, targeted changes. Do not refactor beyond what's needed.
@@ -206,21 +224,21 @@ Output JSON with file changes, same format as Implementer.
 
 **Task context (Layer 5):**
 
-| Included | Why |
-|----------|-----|
-| Original task description | Context for the fix |
-| Reviewer's issues[] (specific problems) | Exactly what to fix |
-| Reviewer's suggestions[] (optional improvements) | Nice-to-haves if feasible |
-| Current file contents (post-implementation) | Code to modify |
-| Git diff from implementation | Understand what was changed |
-| Test results (which tests fail and why) | Fix failing tests |
-| Previous fix attempts (if retry #2+) | Don't repeat same failed fix |
+| Included                                         | Why                          |
+| ------------------------------------------------ | ---------------------------- |
+| Original task description                        | Context for the fix          |
+| Reviewer's issues[] (specific problems)          | Exactly what to fix          |
+| Reviewer's suggestions[] (optional improvements) | Nice-to-haves if feasible    |
+| Current file contents (post-implementation)      | Code to modify               |
+| Git diff from implementation                     | Understand what was changed  |
+| Test results (which tests fail and why)          | Fix failing tests            |
+| Previous fix attempts (if retry #2+)             | Don't repeat same failed fix |
 
-| NOT Included | Why |
-|--------------|-----|
-| Full repo | Fixer works on specific files only |
-| Planner's plan | Fixer works from reviewer feedback, not plan |
-| Unrelated files | Scope isolation |
+| NOT Included    | Why                                          |
+| --------------- | -------------------------------------------- |
+| Full repo       | Fixer works on specific files only           |
+| Planner's plan  | Fixer works from reviewer feedback, not plan |
+| Unrelated files | Scope isolation                              |
 
 **Token budget:** ~20K in, ~4K out
 
@@ -231,6 +249,7 @@ Output JSON with file changes, same format as Implementer.
 Sees what shipped, not how it was built.
 
 **Identity prompt:**
+
 ```
 You are a Documenter crow. You update project documentation
 to reflect shipped changes. Update README, API docs, changelog.
@@ -240,20 +259,20 @@ Do not explain implementation details unless they affect the API contract.
 
 **Task context (Layer 5):**
 
-| Included | Why |
-|----------|-----|
-| MVI summary (what was delivered) | What to document |
-| Git diff summary (files changed, not full diff) | Scope of changes |
-| Existing docs: README.md, API docs, CHANGELOG.md | What to update |
-| PR descriptions from shipped tasks | Human-readable summaries |
-| Acceptance criteria | What the user-facing behavior is |
+| Included                                         | Why                              |
+| ------------------------------------------------ | -------------------------------- |
+| MVI summary (what was delivered)                 | What to document                 |
+| Git diff summary (files changed, not full diff)  | Scope of changes                 |
+| Existing docs: README.md, API docs, CHANGELOG.md | What to update                   |
+| PR descriptions from shipped tasks               | Human-readable summaries         |
+| Acceptance criteria                              | What the user-facing behavior is |
 
-| NOT Included | Why |
-|--------------|-----|
-| Full source code | Documenter writes about behavior, not implementation |
-| Test files | Not relevant to docs |
-| Implementation details | Users don't need to know internals |
-| Reviewer feedback | Internal process, not docs |
+| NOT Included           | Why                                                  |
+| ---------------------- | ---------------------------------------------------- |
+| Full source code       | Documenter writes about behavior, not implementation |
+| Test files             | Not relevant to docs                                 |
+| Implementation details | Users don't need to know internals                   |
+| Reviewer feedback      | Internal process, not docs                           |
 
 **Token budget:** ~10K in, ~4K out
 
@@ -264,6 +283,7 @@ Do not explain implementation details unless they affect the API contract.
 Each advisor gets lens-specific context for decision-making.
 
 **Shared identity pattern:**
+
 ```
 You are the {advisor_type} advisor. You evaluate decisions through
 the lens of {lens_description}.
@@ -273,14 +293,14 @@ Output JSON: {scores, reasoning, blockers[], vote, confidence}.
 
 **Advisor-specific context:**
 
-| Advisor | Extra Context | NOT Included |
-|---------|--------------|--------------|
-| **Security** | Auth/security implementation summary, known vulnerabilities (from memory), OWASP guidelines for tech stack | Business metrics, UI details |
-| **Quality** | Test coverage stats, linting results, code complexity metrics | Business metrics, security details |
-| **Performance** | Endpoint latency data, DB query patterns, caching config | Auth details, UI details |
-| **Market** | Human directive, project phase, competitor context (from memory) | Source code, infra details |
-| **Maturity** | Tech debt notes (from memory), dependency versions, refactoring history | Business metrics, security details |
-| **Clarity** | Acceptance criteria, spec documents, glossary | Source code, infra details |
+| Advisor         | Extra Context                                                                                              | NOT Included                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **Security**    | Auth/security implementation summary, known vulnerabilities (from memory), OWASP guidelines for tech stack | Business metrics, UI details       |
+| **Quality**     | Test coverage stats, linting results, code complexity metrics                                              | Business metrics, security details |
+| **Performance** | Endpoint latency data, DB query patterns, caching config                                                   | Auth details, UI details           |
+| **Market**      | Human directive, project phase, competitor context (from memory)                                           | Source code, infra details         |
+| **Maturity**    | Tech debt notes (from memory), dependency versions, refactoring history                                    | Business metrics, security details |
+| **Clarity**     | Acceptance criteria, spec documents, glossary                                                              | Source code, infra details         |
 
 **Token budget per advisor:** ~5K in, ~1K out
 
@@ -466,15 +486,15 @@ If context exceeds budget:
 
 ## Token Budget Summary
 
-| Crow | Input | Output | Cost (Sonnet) | Cost (Opus) |
-|------|-------|--------|---------------|-------------|
-| Planner | ~10K | ~2K | ~$0.06 | ~$0.30 |
-| Implementer | ~30K | ~8K | ~$0.21 | ~$1.05 |
-| Reviewer | ~15K | ~2K | ~$0.08 | ~$0.38 |
-| Fixer | ~20K | ~4K | ~$0.12 | ~$0.60 |
-| Documenter | ~10K | ~4K | ~$0.09 | ~$0.45 |
-| **Full pipeline** | | | **~$0.56** | **~$2.78** |
-| Council (6 advisors) | ~5K each | ~1K each | **~$0.09** | **~$0.45** |
+| Crow                 | Input    | Output   | Cost (Sonnet) | Cost (Opus) |
+| -------------------- | -------- | -------- | ------------- | ----------- |
+| Planner              | ~10K     | ~2K      | ~$0.06        | ~$0.30      |
+| Implementer          | ~30K     | ~8K      | ~$0.21        | ~$1.05      |
+| Reviewer             | ~15K     | ~2K      | ~$0.08        | ~$0.38      |
+| Fixer                | ~20K     | ~4K      | ~$0.12        | ~$0.60      |
+| Documenter           | ~10K     | ~4K      | ~$0.09        | ~$0.45      |
+| **Full pipeline**    |          |          | **~$0.56**    | **~$2.78**  |
+| Council (6 advisors) | ~5K each | ~1K each | **~$0.09**    | **~$0.45**  |
 
 With prompt caching on layers 1-3 (~90% discount), actual cost is ~40-60% of these estimates.
 

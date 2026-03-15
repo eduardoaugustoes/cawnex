@@ -8,6 +8,7 @@
 ## The Problem
 
 Every time a crow executes, it starts from scratch. It doesn't know:
+
 - "Last time we changed auth middleware, tests broke because of X"
 - "This project uses camelCase and pytest"
 - "The founder hates verbose PRs"
@@ -99,11 +100,13 @@ Each memory file has a ~2000 token budget. When full:
 ### Evolution Example
 
 **Month 1 — Security advisor memory:**
+
 ```
 - Auth endpoints need rate limiting (learned from Wave 3 block)
 ```
 
 **Month 3 — Security advisor memory:**
+
 ```
 - Auth endpoints need rate limiting (Wave 3)
 - FastAPI CORS must explicitly list origins (Wave 7 vulnerability)
@@ -111,6 +114,7 @@ Each memory file has a ~2000 token budget. When full:
 ```
 
 **Month 6 — Security advisor memory (pruned & summarized):**
+
 ```
 This project uses FastAPI + DynamoDB. Key security patterns:
 - Rate limiting on all public endpoints (enforced since Wave 3)
@@ -125,6 +129,7 @@ This project uses FastAPI + DynamoDB. Key security patterns:
 ## Human Can See and Edit Memory
 
 Memory files are just markdown. The iOS app (Settings) shows them. The founder can:
+
 - Read what the AI has learned about their project
 - Edit entries ("actually, we switched from REST to GraphQL")
 - Delete entries ("this is no longer relevant")
@@ -134,14 +139,14 @@ Memory files are just markdown. The iOS app (Settings) shows them. The founder c
 
 ## Why Not RAG
 
-| Concern | RAG | CLAUDE.md Pattern |
-|---------|-----|-------------------|
-| Memory size | Millions of documents | Dozens of learnings |
-| Infrastructure | Vector DB, embedding pipeline, retrieval tuning | Markdown files in S3 |
-| Relevance | Needs similarity search | All memory fits in context window |
-| Cost | Embedding + storage + retrieval per query | Zero (included in prompt, cached) |
-| Accuracy | Can retrieve irrelevant results | Curated, always relevant |
-| Growth management | Index grows unbounded | Token budget with pruning |
+| Concern           | RAG                                             | CLAUDE.md Pattern                 |
+| ----------------- | ----------------------------------------------- | --------------------------------- |
+| Memory size       | Millions of documents                           | Dozens of learnings               |
+| Infrastructure    | Vector DB, embedding pipeline, retrieval tuning | Markdown files in S3              |
+| Relevance         | Needs similarity search                         | All memory fits in context window |
+| Cost              | Embedding + storage + retrieval per query       | Zero (included in prompt, cached) |
+| Accuracy          | Can retrieve irrelevant results                 | Curated, always relevant          |
+| Growth management | Index grows unbounded                           | Token budget with pruning         |
 
 **If memory ever gets too large for context, summarization is the answer, not search.**
 
@@ -161,6 +166,7 @@ Dynasty memory:
 ```
 
 Also stored in S3 as markdown files for prompt assembly:
+
 ```
 s3://cawnex-memory/{tenant}/dynasty/MEMORY.md
 s3://cawnex-memory/{tenant}/court/{project}/MEMORY.md

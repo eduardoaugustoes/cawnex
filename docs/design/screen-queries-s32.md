@@ -12,20 +12,20 @@ Real-time window into Murder orchestration for a single MVI — shows active cro
 
 ## 2. Data Needed
 
-| Field | Type | Example |
-|-------|------|---------|
-| mvi.name | string | "MVI 1.2: Auth & JWT" |
-| mvi.status | enum | executing, ready_to_ship, shipped |
-| mvi.tasksDone | number | 2 |
-| mvi.tasksTotal | number | 3 |
-| mvi.creditsSpent | currency | $4.20 |
-| mvi.humanEquiv | currency | ~$1,200 |
-| mvi.roi | number | 286 |
-| activeCrows[] | array | [{name, behaviorState, model, color}] |
-| tasks[] | array | [{name, status, prNumber, crowName}] |
-| liveFeed[] | array | [{timestamp, message, color}] |
-| mergeChecklist[] | array | [{label, passed: boolean}] |
-| canShip | boolean | false |
+| Field            | Type     | Example                               |
+| ---------------- | -------- | ------------------------------------- |
+| mvi.name         | string   | "MVI 1.2: Auth & JWT"                 |
+| mvi.status       | enum     | executing, ready_to_ship, shipped     |
+| mvi.tasksDone    | number   | 2                                     |
+| mvi.tasksTotal   | number   | 3                                     |
+| mvi.creditsSpent | currency | $4.20                                 |
+| mvi.humanEquiv   | currency | ~$1,200                               |
+| mvi.roi          | number   | 286                                   |
+| activeCrows[]    | array    | [{name, behaviorState, model, color}] |
+| tasks[]          | array    | [{name, status, prNumber, crowName}]  |
+| liveFeed[]       | array    | [{timestamp, message, color}]         |
+| mergeChecklist[] | array    | [{label, passed: boolean}]            |
+| canShip          | boolean  | false                                 |
 
 ---
 
@@ -42,6 +42,7 @@ SK: S#{wave_id}#council#murder#{murder_id}
 ```
 
 `GetItem` — returns the murder-level snapshot containing:
+
 - MVI name, status, tasksDone, tasksTotal, creditsSpent, humanEquiv, roi
 - mergeChecklist, canShip
 - These are aggregated values maintained by the Murder as crows report back
@@ -54,11 +55,13 @@ SK: begins_with("S#{wave_id}#council#murder#{murder_id}#")
 ```
 
 `Query` with SK prefix — returns all crow-level snapshots under this murder. Filter on `status IN (running, reviewing, building)` to get active crows. Each crow snapshot contains:
+
 - name, behaviorState, model, color
 
 ### 3.3 Tasks (also crow-level snapshots)
 
 Same query as 3.2 — each crow-level snapshot represents one task assignment. The snapshot contains:
+
 - task name, status, prNumber, crowName
 - A crow snapshot IS a task. The crow is assigned to the task, and its snapshot tracks both crow state and task progress.
 
@@ -70,17 +73,18 @@ SK: begins_with("EVT#{wave_id}#")
 ```
 
 `Query` with ScanIndexForward=false, Limit=50 — returns most recent events first. Each EVT record contains:
+
 - timestamp, message, color (green for approvals, amber for retries, purple for builds, muted for kickoffs)
 
 Optional: filter by murder_id attribute if events are wave-wide and need scoping to a specific MVI.
 
 ### Query Summary
 
-| Purpose | Operation | PK | SK Pattern |
-|---------|-----------|-----|-----------|
-| MVI header | GetItem | `T#{tid}#P#{pid}` | `S#{wave}#council#murder#{mid}` |
-| Active crows + tasks | Query | `T#{tid}#P#{pid}` | `begins_with(S#{wave}#council#murder#{mid}#)` |
-| Live feed | Query (desc) | `T#{tid}#P#{pid}` | `begins_with(EVT#{wave}#)` |
+| Purpose              | Operation    | PK                | SK Pattern                                    |
+| -------------------- | ------------ | ----------------- | --------------------------------------------- |
+| MVI header           | GetItem      | `T#{tid}#P#{pid}` | `S#{wave}#council#murder#{mid}`               |
+| Active crows + tasks | Query        | `T#{tid}#P#{pid}` | `begins_with(S#{wave}#council#murder#{mid}#)` |
+| Live feed            | Query (desc) | `T#{tid}#P#{pid}` | `begins_with(EVT#{wave}#)`                    |
 
 **Total: 1 GetItem + 2 Queries = 3 DynamoDB calls to render the full screen.**
 
@@ -98,6 +102,7 @@ S#{wave}                              ← wave snapshot (milestone-level)
 ```
 
 The MVI is the murder's execution scope within a wave. The Murder receives the wave plan from the Monarch, then orchestrates crows to deliver the MVI. The murder-level snapshot is the single source of truth for:
+
 - Aggregated progress (tasksDone/tasksTotal)
 - Accumulated cost (creditsSpent)
 - Computed ROI (humanEquiv / creditsSpent)
@@ -131,6 +136,7 @@ Each EVT record:
 ```
 
 Events are written by:
+
 - **Murder** — kickoff, task assignment, PR approval, merge queue decisions
 - **Crows** — started, completed, failed, retry
 - **CI** — checks passing, checks failing
@@ -160,7 +166,7 @@ The crow snapshot contains:
   "status": "running",
   "taskName": "Session management",
   "prNumber": null,
-  "creditsUsed": 1.80,
+  "creditsUsed": 1.8,
   "startedAt": "2026-03-14T14:32:00Z"
 }
 ```
@@ -292,6 +298,7 @@ S32 is the stress test. Every other screen reads static or slowly-changing data.
 ### The Murder-Level Snapshot is the Aggregation Point
 
 Without the snapshot model, rendering S32 would require:
+
 - Query all tasks for this MVI (separate table or complex filter)
 - Query all crow executions (another table)
 - Aggregate progress, cost, ROI on the fly

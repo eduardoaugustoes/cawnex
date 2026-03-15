@@ -10,11 +10,11 @@
 
 ### Data Needed
 
-| Field | Type | Required | Default |
-|-------|------|----------|---------|
-| name | string | yes | — |
-| oneLiner | string | no | — |
-| murders | string[] | yes | `["dev"]` |
+| Field    | Type     | Required | Default   |
+| -------- | -------- | -------- | --------- |
+| name     | string   | yes      | —         |
+| oneLiner | string   | no       | —         |
+| murders  | string[] | yes      | `["dev"]` |
 
 No data is read from DynamoDB to render this screen. The form is self-contained. Murder type options (Dev, Editorial, Social, Infra, Data) are client-side constants.
 
@@ -24,11 +24,12 @@ On "Create Project" tap, the API executes a **TransactWriteItems** with the foll
 
 #### 1. Project record (under PROJECTS partition)
 
-| PK | SK | Purpose |
-|----|-----|---------|
+| PK                       | SK               | Purpose                                   |
+| ------------------------ | ---------------- | ----------------------------------------- |
 | `T#{tenant_id}#PROJECTS` | `P#{project_id}` | Register project in tenant's project list |
 
 Attributes:
+
 - `projectId`: generated UUID
 - `name`: from form
 - `oneLiner`: from form (or empty)
@@ -41,11 +42,12 @@ Attributes:
 
 #### 2. Root snapshot (project's own partition)
 
-| PK | SK | Purpose |
-|----|-----|---------|
+| PK                             | SK   | Purpose                             |
+| ------------------------------ | ---- | ----------------------------------- |
 | `T#{tenant_id}#P#{project_id}` | `S#` | Root of the recursive snapshot tree |
 
 Attributes:
+
 - `projectId`: same UUID
 - `name`: from form
 - `oneLiner`: from form
@@ -62,11 +64,12 @@ Attributes:
 
 #### 3. Initial memory record
 
-| PK | SK | Purpose |
-|----|-----|---------|
+| PK                             | SK       | Purpose                                      |
+| ------------------------------ | -------- | -------------------------------------------- |
 | `T#{tenant_id}#P#{project_id}` | `MEMORY` | Monarch's persistent memory for this project |
 
 Attributes:
+
 - `projectId`: same UUID
 - `directive`: `""` (empty until human steers)
 - `decisions`: `[]`
@@ -76,11 +79,11 @@ Attributes:
 
 ### What Records Get Created
 
-| Record | Count | Purpose |
-|--------|-------|---------|
-| Project list entry | 1 | Adds project to `T#{tenant_id}#PROJECTS` so S10 Dashboard can list it |
-| Root snapshot | 1 | Initializes `S#` — the root of the snapshot tree under the project's own PK |
-| Project memory | 1 | Empty memory record for Monarch to accumulate decisions and context |
+| Record             | Count | Purpose                                                                     |
+| ------------------ | ----- | --------------------------------------------------------------------------- |
+| Project list entry | 1     | Adds project to `T#{tenant_id}#PROJECTS` so S10 Dashboard can list it       |
+| Root snapshot      | 1     | Initializes `S#` — the root of the snapshot tree under the project's own PK |
+| Project memory     | 1     | Empty memory record for Monarch to accumulate decisions and context         |
 
 **No initial wave is created.** Waves are created by the Monarch during the Vision phase after the human provides direction. A newly created project has zero waves — the first wave emerges from the Vision document flow (S20).
 

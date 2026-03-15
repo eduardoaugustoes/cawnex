@@ -16,37 +16,37 @@
 
 ### S33 — Task Detail
 
-| Field | Type | Example |
-|-------|------|---------|
-| task.name | string | "RBAC middleware" |
-| task.status | enum | completed, in_progress, pending_approval, queued, failed |
-| task.description | string | "Create NestJS guard..." |
-| task.humanEstimate | string | "6h" |
-| task.aiCost | currency | $2.40 |
-| task.roi | number | 42 |
-| task.assignedCrow | object | {name, role, model, behaviorState} |
-| task.implementationSteps | array | [{text, completed}] |
-| task.acceptanceCriteria | array | [{text, passed}] |
-| task.pr | object | {title, branch, number, status} |
+| Field                    | Type     | Example                                                  |
+| ------------------------ | -------- | -------------------------------------------------------- |
+| task.name                | string   | "RBAC middleware"                                        |
+| task.status              | enum     | completed, in_progress, pending_approval, queued, failed |
+| task.description         | string   | "Create NestJS guard..."                                 |
+| task.humanEstimate       | string   | "6h"                                                     |
+| task.aiCost              | currency | $2.40                                                    |
+| task.roi                 | number   | 42                                                       |
+| task.assignedCrow        | object   | {name, role, model, behaviorState}                       |
+| task.implementationSteps | array    | [{text, completed}]                                      |
+| task.acceptanceCriteria  | array    | [{text, passed}]                                         |
+| task.pr                  | object   | {title, branch, number, status}                          |
 
 ### S34 — PR Review
 
-| Field | Type | Example |
-|-------|------|---------|
-| pr.title | string | "Add input validation..." |
-| pr.branch | string | "feat/input-validation" |
-| pr.status | enum | ready, changes_requested, merged |
-| pr.mviRef | string | "MVI 1.2" |
-| pr.taskRef | string | "Input Validation" |
-| pr.creditsCost | number | 12 |
-| pr.aiMinutes | number | 8 |
-| pr.filesChanged | number | 6 |
-| pr.linesAdded | number | 142 |
-| pr.linesRemoved | number | 23 |
-| verdict | object | {status, confidence, summary, findings[]} |
-| planVsExecution | array | [{crowName, role, plan, executed, hint?}] |
-| askChips | string[] | suggested questions |
-| conversation | array | [{role, content, riskBadge?}] |
+| Field           | Type     | Example                                   |
+| --------------- | -------- | ----------------------------------------- |
+| pr.title        | string   | "Add input validation..."                 |
+| pr.branch       | string   | "feat/input-validation"                   |
+| pr.status       | enum     | ready, changes_requested, merged          |
+| pr.mviRef       | string   | "MVI 1.2"                                 |
+| pr.taskRef      | string   | "Input Validation"                        |
+| pr.creditsCost  | number   | 12                                        |
+| pr.aiMinutes    | number   | 8                                         |
+| pr.filesChanged | number   | 6                                         |
+| pr.linesAdded   | number   | 142                                       |
+| pr.linesRemoved | number   | 23                                        |
+| verdict         | object   | {status, confidence, summary, findings[]} |
+| planVsExecution | array    | [{crowName, role, plan, executed, hint?}] |
+| askChips        | string[] | suggested questions                       |
+| conversation    | array    | [{role, content, riskBadge?}]             |
 
 ---
 
@@ -60,16 +60,16 @@ The SK path `S#{wave}#{council}#{murder}#{crow}` forms a hierarchy. A task lives
 
 **Primary read: Get task snapshot**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
+| Purpose  | PK                             | SK                                                     | Operation |
+| -------- | ------------------------------ | ------------------------------------------------------ | --------- |
 | Get task | `T#{tenant_id}#P#{project_id}` | `S#{wave_id}#M#{murder_id}#C#{crow_id}#TASK#{task_id}` | `GetItem` |
 
 The task snapshot contains: name, status, description, humanEstimate, aiCost, assignedCrow, implementationSteps, acceptanceCriteria, and a `prRef` pointer.
 
 **Secondary read: Get PR summary (for the PR card at bottom)**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
+| Purpose    | PK                             | SK                                                 | Operation |
+| ---------- | ------------------------------ | -------------------------------------------------- | --------- |
 | Get PR ref | `T#{tenant_id}#P#{project_id}` | `S#{wave_id}#M#{murder_id}#C#{crow_id}#PR#{pr_id}` | `GetItem` |
 
 Only needs `{title, branch, number, status}` — the lightweight fields embedded in the task snapshot are sufficient. No separate query needed if PR metadata is denormalized into the task record.
@@ -78,19 +78,19 @@ Only needs `{title, branch, number, status}` — the lightweight fields embedded
 
 **Primary read: Get PR record with verdict and plan-vs-execution**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
-| Get PR detail | `T#{tenant_id}#P#{project_id}` | `S#{wave_id}#M#{murder_id}#C#{crow_id}#PR#{pr_id}` | `GetItem` |
-| Get conversation | `T#{tenant_id}#P#{project_id}` | `CONV#PR#{pr_id}#MSG#{timestamp}` | `Query` (begins_with `CONV#PR#{pr_id}`) |
+| Purpose          | PK                             | SK                                                 | Operation                               |
+| ---------------- | ------------------------------ | -------------------------------------------------- | --------------------------------------- |
+| Get PR detail    | `T#{tenant_id}#P#{project_id}` | `S#{wave_id}#M#{murder_id}#C#{crow_id}#PR#{pr_id}` | `GetItem`                               |
+| Get conversation | `T#{tenant_id}#P#{project_id}` | `CONV#PR#{pr_id}#MSG#{timestamp}`                  | `Query` (begins_with `CONV#PR#{pr_id}`) |
 
 **Write operations:**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
-| Approve PR | `T#{tenant_id}#P#{project_id}` | `EVT#{ulid}` | `PutItem` (event: pr_approved) |
-| Steer PR | `T#{tenant_id}#P#{project_id}` | `EVT#{ulid}` | `PutItem` (event: pr_steered) |
-| Reject PR | `T#{tenant_id}#P#{project_id}` | `EVT#{ulid}` | `PutItem` (event: pr_rejected) |
-| Add chat message | `T#{tenant_id}#P#{project_id}` | `CONV#PR#{pr_id}#MSG#{timestamp}` | `PutItem` |
+| Purpose          | PK                             | SK                                | Operation                      |
+| ---------------- | ------------------------------ | --------------------------------- | ------------------------------ |
+| Approve PR       | `T#{tenant_id}#P#{project_id}` | `EVT#{ulid}`                      | `PutItem` (event: pr_approved) |
+| Steer PR         | `T#{tenant_id}#P#{project_id}` | `EVT#{ulid}`                      | `PutItem` (event: pr_steered)  |
+| Reject PR        | `T#{tenant_id}#P#{project_id}` | `EVT#{ulid}`                      | `PutItem` (event: pr_rejected) |
+| Add chat message | `T#{tenant_id}#P#{project_id}` | `CONV#PR#{pr_id}#MSG#{timestamp}` | `PutItem`                      |
 
 ---
 
@@ -277,9 +277,11 @@ Query:
 **SSE required for two scenarios:**
 
 1. **AI conversation streaming:** When the user asks a question, the AI response streams token-by-token via SSE. The conversation endpoint:
+
    ```
    POST /prs/:id/chat → returns SSE stream
    ```
+
    The client renders tokens as they arrive, then persists the complete message to DynamoDB when the stream ends.
 
 2. **PR status updates:** If the PR is being re-reviewed after a steer (crow is actively working), SSE pushes:
@@ -306,7 +308,7 @@ Events:
 
 ### Summary of Real-Time by Screen
 
-| Screen | SSE | Purpose |
-|--------|-----|---------|
-| S33 | No | Static read; parent S32 handles updates |
-| S34 | Yes | AI chat streaming + PR status during active review cycles |
+| Screen | SSE | Purpose                                                   |
+| ------ | --- | --------------------------------------------------------- |
+| S33    | No  | Static read; parent S32 handles updates                   |
+| S34    | Yes | AI chat streaming + PR status during active review cycles |

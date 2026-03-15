@@ -12,6 +12,7 @@
 **Decision:** Use DynamoDB single-table design with recursive snapshots.
 
 **Why:**
+
 - Zero idle cost (pre-revenue product)
 - POC5+6 already proved the pattern works
 - DynamoDB Streams is the backbone (Murder triggers, materialized views, SSE, notifications)
@@ -20,11 +21,11 @@
 
 **Alternatives considered:**
 
-| Option | Pros | Cons | Verdict |
-|--------|------|------|---------|
-| MongoDB | Document model maps naturally to snapshots, rich queries, aggregation pipeline | Operational overhead, cost, no native Lambda integration | Good but not justified at MVP |
-| PostgreSQL | Full SQL, JSONB columns, strong consistency | Schema migrations, vertical scaling limits, Aurora min ~$50/mo | Overkill for key-value access patterns |
-| GraphQL + DDB | Schema-as-contract, subscriptions, nested queries | Extra layer, N+1 risk, one client doesn't justify | Deferred to future |
+| Option        | Pros                                                                           | Cons                                                           | Verdict                                |
+| ------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------- | -------------------------------------- |
+| MongoDB       | Document model maps naturally to snapshots, rich queries, aggregation pipeline | Operational overhead, cost, no native Lambda integration       | Good but not justified at MVP          |
+| PostgreSQL    | Full SQL, JSONB columns, strong consistency                                    | Schema migrations, vertical scaling limits, Aurora min ~$50/mo | Overkill for key-value access patterns |
+| GraphQL + DDB | Schema-as-contract, subscriptions, nested queries                              | Extra layer, N+1 risk, one client doesn't justify              | Deferred to future                     |
 
 **Future trigger:** Re-evaluate when web/Android clients need a shared API layer (GraphQL).
 
@@ -38,6 +39,7 @@
 **Decision:** Agent memory uses layered markdown files (CLAUDE.md pattern) with token budgets, not RAG.
 
 **Why:**
+
 - Memory is small (dozens of learnings, not millions of documents)
 - Context window is large enough to hold all relevant memory
 - RAG adds vector DB, embedding pipeline, retrieval tuning — unnecessary infrastructure
@@ -56,12 +58,14 @@
 **Decision:** Planning hierarchy (Milestone → Goal → MVI) and execution hierarchy (Wave → Council → Murder → Crow) are stored as separate SK prefixes. MVI bridges them.
 
 **Why:**
+
 - Planning and execution are orthogonal — a wave can pull MVIs from different goals/milestones
 - A milestone can span multiple waves
 - The MVI is the join point (belongs to one Goal, executes in one Wave)
 - Separate prefixes allow planning screens to query directly without traversing execution tree
 
 **Schema:**
+
 ```
 Planning:  S#PLAN#MS#{ms}#GL#{gl}#MVI#{mvi}
 Execution: S#{wave}#{council}#{murder}#{crow}
@@ -77,12 +81,14 @@ Execution: S#{wave}#{council}#{murder}#{crow}
 **Decision:** Dashboard, Project Hub, milestone counters, billing rollups, and notification badge count are materialized as denormalized records updated by DynamoDB Streams Lambdas.
 
 **Why:**
+
 - Dashboard (S10) and Project Hub (S12) are high-frequency read paths
 - Query-time aggregation across hundreds of snapshots is untenable
 - Stream Lambdas are simple increment/decrement logic
 - Materialized records make screens load in 1-2 queries regardless of data volume
 
 **5 materialized views:**
+
 1. `SUMMARY` per project (S10 Dashboard)
 2. `HUB` per project (S12 Project Hub)
 3. Counters on milestone/goal items (S24/S30/S31)
@@ -99,6 +105,7 @@ Execution: S#{wave}#{council}#{murder}#{crow}
 **Decision:** Murder and Skill configs are mutable templates in the DYNASTY partition. When execution starts, config is frozen into the execution snapshot.
 
 **Why:**
+
 - Editing a murder config mid-execution would cause inconsistency
 - Frozen snapshot makes executions reproducible
 - Config changes affect future executions only
@@ -114,6 +121,7 @@ Execution: S#{wave}#{council}#{murder}#{crow}
 **Decision:** 6 advisors, parallel voting, max 3 debate rounds. Only Security and Clarity have BLOCK (veto) power.
 
 **Why:**
+
 - Security can't be overridden by popularity — vulnerable code must not ship
 - Clarity prevents building against ambiguous specs (causes rework)
 - Other concerns (quality, performance, market, maturity) influence through scoring but shouldn't block execution

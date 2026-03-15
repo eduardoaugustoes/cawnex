@@ -16,51 +16,51 @@
 
 ### S24 — Backlog
 
-| Field | Type | Source |
-|-------|------|--------|
-| milestones[] | array | All milestones for this project |
-| milestone.name | string | "M1: Foundation" |
-| milestone.status | enum | in_progress, planned, completed |
-| milestone.description | string | "Platform can accept..." |
-| milestone.tasksDone | number | Aggregated from child goals/MVIs |
-| milestone.tasksTotal | number | Aggregated from child goals/MVIs |
+| Field                  | Type     | Source                           |
+| ---------------------- | -------- | -------------------------------- |
+| milestones[]           | array    | All milestones for this project  |
+| milestone.name         | string   | "M1: Foundation"                 |
+| milestone.status       | enum     | in_progress, planned, completed  |
+| milestone.description  | string   | "Platform can accept..."         |
+| milestone.tasksDone    | number   | Aggregated from child goals/MVIs |
+| milestone.tasksTotal   | number   | Aggregated from child goals/MVIs |
 | milestone.creditsSpent | currency | Aggregated from child goals/MVIs |
-| milestone.goals[] | Goal[] | Nested goals within milestone |
+| milestone.goals[]      | Goal[]   | Nested goals within milestone    |
 
 ### S30 — Milestone Detail
 
 All of S24's milestone fields, plus:
 
-| Field | Type | Source |
-|-------|------|--------|
-| milestone.mviCount | number | Total MVIs across all goals |
-| milestone.cost | currency | Total credits spent |
-| goal.name | string | "API Infrastructure" |
-| goal.status | enum | in_progress, planned, completed |
-| goal.mviCount | number | MVIs within this goal |
-| chatMessages | array | AI refinement conversation |
+| Field              | Type     | Source                          |
+| ------------------ | -------- | ------------------------------- |
+| milestone.mviCount | number   | Total MVIs across all goals     |
+| milestone.cost     | currency | Total credits spent             |
+| goal.name          | string   | "API Infrastructure"            |
+| goal.status        | enum     | in_progress, planned, completed |
+| goal.mviCount      | number   | MVIs within this goal           |
+| chatMessages       | array    | AI refinement conversation      |
 
 ### S31 — Goal Detail
 
-| Field | Type | Source |
-|-------|------|--------|
-| goal.name | string | "API Infrastructure" |
-| goal.status | enum | in_progress, planned, completed |
-| goal.mviCount | number | Total MVIs |
-| goal.cost | currency | Total credits |
-| goal.murderAssignment | object | {name, crowCount, isActive} |
-| mvis[] | array | MVI cards within this goal |
-| mvi.name | string | "MVI 1.1: REST API Endpoints" |
-| mvi.status | enum | completed, executing, refining, draft |
-| mvi.tasksDone | number | 4 |
-| mvi.tasksTotal | number | 4 |
-| mvi.aiMinutes | number | 23 |
-| mvi.humanDays | string | "~3 days" |
-| mvi.aiCost | currency | $18 |
-| mvi.humanEquiv | currency | ~$1.2k |
-| mvi.progress | percentage | 100% |
-| mvi.roi | number | 67 |
-| mvi.pendingApprovalCount | number | 0 |
+| Field                    | Type       | Source                                |
+| ------------------------ | ---------- | ------------------------------------- |
+| goal.name                | string     | "API Infrastructure"                  |
+| goal.status              | enum       | in_progress, planned, completed       |
+| goal.mviCount            | number     | Total MVIs                            |
+| goal.cost                | currency   | Total credits                         |
+| goal.murderAssignment    | object     | {name, crowCount, isActive}           |
+| mvis[]                   | array      | MVI cards within this goal            |
+| mvi.name                 | string     | "MVI 1.1: REST API Endpoints"         |
+| mvi.status               | enum       | completed, executing, refining, draft |
+| mvi.tasksDone            | number     | 4                                     |
+| mvi.tasksTotal           | number     | 4                                     |
+| mvi.aiMinutes            | number     | 23                                    |
+| mvi.humanDays            | string     | "~3 days"                             |
+| mvi.aiCost               | currency   | $18                                   |
+| mvi.humanEquiv           | currency   | ~$1.2k                                |
+| mvi.progress             | percentage | 100%                                  |
+| mvi.roi                  | number     | 67                                    |
+| mvi.pendingApprovalCount | number     | 0                                     |
 
 ---
 
@@ -78,23 +78,24 @@ SK: S#{wave_id}#{council_id}#{murder_id}#{crow_id}   (snapshots)
 
 ### S24 — Backlog
 
-**Problem:** Milestones and goals are planning concepts. They do not map 1:1 to the snapshot tree (wave/council/murder/crow). The snapshot tree captures *execution state*, not *planning hierarchy*.
+**Problem:** Milestones and goals are planning concepts. They do not map 1:1 to the snapshot tree (wave/council/murder/crow). The snapshot tree captures _execution state_, not _planning hierarchy_.
 
 **Query 1 — Load all milestones for a project:**
 
-| Operation | PK | SK | Notes |
-|-----------|----|----|-------|
-| Query | `T#{tenant_id}#P#{project_id}` | `begins_with(S#PLAN#MS#)` | All milestones |
+| Operation | PK                             | SK                        | Notes          |
+| --------- | ------------------------------ | ------------------------- | -------------- |
+| Query     | `T#{tenant_id}#P#{project_id}` | `begins_with(S#PLAN#MS#)` | All milestones |
 
 Each milestone item would have SK like `S#PLAN#MS#{milestone_id}` and contain the milestone metadata plus an embedded `goals[]` array (or goal IDs for separate lookup).
 
 **Query 2 — Load goals for a milestone (if not embedded):**
 
-| Operation | PK | SK | Notes |
-|-----------|----|----|-------|
-| Query | `T#{tenant_id}#P#{project_id}` | `begins_with(S#PLAN#MS#{milestone_id}#GL#)` | Goals within milestone |
+| Operation | PK                             | SK                                          | Notes                  |
+| --------- | ------------------------------ | ------------------------------------------- | ---------------------- |
+| Query     | `T#{tenant_id}#P#{project_id}` | `begins_with(S#PLAN#MS#{milestone_id}#GL#)` | Goals within milestone |
 
 **Aggregation:** `tasksDone`, `tasksTotal`, `creditsSpent` are rolled up from MVIs/waves. Two options:
+
 - **Pre-computed:** Stored on the milestone/goal item, updated on every task completion event.
 - **On-read:** Traverse wave snapshots and aggregate. Expensive, avoid for list screens.
 
@@ -104,45 +105,45 @@ Recommendation: **Pre-computed counters** on milestone and goal items, updated v
 
 **Query 1 — Load milestone + goals:**
 
-| Operation | PK | SK | Notes |
-|-----------|----|----|-------|
-| GetItem | `T#{tenant_id}#P#{project_id}` | `S#PLAN#MS#{milestone_id}` | Milestone metadata |
-| Query | `T#{tenant_id}#P#{project_id}` | `begins_with(S#PLAN#MS#{milestone_id}#GL#)` | Goals within milestone |
+| Operation | PK                             | SK                                          | Notes                  |
+| --------- | ------------------------------ | ------------------------------------------- | ---------------------- |
+| GetItem   | `T#{tenant_id}#P#{project_id}` | `S#PLAN#MS#{milestone_id}`                  | Milestone metadata     |
+| Query     | `T#{tenant_id}#P#{project_id}` | `begins_with(S#PLAN#MS#{milestone_id}#GL#)` | Goals within milestone |
 
 **Query 2 — Load chat history for milestone refinement:**
 
-| Operation | PK | SK | Notes |
-|-----------|----|----|-------|
-| Query | `T#{tenant_id}#P#{project_id}` | `begins_with(M#CHAT#MS#{milestone_id}#)` | Chat messages |
+| Operation | PK                             | SK                                       | Notes         |
+| --------- | ------------------------------ | ---------------------------------------- | ------------- |
+| Query     | `T#{tenant_id}#P#{project_id}` | `begins_with(M#CHAT#MS#{milestone_id}#)` | Chat messages |
 
 ### S31 — Goal Detail
 
 **Query 1 — Load goal metadata:**
 
-| Operation | PK | SK | Notes |
-|-----------|----|----|-------|
-| GetItem | `T#{tenant_id}#P#{project_id}` | `S#PLAN#MS#{milestone_id}#GL#{goal_id}` | Goal metadata |
+| Operation | PK                             | SK                                      | Notes         |
+| --------- | ------------------------------ | --------------------------------------- | ------------- |
+| GetItem   | `T#{tenant_id}#P#{project_id}` | `S#PLAN#MS#{milestone_id}#GL#{goal_id}` | Goal metadata |
 
 **Query 2 — Load MVIs for this goal:**
 
-| Operation | PK | SK | Notes |
-|-----------|----|----|-------|
-| Query | `T#{tenant_id}#P#{project_id}` | `begins_with(S#PLAN#MS#{milestone_id}#GL#{goal_id}#MVI#)` | MVI items |
+| Operation | PK                             | SK                                                        | Notes     |
+| --------- | ------------------------------ | --------------------------------------------------------- | --------- |
+| Query     | `T#{tenant_id}#P#{project_id}` | `begins_with(S#PLAN#MS#{milestone_id}#GL#{goal_id}#MVI#)` | MVI items |
 
 **Query 3 — Load murder assignment:**
 
 Each MVI links to a wave. The murder assignment is either embedded on the goal item or resolved by reading the wave's council/murder snapshot.
 
-| Operation | PK | SK | Notes |
-|-----------|----|----|-------|
-| GetItem | `T#{tenant_id}#P#{project_id}` | `S#{wave_id}#{council_id}#{murder_id}` | Murder execution state for ROI/progress data |
+| Operation | PK                             | SK                                     | Notes                                        |
+| --------- | ------------------------------ | -------------------------------------- | -------------------------------------------- |
+| GetItem   | `T#{tenant_id}#P#{project_id}` | `S#{wave_id}#{council_id}#{murder_id}` | Murder execution state for ROI/progress data |
 
 ### Write Operations
 
-| Screen | Operation | PK | SK | Action |
-|--------|-----------|----|----|--------|
-| S31 | Approve All | `T#{tenant_id}#P#{project_id}` | `S#{wave_id}#...` per task | Update task status to approved |
-| S24 | + Milestone | `T#{tenant_id}#P#{project_id}` | `S#PLAN#MS#{new_id}` | PutItem |
+| Screen | Operation   | PK                             | SK                         | Action                         |
+| ------ | ----------- | ------------------------------ | -------------------------- | ------------------------------ |
+| S31    | Approve All | `T#{tenant_id}#P#{project_id}` | `S#{wave_id}#...` per task | Update task status to approved |
+| S24    | + Milestone | `T#{tenant_id}#P#{project_id}` | `S#PLAN#MS#{new_id}`       | PutItem                        |
 
 ---
 
@@ -166,7 +167,7 @@ Milestone (strategic deliverable, e.g., "M1: Foundation")
             └── Task (single unit of work, max 8h human equiv)
 ```
 
-These are **orthogonal**. A wave might contain MVIs from *different* goals, or even *different* milestones, depending on what the Monarch and Council prioritize for that execution batch. The snapshot tree does not inherently know about milestones or goals.
+These are **orthogonal**. A wave might contain MVIs from _different_ goals, or even _different_ milestones, depending on what the Monarch and Council prioritize for that execution batch. The snapshot tree does not inherently know about milestones or goals.
 
 ---
 
@@ -247,8 +248,8 @@ Execution snapshots (existing):
     "tasksDone": 4,
     "tasksTotal": 4,
     "aiMinutes": 23,
-    "aiCost": 18.00,
-    "humanEquivCost": 1200.00,
+    "aiCost": 18.0,
+    "humanEquivCost": 1200.0,
     "roi": 67
   }
 }
@@ -266,22 +267,22 @@ Execution snapshots (existing):
 
 If we need to answer "which MVIs are in Wave 3?" (for the Monarch/Murder to track wave completion):
 
-| GSI | PK | SK |
-|-----|----|----|
+| GSI          | PK                                         | SK                                          |
+| ------------ | ------------------------------------------ | ------------------------------------------- |
 | GSI-WaveMVIs | `T#{tenant_id}#P#{project_id}#W#{wave_id}` | `S#PLAN#MS#{ms_id}#GL#{gl_id}#MVI#{mvi_id}` |
 
 This is a sparse GSI — only MVI items that have `execution.wave_id` get projected.
 
 ### Summary
 
-| Concept | Where it lives | SK pattern |
-|---------|---------------|------------|
-| Milestone | Planning path | `S#PLAN#MS#{id}` |
-| Goal | Planning path | `S#PLAN#MS#{id}#GL#{id}` |
-| MVI | Planning path (bridges to execution) | `S#PLAN#MS#{id}#GL#{id}#MVI#{id}` |
-| Wave | Execution path | `S#{wave_id}` |
-| Council session | Execution path | `S#{wave_id}#{council_id}` |
-| Murder state | Execution path | `S#{wave_id}#{council_id}#{murder_id}` |
-| Crow/Task state | Execution path | `S#{wave_id}#{council_id}#{murder_id}#{crow_id}` |
+| Concept         | Where it lives                       | SK pattern                                       |
+| --------------- | ------------------------------------ | ------------------------------------------------ |
+| Milestone       | Planning path                        | `S#PLAN#MS#{id}`                                 |
+| Goal            | Planning path                        | `S#PLAN#MS#{id}#GL#{id}`                         |
+| MVI             | Planning path (bridges to execution) | `S#PLAN#MS#{id}#GL#{id}#MVI#{id}`                |
+| Wave            | Execution path                       | `S#{wave_id}`                                    |
+| Council session | Execution path                       | `S#{wave_id}#{council_id}`                       |
+| Murder state    | Execution path                       | `S#{wave_id}#{council_id}#{murder_id}`           |
+| Crow/Task state | Execution path                       | `S#{wave_id}#{council_id}#{murder_id}#{crow_id}` |
 
 The planning hierarchy is the **human-facing view**. The execution hierarchy is the **system-facing view**. The MVI is the hinge between them.

@@ -18,11 +18,15 @@ _DEFAULT_BUDGET_MICROS = 20_000_000  # $20
 
 
 class CreateWaveRequest(BaseModel):
+    """Request body for creating a wave with a human directive."""
+
     directive: str
     budget_micros: int = _DEFAULT_BUDGET_MICROS
 
 
 class CreateWaveResponse(BaseModel):
+    """Response after creating a wave and its initial MVI."""
+
     wave_id: str
     mvi_id: str
     status: str

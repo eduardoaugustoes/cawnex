@@ -16,17 +16,23 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 class CreateProjectRequest(BaseModel):
+    """Request body for creating a new project."""
+
     name: str
     repo: str
     description: str = ""
 
 
 class CreateProjectResponse(BaseModel):
+    """Response after creating a project."""
+
     project_id: str
     name: str
 
 
 class ProjectSummary(BaseModel):
+    """Summary of a project for list responses."""
+
     project_id: str
     name: str
     repo: str

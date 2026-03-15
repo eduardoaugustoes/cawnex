@@ -46,16 +46,16 @@ Wave delivered
 
 ## Production Standards
 
-| Standard | What It Means for V1 | What It Does NOT Mean |
-|----------|---------------------|----------------------|
-| **Clean code** | Shared models, modules, separation of concerns | Plugin framework or abstract factories |
-| **Error handling** | Every failure path returns a meaningful message | Dead letter queues or circuit breakers |
-| **Logging** | Structured JSON with tenant/project/execution IDs | Distributed tracing with X-Ray |
-| **Tests** | Contract tests + integration tests | 80% unit test coverage on day 1 |
-| **Security** | Tenant isolation via partition keys, no hardcoded secrets | WAF, rate limiting, penetration testing |
-| **Deployment** | CDK stack that deploys cleanly | Blue-green or canary deployments |
-| **Local dev** | Everything runs locally against DynamoDB Local | Full AWS emulation |
-| **Budget caps** | Enforced from day 1, not deferred | Complex billing system |
+| Standard           | What It Means for V1                                      | What It Does NOT Mean                   |
+| ------------------ | --------------------------------------------------------- | --------------------------------------- |
+| **Clean code**     | Shared models, modules, separation of concerns            | Plugin framework or abstract factories  |
+| **Error handling** | Every failure path returns a meaningful message           | Dead letter queues or circuit breakers  |
+| **Logging**        | Structured JSON with tenant/project/execution IDs         | Distributed tracing with X-Ray          |
+| **Tests**          | Contract tests + integration tests                        | 80% unit test coverage on day 1         |
+| **Security**       | Tenant isolation via partition keys, no hardcoded secrets | WAF, rate limiting, penetration testing |
+| **Deployment**     | CDK stack that deploys cleanly                            | Blue-green or canary deployments        |
+| **Local dev**      | Everything runs locally against DynamoDB Local            | Full AWS emulation                      |
+| **Budget caps**    | Enforced from day 1, not deferred                         | Complex billing system                  |
 
 ---
 
@@ -568,11 +568,13 @@ infra/
 - [ ] Deploy `-dev` table to AWS
 
 **Verify:**
+
 - `pytest tests/test_contracts.py` — all contract shapes validate
 - DynamoDB table visible in AWS Console with correct schema
 - API dev can start building against `shared/models.py` immediately
 
 **Unblocks:**
+
 - Murder development (week 2)
 - Worker development (week 2)
 - API development (week 2, by other dev)
@@ -582,6 +584,7 @@ infra/
 **Can be built in parallel** because they communicate only through contracts.
 
 #### Murder track:
+
 - [ ] `murder/handler.py` — stream trigger, deserialize, route to state machine
 - [ ] `murder/state_machine.py` — determine_next_action (planner → impl → review → fix)
 - [ ] `murder/context_builder.py` — assemble instructions per crow type
@@ -591,6 +594,7 @@ infra/
 - [ ] `tests/test_murder.py` — state machine transitions
 
 #### Worker track:
+
 - [ ] `worker/handler.py` — GSI trigger, deserialize, route to executor
 - [ ] `worker/executor.py` — Claude client, prompt builder, output parser
 - [ ] `worker/git_ops.py` — clone, worktree, commit, push (from POC6)
@@ -601,6 +605,7 @@ infra/
 - [ ] `tests/test_worker.py` — executor and context tests
 
 **Verify:**
+
 - Murder: write wave snapshot → Murder assigns planner (Contract 2 validated)
 - Worker: write pending crow → Worker executes → crow completed (Contract 3 validated)
 - Both: insert records manually, verify contracts hold
@@ -619,6 +624,7 @@ infra/
 - [ ] `tests/test_pipeline.py` — end-to-end against test repo
 
 **Verify:**
+
 - Create wave for GitHub issue "Add GET /health endpoint"
 - Full pipeline runs: planner → implementer → reviewer → approved
 - PR created on `cawnex-test-target` repo
@@ -638,6 +644,7 @@ infra/
 - [ ] `tests/test_api.py` — endpoint tests
 
 **Verify:**
+
 ```bash
 # Create project
 curl -X POST /projects -d '{"name":"Test","repo":"eduardoaugustoes/cawnex-test-target"}'
@@ -667,6 +674,7 @@ curl -X POST /projects/{id}/waves/{wave_id}/mvis/{mvi_id}/ship
 - [ ] Reconciliation: nightly Lambda verifies SUMMARY matches snapshot state
 
 **Verify:**
+
 - Open SSE connection, trigger wave, see events stream live
 - Trigger a failure (timeout, bad output), verify escalation + EVT record
 - Check CloudWatch: every log line is structured JSON with correct IDs
@@ -759,17 +767,17 @@ Test: "Full pipeline on simple task"
 
 ## Risk Register
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Schema is wrong | Must recreate table | Validate with real pipeline on `-dev` table first |
-| Contracts don't cover edge cases | Integration bugs at boundaries | Contract tests run before every deploy |
-| Murder/Worker/Stream tight coupling | One change breaks all | Shared models + contract validation |
-| Claude output malformed | Pipeline stalls | JSON parsing with fallbacks (proven in POC6) |
-| Worker Lambda timeout (15 min) | Complex tasks fail | Small test repo, monitor timing |
-| DynamoDB Stream duplicate delivery | Double-processing | Conditional updates (idempotent) |
-| Runaway execution | Burns credits | Budget caps from day 1: $0.50/crow, $5/MVI, $20/wave |
-| Stream processor misses update | Materialized view drifts | Nightly reconciliation Lambda |
-| No rollback for shipped MVI | Broken target repo | Ship = create PR, not merge. Human reviews. |
+| Risk                                | Impact                         | Mitigation                                           |
+| ----------------------------------- | ------------------------------ | ---------------------------------------------------- |
+| Schema is wrong                     | Must recreate table            | Validate with real pipeline on `-dev` table first    |
+| Contracts don't cover edge cases    | Integration bugs at boundaries | Contract tests run before every deploy               |
+| Murder/Worker/Stream tight coupling | One change breaks all          | Shared models + contract validation                  |
+| Claude output malformed             | Pipeline stalls                | JSON parsing with fallbacks (proven in POC6)         |
+| Worker Lambda timeout (15 min)      | Complex tasks fail             | Small test repo, monitor timing                      |
+| DynamoDB Stream duplicate delivery  | Double-processing              | Conditional updates (idempotent)                     |
+| Runaway execution                   | Burns credits                  | Budget caps from day 1: $0.50/crow, $5/MVI, $20/wave |
+| Stream processor misses update      | Materialized view drifts       | Nightly reconciliation Lambda                        |
+| No rollback for shipped MVI         | Broken target repo             | Ship = create PR, not merge. Human reviews.          |
 
 ---
 
@@ -798,14 +806,14 @@ V1 is done when:
 
 ## What Unlocks After V1
 
-| V2 Feature | What V1 Enables |
-|------------|-----------------|
-| Council protocol | Add council snapshot level + Contract 2.1 (council voting) |
-| Agent memory | Add MEM# records, load in Layer 2-4 of context assembly |
-| iOS integration | API serves data matching iOS protocol contracts exactly |
-| Notifications | Stream Processor creates notification records (Contract 6.1) |
-| Multiple MVIs per wave | Murder already supports sequential ordering |
-| Steer / pause | Additional wave states, same state machine + contracts |
-| Billing rollups | Stream Processor updates BILLING partition (Contract 6.2) |
-| Training data export | Snapshot tree already contains ask+reasoning+code+outcome |
-| Second developer | Contracts enable independent work with zero coordination overhead |
+| V2 Feature             | What V1 Enables                                                   |
+| ---------------------- | ----------------------------------------------------------------- |
+| Council protocol       | Add council snapshot level + Contract 2.1 (council voting)        |
+| Agent memory           | Add MEM# records, load in Layer 2-4 of context assembly           |
+| iOS integration        | API serves data matching iOS protocol contracts exactly           |
+| Notifications          | Stream Processor creates notification records (Contract 6.1)      |
+| Multiple MVIs per wave | Murder already supports sequential ordering                       |
+| Steer / pause          | Additional wave states, same state machine + contracts            |
+| Billing rollups        | Stream Processor updates BILLING partition (Contract 6.2)         |
+| Training data export   | Snapshot tree already contains ask+reasoning+code+outcome         |
+| Second developer       | Contracts enable independent work with zero coordination overhead |

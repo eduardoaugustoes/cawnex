@@ -8,27 +8,27 @@
 
 ## Problems Solved
 
-| # | Problem |
-|---|---------|
-| 17 | Separate intelligence (how) from judgment (what & why) |
-| 18 | Multiple perspectives catch blind spots |
-| 19 | Advisors evolve with project maturity |
-| 20 | Decisions traceable (who voted what, why) |
-| 21 | Disagreement is a feature — debate rounds, dissent, re-evaluation |
-| 22 | Resource discipline — max rounds, don't burn credits debating forever |
+| #   | Problem                                                               |
+| --- | --------------------------------------------------------------------- |
+| 17  | Separate intelligence (how) from judgment (what & why)                |
+| 18  | Multiple perspectives catch blind spots                               |
+| 19  | Advisors evolve with project maturity                                 |
+| 20  | Decisions traceable (who voted what, why)                             |
+| 21  | Disagreement is a feature — debate rounds, dissent, re-evaluation     |
+| 22  | Resource discipline — max rounds, don't burn credits debating forever |
 
 ---
 
 ## The Six Advisors
 
-| Advisor | Lens | Veto Power | Example Concern |
-|---------|------|------------|-----------------|
-| **Security** | Vulnerabilities, auth, data exposure | YES — can BLOCK | "No rate limiting on auth endpoint" |
-| **Quality** | Patterns, tests, maintainability | No | "Test coverage below 60%" |
-| **Performance** | Latency, cost, scalability | No | "N+1 query pattern detected" |
-| **Market** | Business value, user impact, timing | No | "Onboarding is higher priority than admin panel" |
-| **Maturity** | Tech debt, stability, reliability | No | "This approach creates coupling we'll regret" |
-| **Clarity** | Spec ambiguity, missing requirements | YES — can BLOCK | "Acceptance criteria are vague, will cause rework" |
+| Advisor         | Lens                                 | Veto Power      | Example Concern                                    |
+| --------------- | ------------------------------------ | --------------- | -------------------------------------------------- |
+| **Security**    | Vulnerabilities, auth, data exposure | YES — can BLOCK | "No rate limiting on auth endpoint"                |
+| **Quality**     | Patterns, tests, maintainability     | No              | "Test coverage below 60%"                          |
+| **Performance** | Latency, cost, scalability           | No              | "N+1 query pattern detected"                       |
+| **Market**      | Business value, user impact, timing  | No              | "Onboarding is higher priority than admin panel"   |
+| **Maturity**    | Tech debt, stability, reliability    | No              | "This approach creates coupling we'll regret"      |
+| **Clarity**     | Spec ambiguity, missing requirements | YES — can BLOCK | "Acceptance criteria are vague, will cause rework" |
 
 **Two advisors have veto:** Security (can't ship vulnerable code) and Clarity (can't build against ambiguous specs). Others influence through scoring.
 
@@ -72,8 +72,16 @@ All 6 advisors run **in parallel** (6 Lambda calls). No advisor sees another's v
   "decision_needed": "What should Wave 3 contain?",
   "options": [
     { "id": "mvi_auth", "name": "Auth & JWT", "human_estimate": "3 days" },
-    { "id": "mvi_onboarding", "name": "Onboarding flow", "human_estimate": "4 days" },
-    { "id": "mvi_payment", "name": "Payment integration", "human_estimate": "5 days" }
+    {
+      "id": "mvi_onboarding",
+      "name": "Onboarding flow",
+      "human_estimate": "4 days"
+    },
+    {
+      "id": "mvi_payment",
+      "name": "Payment integration",
+      "human_estimate": "5 days"
+    }
   ],
   "project_memory": "...",
   "advisor_memory": "..."
@@ -105,12 +113,12 @@ All 6 advisors run **in parallel** (6 Lambda calls). No advisor sees another's v
 
 #### Vote Types
 
-| Vote | Meaning | Effect |
-|------|---------|--------|
-| `APPROVE` | No concerns, proceed | Counts toward consensus |
-| `APPROVE_WITH_CONDITION` | Proceed if condition met | Condition recorded, Monarch decides |
-| `ABSTAIN` | Not enough context to judge | Ignored in tally |
-| `BLOCK` | Hard stop — unacceptable risk | Only Security and Clarity can BLOCK. Forces debate or escalation. |
+| Vote                     | Meaning                       | Effect                                                            |
+| ------------------------ | ----------------------------- | ----------------------------------------------------------------- |
+| `APPROVE`                | No concerns, proceed          | Counts toward consensus                                           |
+| `APPROVE_WITH_CONDITION` | Proceed if condition met      | Condition recorded, Monarch decides                               |
+| `ABSTAIN`                | Not enough context to judge   | Ignored in tally                                                  |
+| `BLOCK`                  | Hard stop — unacceptable risk | Only Security and Clarity can BLOCK. Forces debate or escalation. |
 
 ---
 
@@ -145,10 +153,10 @@ The Monarch receives all 6 votes and:
 
 #### Monarch Actions
 
-| Action | When | What happens |
-|--------|------|--------------|
-| `execute` | Consensus or Monarch confident | Wave plan sent to Murder for execution |
-| `debate` | Disagreement worth resolving | Round 2 with full transparency |
+| Action     | When                                 | What happens                                   |
+| ---------- | ------------------------------------ | ---------------------------------------------- |
+| `execute`  | Consensus or Monarch confident       | Wave plan sent to Murder for execution         |
+| `debate`   | Disagreement worth resolving         | Round 2 with full transparency                 |
 | `escalate` | Can't resolve, human judgment needed | Notification sent to founder with full context |
 
 ---
@@ -166,6 +174,7 @@ Triggered when Monarch sets `action: "debate"`. Advisors now receive **additiona
 ```
 
 Key differences from Round 1:
+
 - Advisors see ALL Round 1 votes (full transparency)
 - Advisors can **change their vote** based on new information
 - Only advisors relevant to the disagreement need to vote (others can skip)
@@ -205,12 +214,12 @@ After 3 rounds: Monarch decides OR escalates to human
 
 ### Cost Model
 
-| Scenario | Advisors | Rounds | Cost |
-|----------|----------|--------|------|
-| Consensus (typical) | 6 | 1 | ~$0.09 |
-| Minor disagreement | 6 + 3 | 2 | ~$0.13 |
-| Major disagreement | 6 + 4 + 2 | 3 | ~$0.18 |
-| Amortized per task (wave of 10) | — | — | ~$0.01-0.02 |
+| Scenario                        | Advisors  | Rounds | Cost        |
+| ------------------------------- | --------- | ------ | ----------- |
+| Consensus (typical)             | 6         | 1      | ~$0.09      |
+| Minor disagreement              | 6 + 3     | 2      | ~$0.13      |
+| Major disagreement              | 6 + 4 + 2 | 3      | ~$0.18      |
+| Amortized per task (wave of 10) | —         | —      | ~$0.01-0.02 |
 
 Each advisor call: ~$0.015 (Sonnet, ~2000 tokens in, ~500 out).
 
@@ -220,13 +229,13 @@ Each advisor call: ~$0.015 (Sonnet, ~2000 tokens in, ~500 out).
 
 The founder can intervene at any point:
 
-| Action | Description | Recorded As |
-|--------|-------------|-------------|
-| **Override block** | "Ship payment despite Security concern" | `human_override: { advisor_overridden, reason }` |
-| **Request round** | "Ask Security about OAuth token storage specifically" | Triggers targeted Round 2 |
-| **Add constraint** | "OK to payment but must add Stripe webhook verification" | `human_constraint: { text }` |
-| **Dismiss advisor** | "Ignore Market for this wave, I know what to build" | `advisor_dismissed: { advisor, reason }` |
-| **Force decision** | "Build auth first, no debate needed" | `human_decision: { wave_plan, reasoning }` |
+| Action              | Description                                              | Recorded As                                      |
+| ------------------- | -------------------------------------------------------- | ------------------------------------------------ |
+| **Override block**  | "Ship payment despite Security concern"                  | `human_override: { advisor_overridden, reason }` |
+| **Request round**   | "Ask Security about OAuth token storage specifically"    | Triggers targeted Round 2                        |
+| **Add constraint**  | "OK to payment but must add Stripe webhook verification" | `human_constraint: { text }`                     |
+| **Dismiss advisor** | "Ignore Market for this wave, I know what to build"      | `advisor_dismissed: { advisor, reason }`         |
+| **Force decision**  | "Build auth first, no debate needed"                     | `human_decision: { wave_plan, reasoning }`       |
 
 ### Override Record
 
@@ -302,7 +311,7 @@ SK: S#{wave_id}#council_{session_id}
           "vote": "APPROVE",
           "scores": { "mvi_auth": 5, "mvi_onboarding": 9, "mvi_payment": 8 },
           "reasoning": "Onboarding is highest priority for user acquisition. Payment enables revenue.",
-          "confidence": 0.90
+          "confidence": 0.9
         },
         {
           "advisor": "maturity",
@@ -316,7 +325,7 @@ SK: S#{wave_id}#council_{session_id}
           "vote": "APPROVE",
           "scores": { "mvi_auth": 8, "mvi_onboarding": 7, "mvi_payment": 7 },
           "reasoning": "All specs are clear. Payment has well-defined Stripe integration docs.",
-          "confidence": 0.80
+          "confidence": 0.8
         }
       ],
       "consensus": false,
@@ -349,18 +358,30 @@ SK: S#{wave_id}#council_{session_id}
     "actor": "monarch",
     "action": "execute",
     "wave_plan": ["mvi_auth", "mvi_onboarding", "mvi_payment"],
-    "ordering_constraints": ["mvi_auth MUST complete before mvi_payment starts"],
+    "ordering_constraints": [
+      "mvi_auth MUST complete before mvi_payment starts"
+    ],
     "reasoning": "Security concern resolved with ordering constraint. All three MVIs fit in 2-week directive.",
     "dissent_record": {
       "security_initial_block": "Rate limiting missing — resolved by making it prerequisite",
       "maturity_concern": "Three MVIs in one wave is aggressive — noted but within directive"
     },
-    "confidence": 0.80
+    "confidence": 0.8
   },
 
   "cost": {
-    "round_1": { "calls": 6, "tokens_in": 12000, "tokens_out": 3000, "credits": 0.09 },
-    "round_2": { "calls": 2, "tokens_in": 5000, "tokens_out": 1200, "credits": 0.04 },
+    "round_1": {
+      "calls": 6,
+      "tokens_in": 12000,
+      "tokens_out": 3000,
+      "credits": 0.09
+    },
+    "round_2": {
+      "calls": 2,
+      "tokens_in": 5000,
+      "tokens_out": 1200,
+      "credits": 0.04
+    },
     "total_credits": 0.13
   },
 
@@ -423,11 +444,13 @@ Learnings append to `dynasty/{org}/agents/{advisor_type}.md`. Pruned when over ~
 ### Evolution Example
 
 **Month 1 — Security advisor memory:**
+
 ```
 - Auth endpoints need rate limiting (learned from Wave 3 block)
 ```
 
 **Month 3 — Security advisor memory:**
+
 ```
 - Auth endpoints need rate limiting (learned from Wave 3 block)
 - FastAPI CORS config must explicitly list allowed origins (Wave 7 vulnerability)
@@ -435,6 +458,7 @@ Learnings append to `dynasty/{org}/agents/{advisor_type}.md`. Pruned when over ~
 ```
 
 **Month 6 — Security advisor memory (pruned):**
+
 ```
 - This project uses FastAPI + DynamoDB. Key security patterns:
   - Rate limiting on all public endpoints (enforced since Wave 3)
@@ -486,16 +510,17 @@ Monarch decides: does this need Council?
 
 Council sessions produce the richest training data in the system:
 
-| Signal | Training Value |
-|--------|---------------|
-| Advisor scores | Priority assessment across dimensions |
-| Disagreements | Where trade-offs exist between concerns |
-| Resolution path | How tensions get resolved (constraint, debate, override) |
-| Human overrides | Where AI judgment diverges from human judgment |
-| Outcomes | Whether the decision led to good results (bugs, rework, success) |
-| Advisor evolution | How specialized judgment improves with experience |
+| Signal            | Training Value                                                   |
+| ----------------- | ---------------------------------------------------------------- |
+| Advisor scores    | Priority assessment across dimensions                            |
+| Disagreements     | Where trade-offs exist between concerns                          |
+| Resolution path   | How tensions get resolved (constraint, debate, override)         |
+| Human overrides   | Where AI judgment diverges from human judgment                   |
+| Outcomes          | Whether the decision led to good results (bugs, rework, success) |
+| Advisor evolution | How specialized judgment improves with experience                |
 
 A fine-tuned model trained on thousands of council sessions would learn to:
+
 - Score priorities across multiple dimensions simultaneously
 - Identify when security concerns are real vs overly cautious
 - Predict which decisions founders typically override

@@ -36,10 +36,10 @@ S01 is entirely offline. No tenant context exists yet — the user has not authe
 
 ### Data Needed
 
-| Field | Source | Notes |
-|-------|--------|-------|
-| Email | User input | Passed to Cognito |
-| Password | User input | Passed to Cognito |
+| Field            | Source      | Notes                     |
+| ---------------- | ----------- | ------------------------- |
+| Email            | User input  | Passed to Cognito         |
+| Password         | User input  | Passed to Cognito         |
 | Apple credential | Apple OAuth | Federated through Cognito |
 
 No data is read from DynamoDB to render this screen. Auth is handled entirely by Cognito.
@@ -52,20 +52,20 @@ No data is read from DynamoDB to render this screen. Auth is handled entirely by
 
 The Cognito post-confirmation Lambda (sign-up, first login) may need to bootstrap tenant records:
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
-| Check/create dynasty | `T#{tenant_id}#DYNASTY` | `META` | `GetItem` / `PutItem` |
+| Purpose                    | PK                       | SK     | Operation                 |
+| -------------------------- | ------------------------ | ------ | ------------------------- |
+| Check/create dynasty       | `T#{tenant_id}#DYNASTY`  | `META` | `GetItem` / `PutItem`     |
 | Create project list anchor | `T#{tenant_id}#PROJECTS` | `META` | `PutItem` (if new tenant) |
 
 These are backend-triggered, not client-initiated. The iOS app never queries DynamoDB directly from S02.
 
 ### Write Operations
 
-| Operation | Where | Details |
-|-----------|-------|---------|
-| `POST /auth/sign-in` | Cognito | Returns JWT with `custom:tenant_id` |
-| Tenant bootstrap | Lambda (post-confirmation trigger) | Creates `DYNASTY` and `PROJECTS` records for new tenants |
-| Store tokens | iOS Keychain | Access token, refresh token, id token |
+| Operation            | Where                              | Details                                                  |
+| -------------------- | ---------------------------------- | -------------------------------------------------------- |
+| `POST /auth/sign-in` | Cognito                            | Returns JWT with `custom:tenant_id`                      |
+| Tenant bootstrap     | Lambda (post-confirmation trigger) | Creates `DYNASTY` and `PROJECTS` records for new tenants |
+| Store tokens         | iOS Keychain                       | Access token, refresh token, id token                    |
 
 ### Real-Time Needs
 

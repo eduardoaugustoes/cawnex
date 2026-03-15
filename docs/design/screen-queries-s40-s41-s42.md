@@ -10,15 +10,15 @@
 
 ### Data Needed
 
-| Field | Type | Example |
-|-------|------|---------|
-| name | string | "Dev Murder" |
-| type | enum | Dev, Editorial, Social, Infra, Data, Custom |
-| status | enum | active, idle, error |
-| crowBehaviorStates | array | [{name: "Planner", state: "Planning"}, ...] |
-| crows | array | [{name, role, avatarIcon}] |
-| activeTaskCount | number | 7 |
-| totalCost | currency | $42 |
+| Field              | Type     | Example                                     |
+| ------------------ | -------- | ------------------------------------------- |
+| name               | string   | "Dev Murder"                                |
+| type               | enum     | Dev, Editorial, Social, Infra, Data, Custom |
+| status             | enum     | active, idle, error                         |
+| crowBehaviorStates | array    | [{name: "Planner", state: "Planning"}, ...] |
+| crows              | array    | [{name, role, avatarIcon}]                  |
+| activeTaskCount    | number   | 7                                           |
+| totalCost          | currency | $42                                         |
 
 Plus marketplace section: community templates with name, crowCount, installCount, rating, description.
 
@@ -26,16 +26,16 @@ Plus marketplace section: community templates with name, crowCount, installCount
 
 **List tenant murders:**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
-| All murders for tenant | `T#{tenant_id}#DYNASTY` | `begins_with(MURDER#)` | `Query` |
+| Purpose                | PK                      | SK                     | Operation |
+| ---------------------- | ----------------------- | ---------------------- | --------- |
+| All murders for tenant | `T#{tenant_id}#DYNASTY` | `begins_with(MURDER#)` | `Query`   |
 
 Returns all murder config records. Each murder record embeds its crow list inline (denormalized).
 
 **Behavior states (live):**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
+| Purpose                                   | PK                                           | SK                  | Operation       |
+| ----------------------------------------- | -------------------------------------------- | ------------------- | --------------- |
 | Active executions referencing this murder | GSI: `T#{tenant_id}#MURDER#{murder_id}#EXEC` | `begins_with(META)` | `Query` on GSI2 |
 
 Crow behavior states are derived from active execution records, not stored on the murder config itself. The client (or a Lambda) joins murder config with active execution state.
@@ -54,38 +54,38 @@ None from S40. Read-only screen.
 
 ### Data Needed (Form)
 
-| Field | Type | Required |
-|-------|------|----------|
-| name | string | yes |
-| type | enum | yes |
-| description | string | no |
-| crows | CrowRef[] | yes (min 1) |
-| murderPrompt | string | no |
-| crowFlow | FlowStep[] | no |
-| qualityGates | QualityGateConfig | no |
-| escalationRules | EscalationConfig | no |
-| budgetLimits | BudgetConfig | no |
+| Field           | Type              | Required    |
+| --------------- | ----------------- | ----------- |
+| name            | string            | yes         |
+| type            | enum              | yes         |
+| description     | string            | no          |
+| crows           | CrowRef[]         | yes (min 1) |
+| murderPrompt    | string            | no          |
+| crowFlow        | FlowStep[]        | no          |
+| qualityGates    | QualityGateConfig | no          |
+| escalationRules | EscalationConfig  | no          |
+| budgetLimits    | BudgetConfig      | no          |
 
 ### DynamoDB Queries
 
 **Load for edit:**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
+| Purpose           | PK                      | SK                   | Operation |
+| ----------------- | ----------------------- | -------------------- | --------- |
 | Get murder config | `T#{tenant_id}#DYNASTY` | `MURDER#{murder_id}` | `GetItem` |
 
 ### Write Operations
 
 **Create:**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
+| Purpose       | PK                      | SK                   | Operation                                   |
+| ------------- | ----------------------- | -------------------- | ------------------------------------------- |
 | Create murder | `T#{tenant_id}#DYNASTY` | `MURDER#{murder_id}` | `PutItem` (condition: attribute_not_exists) |
 
 **Update:**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
+| Purpose       | PK                      | SK                   | Operation             |
+| ------------- | ----------------------- | -------------------- | --------------------- |
 | Update murder | `T#{tenant_id}#DYNASTY` | `MURDER#{murder_id}` | `PutItem` (overwrite) |
 
 Crows are stored as a nested list attribute on the murder record (see design decision below). The full murder document is written atomically.
@@ -98,39 +98,39 @@ Crows are stored as a nested list attribute on the murder record (see design dec
 
 ### Data Needed (Form)
 
-| Field | Type | Required |
-|-------|------|----------|
-| name | string | yes |
-| role | string | yes |
-| goal | string | yes |
-| model | enum | yes |
-| description | string | no |
-| skills | string[] | no |
-| backstory | string | no |
-| constraints | string | no |
-| temperature | number | no |
-| maxTokens | number | no |
+| Field       | Type     | Required |
+| ----------- | -------- | -------- |
+| name        | string   | yes      |
+| role        | string   | yes      |
+| goal        | string   | yes      |
+| model       | enum     | yes      |
+| description | string   | no       |
+| skills      | string[] | no       |
+| backstory   | string   | no       |
+| constraints | string   | no       |
+| temperature | number   | no       |
+| maxTokens   | number   | no       |
 
 ### DynamoDB Queries
 
 **Load murder (to show existing crows):**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
+| Purpose           | PK                      | SK                   | Operation |
+| ----------------- | ----------------------- | -------------------- | --------- |
 | Get parent murder | `T#{tenant_id}#DYNASTY` | `MURDER#{murder_id}` | `GetItem` |
 
 ### Write Operations
 
 **Option A — Crow embedded in murder (recommended):**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
+| Purpose               | PK                      | SK                   | Operation                                       |
+| --------------------- | ----------------------- | -------------------- | ----------------------------------------------- |
 | Append crow to murder | `T#{tenant_id}#DYNASTY` | `MURDER#{murder_id}` | `UpdateItem` (list_append on `crows` attribute) |
 
 **Option B — Crow as separate item:**
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
+| Purpose     | PK                      | SK                                  | Operation |
+| ----------- | ----------------------- | ----------------------------------- | --------- |
 | Create crow | `T#{tenant_id}#DYNASTY` | `MURDER#{murder_id}#CROW#{crow_id}` | `PutItem` |
 
 Option A is preferred: a murder rarely has more than 10 crows, the entire config is always loaded together, and atomic writes avoid partial states. The API endpoint `POST /murders/:murderId/crows` appends to the murder item's `crows` list.
@@ -194,6 +194,7 @@ When a Murder starts executing an MVI:
 3. **Isolate** — Crows in the execution read from the frozen snapshot, never from the live config. Mid-execution config changes do not affect running work.
 
 This separation means:
+
 - S40/S41/S42 read and write the **live config** in DYNASTY.
 - S32 (MVI Blackboard) reads the **frozen snapshot** from the execution record.
 - Editing a murder on S41 affects **future** executions, not in-flight ones.
@@ -230,6 +231,7 @@ This lives in the same DynamoDB table but uses a non-tenant PK. Any tenant can q
 **Phase 2 — External service:**
 
 When the marketplace grows (community submissions, versioning, reviews, search), extract to:
+
 - Dedicated DynamoDB table or Aurora Postgres for richer queries
 - S3 for template bundles
 - CloudFront for caching
@@ -241,21 +243,21 @@ Marketplace templates are shared across all tenants. Storing them under a tenant
 
 ### S40 Query for Marketplace
 
-| Purpose | PK | SK | Operation |
-|---------|----|----|-----------|
+| Purpose            | PK            | SK                       | Operation                                       |
+| ------------------ | ------------- | ------------------------ | ----------------------------------------------- |
 | Featured templates | `MARKETPLACE` | `begins_with(TEMPLATE#)` | `Query` (limit 6, sort by installCount via GSI) |
 
 ---
 
 ## Summary: Complete Access Pattern Map
 
-| Screen | Operation | PK | SK / GSI | DynamoDB Op |
-|--------|-----------|----|----|-------------|
-| S40 | List murders | `T#{tid}#DYNASTY` | `begins_with(MURDER#)` | Query |
-| S40 | Crow behavior states | GSI2: `T#{tid}#STATUS#running` | filter by murder_id | Query + filter |
-| S40 | Marketplace featured | `MARKETPLACE` | `begins_with(TEMPLATE#)` | Query |
-| S41 | Load murder | `T#{tid}#DYNASTY` | `MURDER#{mid}` | GetItem |
-| S41 | Create murder | `T#{tid}#DYNASTY` | `MURDER#{mid}` | PutItem |
-| S41 | Update murder | `T#{tid}#DYNASTY` | `MURDER#{mid}` | PutItem |
-| S42 | Load parent murder | `T#{tid}#DYNASTY` | `MURDER#{mid}` | GetItem |
-| S42 | Add crow to murder | `T#{tid}#DYNASTY` | `MURDER#{mid}` | UpdateItem (list_append) |
+| Screen | Operation            | PK                             | SK / GSI                 | DynamoDB Op              |
+| ------ | -------------------- | ------------------------------ | ------------------------ | ------------------------ |
+| S40    | List murders         | `T#{tid}#DYNASTY`              | `begins_with(MURDER#)`   | Query                    |
+| S40    | Crow behavior states | GSI2: `T#{tid}#STATUS#running` | filter by murder_id      | Query + filter           |
+| S40    | Marketplace featured | `MARKETPLACE`                  | `begins_with(TEMPLATE#)` | Query                    |
+| S41    | Load murder          | `T#{tid}#DYNASTY`              | `MURDER#{mid}`           | GetItem                  |
+| S41    | Create murder        | `T#{tid}#DYNASTY`              | `MURDER#{mid}`           | PutItem                  |
+| S41    | Update murder        | `T#{tid}#DYNASTY`              | `MURDER#{mid}`           | PutItem                  |
+| S42    | Load parent murder   | `T#{tid}#DYNASTY`              | `MURDER#{mid}`           | GetItem                  |
+| S42    | Add crow to murder   | `T#{tid}#DYNASTY`              | `MURDER#{mid}`           | UpdateItem (list_append) |

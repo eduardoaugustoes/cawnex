@@ -7,13 +7,13 @@
 
 ## Problems Solved
 
-| # | Problem |
-|---|---------|
-| 2 | Human must stay in control (approve, steer, reject) |
-| 7 | Failure resilience (retry, fix, escalate) |
-| 15 | New projects: zero to first commit |
-| 16 | Existing projects: evolve without breaking things |
-| 22 | Resource discipline — budgets, limits, escalation |
+| #   | Problem                                             |
+| --- | --------------------------------------------------- |
+| 2   | Human must stay in control (approve, steer, reject) |
+| 7   | Failure resilience (retry, fix, escalate)           |
+| 15  | New projects: zero to first commit                  |
+| 16  | Existing projects: evolve without breaking things   |
+| 22  | Resource discipline — budgets, limits, escalation   |
 
 ---
 
@@ -37,19 +37,19 @@ PLANNING ──► PROPOSED ──► APPROVED ──► EXECUTING ──► REV
 
 ### State Definitions
 
-| State | Owner | What's Happening |
-|-------|-------|------------------|
-| `planning` | Monarch + Council | Council voting on wave contents, Monarch assembling plan |
-| `proposed` | Human | Wave plan ready for founder review |
-| `revised` | Monarch | Human requested changes, Monarch adjusting |
-| `approved` | Murder | Human approved, Murder preparing to dispatch |
-| `rejected` | Monarch | Human rejected the plan entirely |
-| `executing` | Murder + Crows | Crows actively working on MVIs |
-| `paused` | Human | Human said "stop." Active crows finish current task then halt |
-| `review` | Human | All MVIs complete, founder reviewing before merge |
-| `steered` | Monarch | Human changed direction mid-wave |
-| `delivered` | Terminal | All MVIs shipped, merged to main |
-| `cancelled` | Terminal | Wave abandoned |
+| State       | Owner             | What's Happening                                              |
+| ----------- | ----------------- | ------------------------------------------------------------- |
+| `planning`  | Monarch + Council | Council voting on wave contents, Monarch assembling plan      |
+| `proposed`  | Human             | Wave plan ready for founder review                            |
+| `revised`   | Monarch           | Human requested changes, Monarch adjusting                    |
+| `approved`  | Murder            | Human approved, Murder preparing to dispatch                  |
+| `rejected`  | Monarch           | Human rejected the plan entirely                              |
+| `executing` | Murder + Crows    | Crows actively working on MVIs                                |
+| `paused`    | Human             | Human said "stop." Active crows finish current task then halt |
+| `review`    | Human             | All MVIs complete, founder reviewing before merge             |
+| `steered`   | Monarch           | Human changed direction mid-wave                              |
+| `delivered` | Terminal          | All MVIs shipped, merged to main                              |
+| `cancelled` | Terminal          | Wave abandoned                                                |
 
 ### Valid Transitions
 
@@ -104,17 +104,17 @@ DRAFT ──► REFINED ──► QUEUED ──► EXECUTING ──► READY_TO_
   └──────────┴───────────┴──────────────────────────► CANCELLED
 ```
 
-| State | Meaning |
-|-------|---------|
-| `draft` | Identified but not detailed. Just a name and rough scope |
-| `refined` | Council evaluated, tasks planned, estimates assigned |
-| `queued` | Approved and waiting for Murder to start |
-| `executing` | Crows actively working (has active crow snapshots) |
-| `failed` | Execution failed after max retries. Needs human decision |
+| State           | Meaning                                                        |
+| --------------- | -------------------------------------------------------------- |
+| `draft`         | Identified but not detailed. Just a name and rough scope       |
+| `refined`       | Council evaluated, tasks planned, estimates assigned           |
+| `queued`        | Approved and waiting for Murder to start                       |
+| `executing`     | Crows actively working (has active crow snapshots)             |
+| `failed`        | Execution failed after max retries. Needs human decision       |
 | `ready_to_ship` | All tasks done, PRs reviewed, CI green, merge checklist passed |
-| `rejected` | Human rejected at review. Back to queue or cancelled |
-| `shipped` | Merged to main. Terminal |
-| `cancelled` | Abandoned. Terminal |
+| `rejected`      | Human rejected at review. Back to queue or cancelled           |
+| `shipped`       | Merged to main. Terminal                                       |
+| `cancelled`     | Abandoned. Terminal                                            |
 
 ### MVI Ordering Constraints
 
@@ -123,8 +123,15 @@ The Council can set ordering constraints between MVIs:
 ```json
 {
   "ordering": [
-    { "before": "mvi_auth", "after": "mvi_payment", "reason": "Rate limiting must exist before payment" },
-    { "parallel": ["mvi_onboarding", "mvi_auth"], "reason": "Independent, can run concurrently" }
+    {
+      "before": "mvi_auth",
+      "after": "mvi_payment",
+      "reason": "Rate limiting must exist before payment"
+    },
+    {
+      "parallel": ["mvi_onboarding", "mvi_auth"],
+      "reason": "Independent, can run concurrently"
+    }
   ]
 }
 ```
@@ -311,6 +318,7 @@ Wave budget limit: $50 (set by human or Monarch)
 ```
 
 Budget checks happen:
+
 - **Before each task dispatch** — Murder checks wave budget
 - **After each crow completes** — Murder updates wave spend
 - **Approaching limit** — Murder may restructure remaining work
@@ -342,6 +350,7 @@ Wave 3 delivered
 ```
 
 Continuity maintained by:
+
 1. **Project memory** — learnings accumulate across waves
 2. **Advisor memories** — each advisor gets smarter
 3. **Backlog** — deferred MVIs carry forward
@@ -363,11 +372,9 @@ Continuity maintained by:
 
   "plan": {
     "mvis": ["mvi_auth", "mvi_onboarding", "mvi_payment"],
-    "ordering": [
-      { "before": "mvi_auth", "after": "mvi_payment" }
-    ],
-    "estimated_budget": 45.00,
-    "estimated_human_equiv": 12000.00
+    "ordering": [{ "before": "mvi_auth", "after": "mvi_payment" }],
+    "estimated_budget": 45.0,
+    "estimated_human_equiv": 12000.0
   },
 
   "council_ref": "S#w003#council_001",
@@ -382,24 +389,42 @@ Continuity maintained by:
   },
 
   "budget": {
-    "spent": 18.50,
-    "limit": 50.00,
-    "human_equiv_saved": 4800.00,
+    "spent": 18.5,
+    "limit": 50.0,
+    "human_equiv_saved": 4800.0,
     "roi": 259
   },
 
   "steers": [
     {
       "from_human": "Drop payment, add notifications",
-      "affected_mvis": { "cancelled": ["mvi_payment"], "added": ["mvi_notifications"] },
+      "affected_mvis": {
+        "cancelled": ["mvi_payment"],
+        "added": ["mvi_notifications"]
+      },
       "timestamp": "2026-03-20T14:30:00Z"
     }
   ],
 
   "state_history": [
-    { "from": "planning", "to": "proposed", "at": "2026-03-14T10:00:00Z", "actor": "monarch" },
-    { "from": "proposed", "to": "approved", "at": "2026-03-14T10:05:00Z", "actor": "human" },
-    { "from": "approved", "to": "executing", "at": "2026-03-14T10:05:01Z", "actor": "murder" }
+    {
+      "from": "planning",
+      "to": "proposed",
+      "at": "2026-03-14T10:00:00Z",
+      "actor": "monarch"
+    },
+    {
+      "from": "proposed",
+      "to": "approved",
+      "at": "2026-03-14T10:05:00Z",
+      "actor": "human"
+    },
+    {
+      "from": "approved",
+      "to": "executing",
+      "at": "2026-03-14T10:05:01Z",
+      "actor": "murder"
+    }
   ],
 
   "created_at": "2026-03-14T09:55:00Z",

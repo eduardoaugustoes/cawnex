@@ -12,47 +12,47 @@ Read in this order for full context:
 
 ### 1. Foundation
 
-| Doc | What It Covers |
-|-----|----------------|
-| [orchestration-problems.md](orchestration-problems.md) | **22 core problems** the engine must solve. Every component traces back here. |
-| [layered-snapshots.md](layered-snapshots.md) | **Core data structure** — recursive snapshots that serve operational, memory, and training data purposes simultaneously. The 3D matrix (features x concerns x time). |
-| [agent-memory.md](agent-memory.md) | **How agents learn** — layered CLAUDE.md pattern (not RAG). Three memory layers: dynasty, project, specialization. |
+| Doc                                                    | What It Covers                                                                                                                                                       |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [orchestration-problems.md](orchestration-problems.md) | **22 core problems** the engine must solve. Every component traces back here.                                                                                        |
+| [layered-snapshots.md](layered-snapshots.md)           | **Core data structure** — recursive snapshots that serve operational, memory, and training data purposes simultaneously. The 3D matrix (features x concerns x time). |
+| [agent-memory.md](agent-memory.md)                     | **How agents learn** — layered CLAUDE.md pattern (not RAG). Three memory layers: dynasty, project, specialization.                                                   |
 
 ### 2. Data Model
 
-| Doc | What It Covers |
-|-----|----------------|
-| [data-model-v2.md](data-model-v2.md) | **DynamoDB schema** — partition patterns, SK patterns, GSIs, snapshot primitive, materialized views, size estimates. |
-| [screen-queries-all.md](screen-queries-all.md) | **Access patterns per screen** — every iOS screen mapped to exact PK/SK queries. |
-| [decisions-log.md](decisions-log.md) | **Architecture Decision Records** — DynamoDB over MongoDB, CLAUDE.md over RAG, dual hierarchy, materialized views, config vs snapshot. |
+| Doc                                            | What It Covers                                                                                                                         |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| [data-model-v2.md](data-model-v2.md)           | **DynamoDB schema** — partition patterns, SK patterns, GSIs, snapshot primitive, materialized views, size estimates.                   |
+| [screen-queries-all.md](screen-queries-all.md) | **Access patterns per screen** — every iOS screen mapped to exact PK/SK queries.                                                       |
+| [decisions-log.md](decisions-log.md)           | **Architecture Decision Records** — DynamoDB over MongoDB, CLAUDE.md over RAG, dual hierarchy, materialized views, config vs snapshot. |
 
 ### 3. Protocols
 
-| Doc | What It Covers |
-|-----|----------------|
+| Doc                                        | What It Covers                                                                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | [council-protocol.md](council-protocol.md) | **Advisory decision-making** — 6 advisors, parallel voting, max 3 debate rounds, Security+Clarity veto, dissent recording, human override. |
-| [wave-lifecycle.md](wave-lifecycle.md) | **State machine** — 11 wave states, 9 MVI states, pause/steer/budget enforcement, ordering constraints, wave-to-wave continuity. |
-| [context-assembly.md](context-assembly.md) | **Prompt engineering** — 5-layer prompt, scoped context per crow type, artifact chain, prompt caching, large repo strategy. |
+| [wave-lifecycle.md](wave-lifecycle.md)     | **State machine** — 11 wave states, 9 MVI states, pause/steer/budget enforcement, ordering constraints, wave-to-wave continuity.           |
+| [context-assembly.md](context-assembly.md) | **Prompt engineering** — 5-layer prompt, scoped context per crow type, artifact chain, prompt caching, large repo strategy.                |
 
 ### 4. Per-Screen Deep Dives
 
-| Doc | Screens |
-|-----|---------|
-| [screen-queries-s01-s02.md](screen-queries-s01-s02.md) | Splash, Sign In |
-| [screen-queries-s11.md](screen-queries-s11.md) | Create Project |
-| [screen-queries-s24-s30-s31.md](screen-queries-s24-s30-s31.md) | Backlog, Milestone, Goal |
-| [screen-queries-s32.md](screen-queries-s32.md) | MVI Blackboard (most critical) |
-| [screen-queries-s33-s34.md](screen-queries-s33-s34.md) | Task Detail, PR Review |
-| [screen-queries-s40-s41-s42.md](screen-queries-s40-s41-s42.md) | Murders, Crows |
-| [screen-queries-s70.md](screen-queries-s70.md) | Notifications |
+| Doc                                                            | Screens                        |
+| -------------------------------------------------------------- | ------------------------------ |
+| [screen-queries-s01-s02.md](screen-queries-s01-s02.md)         | Splash, Sign In                |
+| [screen-queries-s11.md](screen-queries-s11.md)                 | Create Project                 |
+| [screen-queries-s24-s30-s31.md](screen-queries-s24-s30-s31.md) | Backlog, Milestone, Goal       |
+| [screen-queries-s32.md](screen-queries-s32.md)                 | MVI Blackboard (most critical) |
+| [screen-queries-s33-s34.md](screen-queries-s33-s34.md)         | Task Detail, PR Review         |
+| [screen-queries-s40-s41-s42.md](screen-queries-s40-s41-s42.md) | Murders, Crows                 |
+| [screen-queries-s70.md](screen-queries-s70.md)                 | Notifications                  |
 
 ### 5. Legacy (superseded)
 
-| Doc | Status |
-|-----|--------|
+| Doc                                  | Status                                                                           |
+| ------------------------------------ | -------------------------------------------------------------------------------- |
 | [orchestration.md](orchestration.md) | V1 orchestration spec. Superseded by this design system. Retained for reference. |
-| [agents.md](agents.md) | V1 agent specs. Crow types and behavior states still relevant. |
-| [architecture.md](architecture.md) | V1 design architecture. DynamoDB blackboard pattern still foundational. |
+| [agents.md](agents.md)               | V1 agent specs. Crow types and behavior states still relevant.                   |
+| [architecture.md](architecture.md)   | V1 design architecture. DynamoDB blackboard pattern still foundational.          |
 
 ---
 
@@ -97,6 +97,7 @@ Human sets directive
 ```
 
 Each cycle produces:
+
 - **Code** — merged to main
 - **Learnings** — added to agent memory
 - **Training data** — ask + reasoning + code + outcome
@@ -121,48 +122,48 @@ Each cycle produces:
 
 ### Detection Strategies
 
-| Guard | What It Catches | Action |
-|-------|----------------|--------|
-| Token budget | Agent consuming too many tokens | Warn at 80%, cancel at 100% |
-| Time limit | Agent taking too long | Hard cancel (planner: 5m, dev: 15m, QA: 5m, docs: 3m) |
-| Scope boundary | Agent modifying files outside its area | Warn or cancel |
-| Output coherence | Solving problems not in the issue | Cancel |
-| Loop detection | >3 similar outputs in sequence | Cancel |
+| Guard            | What It Catches                        | Action                                                |
+| ---------------- | -------------------------------------- | ----------------------------------------------------- |
+| Token budget     | Agent consuming too many tokens        | Warn at 80%, cancel at 100%                           |
+| Time limit       | Agent taking too long                  | Hard cancel (planner: 5m, dev: 15m, QA: 5m, docs: 3m) |
+| Scope boundary   | Agent modifying files outside its area | Warn or cancel                                        |
+| Output coherence | Solving problems not in the issue      | Cancel                                                |
+| Loop detection   | >3 similar outputs in sequence         | Cancel                                                |
 
 ### Retry Engine
 
-| Failure Type | Retryable? | Strategy |
-|-------------|------------|----------|
-| LLM timeout | Yes | Retry with same context |
-| LLM rate limit | Yes | Exponential backoff |
-| Git conflict | Yes | Pull latest, rebase, retry |
-| Test failure | Yes | Send error to agent, ask for fix |
-| QA rejection | Yes | Send feedback to fixer crow |
-| Hallucination detected | No | Cancel, notify human |
-| Token budget exceeded | No | Cancel, notify human |
-| Repeated failure (>3x) | No | Cancel, escalate to human |
+| Failure Type           | Retryable? | Strategy                         |
+| ---------------------- | ---------- | -------------------------------- |
+| LLM timeout            | Yes        | Retry with same context          |
+| LLM rate limit         | Yes        | Exponential backoff              |
+| Git conflict           | Yes        | Pull latest, rebase, retry       |
+| Test failure           | Yes        | Send error to agent, ask for fix |
+| QA rejection           | Yes        | Send feedback to fixer crow      |
+| Hallucination detected | No         | Cancel, notify human             |
+| Token budget exceeded  | No         | Cancel, notify human             |
+| Repeated failure (>3x) | No         | Cancel, escalate to human        |
 
 ### Max Retries by Crow Type
 
-| Crow | Max Retries | Backoff |
-|------|-------------|---------|
-| Planner | 2 | None |
-| Implementer | 3 | Linear (1m, 2m, 3m) |
-| Reviewer | 2 | None |
-| Fixer | 3 | Linear |
-| Documenter | 1 | None |
+| Crow        | Max Retries | Backoff             |
+| ----------- | ----------- | ------------------- |
+| Planner     | 2           | None                |
+| Implementer | 3           | Linear (1m, 2m, 3m) |
+| Reviewer    | 2           | None                |
+| Fixer       | 3           | Linear              |
+| Documenter  | 1           | None                |
 
 ---
 
 ## Cost Model
 
-| Component | Cost | Notes |
-|-----------|------|-------|
-| Council session (consensus) | ~$0.09 | 6 Sonnet calls |
-| Council session (3 rounds) | ~$0.27 | Worst case |
-| Full crow pipeline | ~$0.56 (Sonnet) / ~$2.78 (Opus) | Planner + Implementer + Reviewer + Documenter |
-| With prompt caching | ~40-60% of above | Layers 1-3 cached at 90% discount |
-| Infrastructure (MVP) | ~$10-25/month | DynamoDB on-demand + Lambda |
+| Component                   | Cost                            | Notes                                         |
+| --------------------------- | ------------------------------- | --------------------------------------------- |
+| Council session (consensus) | ~$0.09                          | 6 Sonnet calls                                |
+| Council session (3 rounds)  | ~$0.27                          | Worst case                                    |
+| Full crow pipeline          | ~$0.56 (Sonnet) / ~$2.78 (Opus) | Planner + Implementer + Reviewer + Documenter |
+| With prompt caching         | ~40-60% of above                | Layers 1-3 cached at 90% discount             |
+| Infrastructure (MVP)        | ~$10-25/month                   | DynamoDB on-demand + Lambda                   |
 
 ---
 

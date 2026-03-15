@@ -25,13 +25,13 @@ Z axis: Time/waves (evolution)
 
 Slicing this matrix answers different questions:
 
-| Slice | Question Answered |
-|-------|-------------------|
-| Horizontal (top layer) | What's the current state? |
-| Vertical (one feature, all waves) | How did auth evolve over time? |
+| Slice                               | Question Answered                       |
+| ----------------------------------- | --------------------------------------- |
+| Horizontal (top layer)              | What's the current state?               |
+| Vertical (one feature, all waves)   | How did auth evolve over time?          |
 | By concern (one column, all layers) | How has security improved across waves? |
-| Peel a layer | Revert a wave's work |
-| Sum through layers | Total budget spent on any dimension |
+| Peel a layer                        | Revert a wave's work                    |
+| Sum through layers                  | Total budget spent on any dimension     |
 
 ---
 
@@ -141,13 +141,13 @@ Each snapshot is a complete training sample: ask + reasoning + code + outcome + 
 
 **What makes this training data unique** (vs existing AI coding datasets):
 
-| Existing Data | Cawnex Snapshots |
-|---------------|------------------|
-| Code only, no reasoning | Full reasoning chain (council votes, dissent, decisions) |
-| No outcome signal | Human approved? Tests pass? Bugs later? |
-| Single-shot | Failed attempts alongside successful ones (correction data) |
-| One perspective | Multi-perspective judgment (security vs quality vs market) |
-| No feedback loop | Long-term outcome signal (bugs reported weeks later) |
+| Existing Data           | Cawnex Snapshots                                            |
+| ----------------------- | ----------------------------------------------------------- |
+| Code only, no reasoning | Full reasoning chain (council votes, dissent, decisions)    |
+| No outcome signal       | Human approved? Tests pass? Bugs later?                     |
+| Single-shot             | Failed attempts alongside successful ones (correction data) |
+| One perspective         | Multi-perspective judgment (security vs quality vs market)  |
+| No feedback loop        | Long-term outcome signal (bugs reported weeks later)        |
 
 ---
 
