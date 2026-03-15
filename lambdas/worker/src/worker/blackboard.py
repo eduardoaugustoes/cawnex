@@ -75,6 +75,15 @@ class Blackboard:
             ExpressionAttributeNames=names,
         )
 
+    def query(self, pk: str, sk_prefix: str) -> list[dict[str, Any]]:
+        """Query by PK and SK prefix (begins_with)."""
+        resp = self._table.query(
+            KeyConditionExpression=DKey("PK").eq(pk)
+            & DKey("SK").begins_with(sk_prefix),
+        )
+        items: list[dict[str, Any]] = resp.get("Items", [])
+        return items
+
     def query_gsi(
         self,
         index_name: str,
