@@ -7,6 +7,7 @@ enum JWTParser {
     struct Claims {
         let sub: String
         let email: String
+        let name: String
         let tenantId: String
         let exp: Date
 
@@ -26,12 +27,14 @@ enum JWTParser {
 
         let sub = json["sub"] as? String ?? ""
         let email = json["email"] as? String ?? ""
+        let name = json["name"] as? String ?? ""
         let tenantId = json["custom:tenant_id"] as? String ?? ""
         let expTimestamp = json["exp"] as? TimeInterval ?? 0
 
         return Claims(
             sub: sub,
             email: email,
+            name: name,
             tenantId: tenantId,
             exp: Date(timeIntervalSince1970: expTimestamp)
         )

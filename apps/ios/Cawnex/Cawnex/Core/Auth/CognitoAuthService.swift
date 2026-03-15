@@ -175,6 +175,7 @@ final class CognitoAuthService: AuthService, @unchecked Sendable {
             tenantId: claims.tenantId,
             userSub: claims.sub,
             email: claims.email,
+            name: claims.name,
             expiresAt: claims.exp
         )
     }

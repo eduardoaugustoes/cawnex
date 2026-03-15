@@ -22,6 +22,7 @@ struct InMemoryAuthService: AuthService {
             tenantId: "t_preview_tenant",
             userSub: "preview-sub-123",
             email: email,
+            name: "Preview User",
             expiresAt: Date().addingTimeInterval(3600)
         )
     }
@@ -45,6 +46,7 @@ struct InMemoryAuthService: AuthService {
             tenantId: "t_preview_tenant",
             userSub: "preview-sub-123",
             email: "preview@cawnex.io",
+            name: "Preview User",
             expiresAt: Date().addingTimeInterval(3600)
         )
     }

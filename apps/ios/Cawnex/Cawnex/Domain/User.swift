@@ -16,7 +16,7 @@ struct User: Identifiable, Equatable {
     /// Create a User from an authenticated session.
     init(session: AuthSession) {
         self.id = session.userSub
-        self.name = session.email // Name comes from Cognito attributes later
+        self.name = session.name.isEmpty ? session.email : session.name
         self.email = session.email
         self.tenantId = session.tenantId
     }

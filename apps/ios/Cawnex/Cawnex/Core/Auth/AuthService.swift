@@ -9,6 +9,7 @@ struct AuthSession: Equatable {
     let tenantId: String
     let userSub: String
     let email: String
+    let name: String
     let expiresAt: Date
 
     var isExpired: Bool {
