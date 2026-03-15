@@ -5,6 +5,7 @@ struct ContentView: View {
     @State private var store = AppStore()
     @State private var remoteConfig = RemoteConfig()
     @State private var authService: (any AuthService)?
+    @State private var splashDone = false
 
     var body: some View {
         ZStack {
@@ -14,24 +15,26 @@ struct ContentView: View {
             switch router.currentRoute {
             case .splash:
                 SplashScreen(onFinished: {
-                    Task {
-                        await remoteConfig.load()
-                        let service: any AuthService = {
-                            #if DEBUG
-                            if remoteConfig.clientId.isEmpty {
-                                return InMemoryAuthService()
-                            }
-                            #endif
-                            return CognitoAuthService(remoteConfig: remoteConfig)
-                        }()
-                        await MainActor.run { authService = service }
-                        router.splashFinished(authService: service)
-                    }
+                    splashDone = true
+                    transitionIfReady()
                 })
-                    .transition(.opacity)
+                .transition(.opacity)
+                .task {
+                    // Fetch config in parallel with splash animation
+                    await remoteConfig.load()
+                    let service: any AuthService = {
+                        #if DEBUG
+                        if remoteConfig.clientId.isEmpty {
+                            return InMemoryAuthService()
+                        }
+                        #endif
+                        return CognitoAuthService(remoteConfig: remoteConfig)
+                    }()
+                    authService = service
+                    transitionIfReady()
+                }
 
             case .checking:
-                // Brief loading state while checking Keychain
                 ProgressView()
                     .tint(CawnexColors.primaryLight)
 
@@ -83,6 +86,13 @@ struct ContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: router.currentRoute)
+    }
+
+    /// Transition only when both splash animation AND config fetch are done.
+    /// Whichever finishes last triggers the transition — user never sees a spinner.
+    private func transitionIfReady() {
+        guard splashDone, let service = authService else { return }
+        router.splashFinished(authService: service)
     }
 }
 
