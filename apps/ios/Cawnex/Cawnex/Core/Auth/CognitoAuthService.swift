@@ -3,19 +3,26 @@ import Foundation
 /// Authenticates against AWS Cognito using direct HTTP calls.
 /// Uses USER_PASSWORD_AUTH flow — no SRP, no AWS SDK dependency.
 /// Token storage via KeychainService, JWT parsing via JWTParser.
+/// Reads Cognito config from RemoteConfig (fetched at launch) with
+/// AppConfiguration fallback.
 final class CognitoAuthService: AuthService, @unchecked Sendable {
     private let keychain: KeychainService
     private let session = URLSession.shared
+    private let remoteConfig: RemoteConfig
 
-    init(keychain: KeychainService = KeychainService()) {
+    init(keychain: KeychainService = KeychainService(), remoteConfig: RemoteConfig = RemoteConfig()) {
         self.keychain = keychain
+        self.remoteConfig = remoteConfig
     }
+
+    private var clientId: String { remoteConfig.clientId }
+    private var cognitoEndpoint: String { remoteConfig.cognitoEndpoint }
 
     // MARK: - Sign Up
 
     func signUp(email: String, password: String, name: String) async throws -> AuthResult {
         let body: [String: Any] = [
-            "ClientId": AppConfiguration.clientId,
+            "ClientId": clientId,
             "Username": email,
             "Password": password,
             "UserAttributes": [
@@ -36,7 +43,7 @@ final class CognitoAuthService: AuthService, @unchecked Sendable {
 
     func confirmSignUp(email: String, code: String) async throws {
         let body: [String: Any] = [
-            "ClientId": AppConfiguration.clientId,
+            "ClientId": clientId,
             "Username": email,
             "ConfirmationCode": code,
         ]
@@ -48,7 +55,7 @@ final class CognitoAuthService: AuthService, @unchecked Sendable {
 
     func resendConfirmationCode(email: String) async throws {
         let body: [String: Any] = [
-            "ClientId": AppConfiguration.clientId,
+            "ClientId": clientId,
             "Username": email,
         ]
 
@@ -59,7 +66,7 @@ final class CognitoAuthService: AuthService, @unchecked Sendable {
 
     func signIn(email: String, password: String) async throws -> AuthSession {
         let body: [String: Any] = [
-            "ClientId": AppConfiguration.clientId,
+            "ClientId": clientId,
             "AuthFlow": "USER_PASSWORD_AUTH",
             "AuthParameters": [
                 "USERNAME": email,
@@ -100,7 +107,7 @@ final class CognitoAuthService: AuthService, @unchecked Sendable {
         }
 
         let body: [String: Any] = [
-            "ClientId": AppConfiguration.clientId,
+            "ClientId": clientId,
             "AuthFlow": "REFRESH_TOKEN_AUTH",
             "AuthParameters": [
                 "REFRESH_TOKEN": refreshToken,
@@ -180,7 +187,7 @@ final class CognitoAuthService: AuthService, @unchecked Sendable {
 
     /// Send a request to the Cognito JSON API.
     private func cognitoRequest<T>(action: String, body: [String: Any]) async throws -> T {
-        let url = URL(string: AppConfiguration.cognitoEndpoint)!
+        let url = URL(string: cognitoEndpoint)!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-amz-json-1.1", forHTTPHeaderField: "Content-Type")

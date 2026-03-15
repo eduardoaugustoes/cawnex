@@ -3,14 +3,8 @@ import SwiftUI
 struct ContentView: View {
     @State private var router = AppRouter()
     @State private var store = AppStore()
-    @State private var authService: any AuthService = {
-        #if DEBUG
-        if AppConfiguration.clientId.isEmpty {
-            return InMemoryAuthService()
-        }
-        #endif
-        return CognitoAuthService()
-    }()
+    @State private var remoteConfig = RemoteConfig()
+    @State private var authService: (any AuthService)?
 
     var body: some View {
         ZStack {
@@ -19,7 +13,21 @@ struct ContentView: View {
 
             switch router.currentRoute {
             case .splash:
-                SplashScreen(onFinished: { router.splashFinished(authService: authService) })
+                SplashScreen(onFinished: {
+                    Task {
+                        await remoteConfig.load()
+                        let service: any AuthService = {
+                            #if DEBUG
+                            if remoteConfig.clientId.isEmpty {
+                                return InMemoryAuthService()
+                            }
+                            #endif
+                            return CognitoAuthService(remoteConfig: remoteConfig)
+                        }()
+                        await MainActor.run { authService = service }
+                        router.splashFinished(authService: service)
+                    }
+                })
                     .transition(.opacity)
 
             case .checking:
@@ -30,7 +38,7 @@ struct ContentView: View {
             case .signIn:
                 SignInScreen(
                     viewModel: SignInViewModel(
-                        authService: authService,
+                        authService: authService!,
                         onSignedIn: { session in
                             store.setUser(from: session)
                             store.seedData()
@@ -47,7 +55,7 @@ struct ContentView: View {
             case .signUp:
                 SignUpScreen(
                     viewModel: SignUpViewModel(
-                        authService: authService,
+                        authService: authService!,
                         onConfirmationRequired: { email in
                             router.needsConfirmation(email: email)
                         }
@@ -60,7 +68,7 @@ struct ContentView: View {
                 ConfirmEmailScreen(
                     viewModel: ConfirmEmailViewModel(
                         email: email,
-                        authService: authService,
+                        authService: authService!,
                         onConfirmed: {
                             router.showSignIn()
                         }
