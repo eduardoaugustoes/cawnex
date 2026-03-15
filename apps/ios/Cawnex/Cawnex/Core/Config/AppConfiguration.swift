@@ -29,9 +29,9 @@ struct AppConfiguration {
         var clientId: String {
             switch self {
             case .development:
-                return "3qp8f80mhfvcgk0k8v7f2qhhg"  // Development iOS Client
+                return "53ne6uhf0hln8bc75pp61kbdpj"  // Development iOS Client
             case .staging:
-                return "3qp8f80mhfvcgk0k8v7f2qhhg"  // Staging uses dev for now
+                return "53ne6uhf0hln8bc75pp61kbdpj"  // Staging uses dev for now
             case .production:
                 return "7tqajln8jr6iim3oraln4ate6e"  // Production iOS Client
             }
@@ -44,7 +44,7 @@ struct AppConfiguration {
         var apiBaseURL: String {
             switch self {
             case .development:
-                return "https://api-dev.cawnex.ai"  // Development API
+                return "https://d1elid9twwevj2.cloudfront.net"  // Development API (CloudFront)
             case .staging:
                 return "https://api-staging.cawnex.ai"  // Staging API
             case .production:
