@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from murder.config import FIX_CYCLE_LIMIT
+from murder.config import FIX_CYCLE_LIMIT, MAX_PLANNER_SPLITS, MAX_TASK_HOURS
 from murder.enums import CrowStatus, CrowType
 
 
@@ -34,7 +34,14 @@ class NoAction:
     reason: str
 
 
-NextAction = AssignCrow | MarkMVIReady | FailMVI | NoAction
+@dataclass
+class SplitRequired:
+    """Planner produced tasks exceeding size limit — re-invoke with split instructions."""
+    oversized_tasks: list[dict]
+    reason: str
+
+
+NextAction = AssignCrow | MarkMVIReady | FailMVI | NoAction | SplitRequired
 
 
 def determine_next(
@@ -42,10 +49,11 @@ def determine_next(
     crow_status: CrowStatus,
     outcome: dict[str, Any] | None,
     retry_count: int,
+    split_count: int = 0,
 ) -> NextAction:
     """Given a completed/failed crow, return the next action Murder should take."""
     if crow_status == CrowStatus.COMPLETED:
-        return _on_completed(crow_type, outcome, retry_count)
+        return _on_completed(crow_type, outcome, retry_count, split_count)
     if crow_status == CrowStatus.FAILED:
         return _on_failed(crow_type, retry_count)
     return NoAction(reason=f"unexpected status: {crow_status.value}")
@@ -55,18 +63,30 @@ def _on_completed(
     crow_type: CrowType,
     outcome: dict[str, Any] | None,
     retry_count: int,
+    split_count: int = 0,
 ) -> NextAction:
     if crow_type == CrowType.PLANNER:
         tasks = (outcome or {}).get("tasks", [])
         if not tasks:
             return FailMVI(reason="planner produced no tasks")
+        oversized = [t for t in tasks if t.get("estimated_hours", 0) > MAX_TASK_HOURS]
+        if oversized:
+            if split_count >= MAX_PLANNER_SPLITS:
+                return FailMVI(
+                    reason=f"planner cannot decompose within {MAX_TASK_HOURS}h task limit after {split_count} attempts"
+                )
+            return SplitRequired(oversized_tasks=oversized, reason="tasks exceed size limit")
         return AssignCrow(CrowType.IMPLEMENTER, reason="planner completed with tasks")
 
     if crow_type == CrowType.IMPLEMENTER:
         return AssignCrow(CrowType.REVIEWER, reason="implementer completed")
 
     if crow_type == CrowType.REVIEWER:
-        approved = (outcome or {}).get("approved", False)
+        o = outcome or {}
+        if "blocking_issues" in o:
+            approved = len(o["blocking_issues"]) == 0
+        else:
+            approved = o.get("approved", False)
         if approved:
             return MarkMVIReady()
         return AssignCrow(CrowType.FIXER, reason="reviewer found issues")

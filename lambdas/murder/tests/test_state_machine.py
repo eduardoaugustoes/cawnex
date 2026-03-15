@@ -6,6 +6,7 @@ from murder.state_machine import (
     FailMVI,
     MarkMVIReady,
     NoAction,
+    SplitRequired,
     determine_next,
 )
 
@@ -31,6 +32,45 @@ class TestPlannerCompleted:
             CrowType.PLANNER, CrowStatus.COMPLETED, None, 0,
         )
         assert isinstance(action, FailMVI)
+
+
+    def test_oversized_task_triggers_split(self) -> None:
+        action = determine_next(
+            CrowType.PLANNER, CrowStatus.COMPLETED,
+            {"tasks": [{"name": "Implement JWT auth", "estimated_hours": 16}]}, 0,
+        )
+        assert isinstance(action, SplitRequired)
+        assert len(action.oversized_tasks) == 1
+        assert action.oversized_tasks[0]["name"] == "Implement JWT auth"
+
+    def test_tasks_within_limit_assigns_implementer(self) -> None:
+        action = determine_next(
+            CrowType.PLANNER, CrowStatus.COMPLETED,
+            {"tasks": [
+                {"name": "Add endpoint", "estimated_hours": 4},
+                {"name": "Add test", "estimated_hours": 3},
+            ]}, 0,
+        )
+        assert isinstance(action, AssignCrow)
+        assert action.crow_type == CrowType.IMPLEMENTER
+
+    def test_split_count_exceeded_fails_mvi(self) -> None:
+        action = determine_next(
+            CrowType.PLANNER, CrowStatus.COMPLETED,
+            {"tasks": [{"name": "Implement JWT auth", "estimated_hours": 16}]},
+            0,
+            split_count=2,
+        )
+        assert isinstance(action, FailMVI)
+        assert "task limit" in action.reason
+
+    def test_tasks_without_estimated_hours_proceeds_normally(self) -> None:
+        action = determine_next(
+            CrowType.PLANNER, CrowStatus.COMPLETED,
+            {"tasks": [{"name": "Add endpoint"}, {"name": "Add test"}]}, 0,
+        )
+        assert isinstance(action, AssignCrow)
+        assert action.crow_type == CrowType.IMPLEMENTER
 
 
 class TestPlannerFailed:
@@ -84,6 +124,50 @@ class TestReviewerCompleted:
         action = determine_next(
             CrowType.REVIEWER, CrowStatus.COMPLETED,
             {"approved": False, "issues": ["bug"]}, 0,
+        )
+        assert isinstance(action, AssignCrow)
+        assert action.crow_type == CrowType.FIXER
+
+    def test_empty_blocking_issues_approves_even_with_non_blocking(self) -> None:
+        action = determine_next(
+            CrowType.REVIEWER, CrowStatus.COMPLETED,
+            {
+                "approved": False,
+                "blocking_issues": [],
+                "non_blocking_issues": ["rename x to user_id"],
+                "issues": ["rename x to user_id"],
+            },
+            0,
+        )
+        assert isinstance(action, MarkMVIReady)
+
+    def test_blocking_issues_present_assigns_fixer(self) -> None:
+        action = determine_next(
+            CrowType.REVIEWER, CrowStatus.COMPLETED,
+            {
+                "approved": False,
+                "blocking_issues": ["SQL injection at db.py:42"],
+                "non_blocking_issues": [],
+                "issues": ["SQL injection at db.py:42"],
+            },
+            0,
+        )
+        assert isinstance(action, AssignCrow)
+        assert action.crow_type == CrowType.FIXER
+
+    def test_backward_compat_no_blocking_issues_field_uses_approved(self) -> None:
+        action = determine_next(
+            CrowType.REVIEWER, CrowStatus.COMPLETED,
+            {"approved": True, "issues": []},
+            0,
+        )
+        assert isinstance(action, MarkMVIReady)
+
+    def test_backward_compat_approved_false_without_blocking_issues_assigns_fixer(self) -> None:
+        action = determine_next(
+            CrowType.REVIEWER, CrowStatus.COMPLETED,
+            {"approved": False, "issues": ["missing test"]},
+            0,
         )
         assert isinstance(action, AssignCrow)
         assert action.crow_type == CrowType.FIXER

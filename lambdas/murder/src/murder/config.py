@@ -30,3 +30,7 @@ BUDGET_WARNING_PCT: int = 80
 
 # Fix cycle cap: after this many fixer completions without approval, fail the MVI
 FIX_CYCLE_LIMIT: int = 2
+
+# Task size enforcement
+MAX_TASK_HOURS: int = 8
+MAX_PLANNER_SPLITS: int = 2
