@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsScreen: View {
     @Environment(AppStore.self) private var store
     var onCreditsTap: () -> Void = {}
+    var onSignOut: () -> Void = {}
 
     var body: some View {
         ScrollView {
@@ -17,6 +18,9 @@ struct SettingsScreen: View {
 
                 // Account Section
                 accountSection
+
+                // Sign Out
+                signOutSection
             }
             .padding(.top, CawnexSpacing.lg)
             .padding(.horizontal, CawnexSpacing.xl)
@@ -153,6 +157,30 @@ struct SettingsScreen: View {
         }
         .padding(.horizontal, CawnexSpacing.md)
         .frame(height: 52)
+    }
+
+    // MARK: - Sign Out
+
+    private var signOutSection: some View {
+        Button(action: onSignOut) {
+            HStack(spacing: 14) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.red)
+                    .frame(width: 20)
+
+                Text("Sign Out")
+                    .font(CawnexTypography.body)
+                    .foregroundStyle(.red)
+
+                Spacer()
+            }
+            .padding(.horizontal, CawnexSpacing.md)
+            .frame(height: 52)
+        }
+        .buttonStyle(.plain)
+        .background(CawnexColors.card)
+        .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
     }
 
     private var divider: some View {

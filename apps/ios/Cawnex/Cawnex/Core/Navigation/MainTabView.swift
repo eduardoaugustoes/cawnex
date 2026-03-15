@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(AppStore.self) private var store
+    var onSignOut: () -> Void = {}
     @State private var selectedTab: CawnexTab = .projects
     @State private var tabRouter = TabRouter()
     @State private var isCreatingProject: Bool = false
@@ -135,7 +136,8 @@ struct MainTabView: View {
         @Bindable var router = tabRouter
         return NavigationStack(path: $router.settingsPath) {
             SettingsScreen(
-                onCreditsTap: { isShowingCredits = true }
+                onCreditsTap: { isShowingCredits = true },
+                onSignOut: onSignOut
             )
             .navigationDestination(isPresented: $isShowingCredits) {
                 CreditsScreen(

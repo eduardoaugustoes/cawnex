@@ -81,7 +81,13 @@ struct ContentView: View {
                 .transition(.opacity)
 
             case .main:
-                MainTabView()
+                MainTabView(onSignOut: {
+                    Task {
+                        await authService?.signOut()
+                        store.clearUser()
+                        router.signedOut()
+                    }
+                })
                     .transition(.opacity)
             }
         }
