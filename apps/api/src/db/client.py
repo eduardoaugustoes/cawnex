@@ -110,3 +110,90 @@ class TenantDB:
             sk: Sort key for the item to delete
         """
         self._table.delete_item(Key={"PK": self.tenant_pk, "SK": sk})
+
+    def project_pk(self, project_id: str) -> str:
+        """Get tenant+project-prefixed partition key for project-scoped items.
+
+        Args:
+            project_id: Project identifier
+
+        Returns:
+            String partition key in format T#<tenant_id>#P#<project_id>
+        """
+        return f"T#{self._tenant.tenant_id}#P#{project_id}"
+
+    def get_project_item(self, project_id: str, sk: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a single item by project partition key and sort key.
+
+        Args:
+            project_id: Project identifier
+            sk: Sort key for the item to retrieve
+
+        Returns:
+            Dictionary containing item attributes, or None if not found
+        """
+        response = self._table.get_item(
+            Key={"PK": self.project_pk(project_id), "SK": sk}
+        )
+        return cast("Optional[Dict[str, Any]]", response.get("Item"))
+
+    def query_project(self, project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
+        """Query items by project partition key and sort key prefix.
+
+        Args:
+            project_id: Project identifier
+            sk_prefix: Sort key prefix to match against
+
+        Returns:
+            List of dictionaries containing matching item attributes
+        """
+        response = self._table.query(
+            KeyConditionExpression=Key("PK").eq(self.project_pk(project_id))
+            & Key("SK").begins_with(sk_prefix),
+        )
+        return cast("List[Dict[str, Any]]", response.get("Items", []))
+
+    def put_project_item(self, project_id: str, sk: str, **attrs: Any) -> None:
+        """Create or replace an item under the project partition key.
+
+        Args:
+            project_id: Project identifier
+            sk: Sort key for the item
+            **attrs: Additional attributes to store with the item
+        """
+        self._table.put_item(
+            Item={"PK": self.project_pk(project_id), "SK": sk, **attrs}
+        )
+
+    def update_project_item(
+        self, project_id: str, sk: str, updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update an existing item under the project partition key.
+
+        Args:
+            project_id: Project identifier
+            sk: Sort key for the item to update
+            updates: Dictionary of attribute updates to apply
+
+        Returns:
+            Dictionary containing the updated item attributes
+        """
+        expression_parts = []
+        names: Dict[str, str] = {}
+        values: Dict[str, Any] = {}
+
+        for i, (key, value) in enumerate(updates.items()):
+            attr_name = f"#k{i}"
+            attr_value = f":v{i}"
+            expression_parts.append(f"{attr_name} = {attr_value}")
+            names[attr_name] = key
+            values[attr_value] = value
+
+        response = self._table.update_item(
+            Key={"PK": self.project_pk(project_id), "SK": sk},
+            UpdateExpression="SET " + ", ".join(expression_parts),
+            ExpressionAttributeNames=names,
+            ExpressionAttributeValues=values,
+            ReturnValues="ALL_NEW",
+        )
+        return cast("Dict[str, Any]", response.get("Attributes", {}))
