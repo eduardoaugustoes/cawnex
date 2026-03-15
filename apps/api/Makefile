@@ -159,7 +159,7 @@ build-lambda: ## Build for AWS Lambda deployment
 	@echo "📦 Building for Lambda..."
 	rm -rf dist/
 	mkdir -p dist/
-	cp -r $(SRC_DIR)/* dist/
+	cp -r $(SRC_DIR) dist/
 	cp handler.py dist/
 	$(PIP) install -r requirements.txt -t dist/
 	@echo "✅ Lambda build complete!"

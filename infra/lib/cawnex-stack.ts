@@ -13,6 +13,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 
 interface CawnexStackProps extends cdk.StackProps {
   stage: "dev" | "staging" | "prod";
@@ -230,6 +231,14 @@ export class CawnexStack extends cdk.Stack {
       memoryLimitMiB: 2048, // 2 GB
     });
 
+    // Runtime secrets from AWS Secrets Manager
+    const githubTokenSecret = secretsmanager.Secret.fromSecretNameV2(
+      this, "GithubTokenSecret", `cawnex/${stage}/github-token`
+    );
+    const anthropicKeySecret = secretsmanager.Secret.fromSecretNameV2(
+      this, "AnthropicKeySecret", `cawnex/${stage}/anthropic-api-key`
+    );
+
     workerTaskDef.addContainer("worker", {
       containerName: "murder",
       image: ecs.ContainerImage.fromAsset("..", {
@@ -244,10 +253,13 @@ export class CawnexStack extends cdk.Stack {
         TABLE_NAME: tableName,
         BUCKET_NAME: artifactsBucket.bucketName,
         QUEUE_URL: taskQueue.queueUrl,
-        GITHUB_TOKEN: "",
         ANTHROPIC_MODEL: "claude-sonnet-4-20250514",
         EFS_MOUNT: "/mnt/repos",
-        MEMORY_INJECTION_ENABLED: "false",
+        MEMORY_INJECTION_ENABLED: "true",
+      },
+      secrets: {
+        GITHUB_TOKEN: ecs.Secret.fromSecretsManager(githubTokenSecret),
+        ANTHROPIC_API_KEY: ecs.Secret.fromSecretsManager(anthropicKeySecret),
       },
     });
 
