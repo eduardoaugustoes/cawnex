@@ -240,7 +240,7 @@ jobs:
             python -m pip install --upgrade pip
             pip install -e .[dev]
             make build-lambda || echo "Build completed"
-            cd ../infra
+            cd ../../infra
             npm ci
             npx cdk deploy --all --context stage=dev --require-approval never
             echo "✅ Infrastructure deployment completed" >> $GITHUB_STEP_SUMMARY

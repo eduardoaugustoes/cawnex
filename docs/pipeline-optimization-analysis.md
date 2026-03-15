@@ -15,13 +15,11 @@
    - Wastes GitHub Actions minutes and AWS resources
 
 2. **No Change Detection**
-
    - No logic to detect what actually changed
    - Infrastructure deployed even for app-only changes
    - iOS config updated unnecessarily
 
 3. **Inefficient Resource Usage**
-
    - 20-minute timeout for deployment that might not be needed
    - AWS API calls for unchanged infrastructure
    - CloudFormation stack updates when no changes exist
