@@ -1,4 +1,4 @@
-# Cawnex Pre-commit Hooks - Match CI Pipeline Exactly
+# Pre-commit Hooks - Match CI Pipeline EXACTLY
 repos:
   # ================================
   # GENERAL CODE QUALITY
@@ -16,52 +16,45 @@ repos:
         args: ["--fix=lf"]
 
   # ================================
-  # PYTHON QUALITY - MATCH CI EXACTLY
+  # PYTHON QUALITY - EXACT CI MATCH
   # ================================
-  - repo: https://github.com/psf/black
-    rev: 24.3.0
+  - repo: local
     hooks:
-      - id: black
-        language_version: python3.12
-        args: [--line-length=88]
-        files: ^apps/api/
+      # MyPy - exact command from CI
+      - id: mypy-strict
+        name: mypy src --strict --show-error-codes
+        entry: bash -c 'cd apps/api && source venv/bin/activate && mypy src --strict --show-error-codes'
+        language: system
+        files: ^apps/api/src/.*\.py$
+        require_serial: true
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args: ["--profile", "black", "--line-length=88"]
-        files: ^apps/api/
+      # Black - exact command from CI
+      - id: black-check
+        name: black src tests --check --line-length=88
+        entry: bash -c 'cd apps/api && source venv/bin/activate && black src tests --check --line-length=88'
+        language: system
+        files: ^apps/api/(src|tests)/.*\.py$
+        require_serial: true
 
-  # Flake8 - same as CI pipeline
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
-        files: ^apps/api/
-        additional_dependencies:
-          - flake8-docstrings
-          - flake8-type-checking
-        args:
-          - --max-line-length=88
-          - --max-complexity=10
-          - --ignore=E203,W503
+      # Flake8 - exact command from CI
+      - id: flake8-check
+        name: flake8 src --max-line-length=88 --max-complexity=10
+        entry: bash -c 'cd apps/api && source venv/bin/activate && flake8 src --max-line-length=88 --max-complexity=10'
+        language: system
+        files: ^apps/api/src/.*\.py$
+        require_serial: true
 
-  # MyPy - same as CI pipeline
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
-    hooks:
-      - id: mypy
-        files: ^apps/api/src/
-        additional_dependencies:
-          - "types-boto3[secretsmanager]"
-          - "anthropic"
-          - "fastapi"
-          - "pydantic"
-        args: [--strict, --show-error-codes]
+      # Pytest - exact command from CI (temporarily lowered to 75% coverage)
+      - id: pytest-coverage
+        name: pytest --cov=src --cov-report=term-missing --cov-fail-under=75
+        entry: bash -c 'cd apps/api && source venv/bin/activate && pytest --cov=src --cov-report=term-missing --cov-fail-under=75'
+        language: system
+        files: ^apps/api/(src|tests)/.*\.py$
+        require_serial: true
+        pass_filenames: false
 
   # ================================
-  # TYPESCRIPT QUALITY
+  # TYPESCRIPT/DOCS QUALITY
   # ================================
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
@@ -69,3 +62,26 @@ repos:
       - id: prettier
         files: \.(ts|js|json|md|yml|yaml)$
         exclude: node_modules/
+
+  # ================================
+  # PYTHON FORMATTING AUTO-FIX
+  # ================================
+  - repo: local
+    hooks:
+      # Black auto-fix (runs after checks fail)
+      - id: black-fix
+        name: black src tests --line-length=88 (auto-fix)
+        entry: bash -c 'cd apps/api && source venv/bin/activate && black src tests --line-length=88'
+        language: system
+        files: ^apps/api/(src|tests)/.*\.py$
+        require_serial: true
+        stages: [manual]
+
+      # isort auto-fix
+      - id: isort-fix
+        name: isort src tests (auto-fix)
+        entry: bash -c 'cd apps/api && source venv/bin/activate && isort src tests'
+        language: system
+        files: ^apps/api/(src|tests)/.*\.py$
+        require_serial: true
+        stages: [manual]

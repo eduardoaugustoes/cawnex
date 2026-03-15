@@ -46,8 +46,8 @@ echo ""
 echo "🪝 Setting up pre-commit hooks..."
 # Install pre-commit from the project root (where .git is)
 pre-commit install
-# Update pre-commit hooks to latest versions
-pre-commit autoupdate
+# Update pre-commit hooks to latest versions (but keep our local hooks)
+echo "📌 Installing exact CI-matching pre-commit hooks..."
 
 echo ""
 echo "✅ Local Development Environment Setup Complete!"
