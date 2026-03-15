@@ -1,0 +1,258 @@
+name: 🚀 Main CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "infra/**"
+      - "scripts/**"
+      - ".github/workflows/**"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # ================================
+  # QUALITY GATE - All quality checks in parallel
+  # ================================
+  python-quality:
+    name: 🐍 Python Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v5
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        working-directory: apps/api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: 🔍 MyPy Type Checking
+        working-directory: apps/api
+        run: |
+          echo "::group::MyPy Type Checking"
+          mypy src --strict --show-error-codes --pretty
+          echo "::endgroup::"
+
+      - name: 🎨 Code Formatting Check
+        working-directory: apps/api
+        run: |
+          echo "::group::Black & isort"
+          black src tests --check --line-length=88
+          isort src tests --check-only --profile black
+          echo "::endgroup::"
+
+      - name: 🔍 Linting
+        working-directory: apps/api
+        run: |
+          echo "::group::Flake8 & Bandit"
+          flake8 src --max-line-length=88 --max-complexity=10
+          bandit -r src -f json -o bandit-report.json
+          echo "::endgroup::"
+
+      - name: 🧪 Tests with Coverage
+        working-directory: apps/api
+        run: |
+          echo "::group::Tests & Coverage"
+          pytest --cov=src --cov-report=term-missing --cov-fail-under=80
+          echo "::endgroup::"
+
+  typescript-quality:
+    name: ⚡ TypeScript Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v5
+
+      - name: ⚡ Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 TypeScript Type Checking
+        run: |
+          echo "::group::TypeScript Type Checking"
+          npm run type-check:all
+          echo "::endgroup::"
+
+      - name: 🔍 ESLint
+        run: |
+          echo "::group::ESLint Zero Warnings"
+          npm run quality:typescript
+          echo "::endgroup::"
+
+      - name: 📝 Prettier Formatting Check
+        run: |
+          echo "::group::Prettier Formatting"
+          npm run format:check
+          echo "::endgroup::"
+
+  # iOS quality moved to utilities.yml for manual execution only
+  # Reason: MacOS runners cost 10x more than Ubuntu - not cost-effective for automated quality gate
+
+  # ================================
+  # DEPLOYMENT - Only runs after quality gate passes
+  # ================================
+  deploy-dev:
+    name: 🚀 Deploy to Development
+    runs-on: ubuntu-latest
+    needs: [python-quality, typescript-quality]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: development
+    timeout-minutes: 20
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v5
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: ⚡ Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build API
+        working-directory: apps/api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+          make build-lambda
+
+      - name: ⚙️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: 🏗️ Deploy Infrastructure
+        working-directory: infra
+        run: |
+          echo "::group::CDK Bootstrap & Deploy"
+          npm ci
+          npx cdk bootstrap --context stage=dev
+          npx cdk deploy --all --context stage=dev --require-approval never
+          echo "::endgroup::"
+
+      - name: 📱 Update iOS Configuration
+        run: |
+          chmod +x scripts/update-ios-config.sh
+
+          # Extract outputs from deployed CloudFormation stacks
+          AUTH_STACK_NAME="CawnexAuthStack-dev"
+          MAIN_STACK_NAME="Cawnex-dev"
+
+          USER_POOL_ID=$(aws cloudformation describe-stacks \
+            --stack-name $AUTH_STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
+            --output text)
+
+          IOS_CLIENT_ID=$(aws cloudformation describe-stacks \
+            --stack-name $AUTH_STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`iOSClientId`].OutputValue' \
+            --output text)
+
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name $MAIN_STACK_NAME \
+            --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
+            --output text)
+
+          # Set environment variables for script
+          export CAWNEX_USER_POOL_ID="$USER_POOL_ID"
+          export CAWNEX_IOS_CLIENT_ID="$IOS_CLIENT_ID"
+          export CAWNEX_API_URL="$API_URL"
+
+          echo "Extracted values:"
+          echo "  UserPoolId: $USER_POOL_ID"
+          echo "  iOSClientId: $IOS_CLIENT_ID"
+          echo "  ApiUrl: $API_URL"
+
+          # Run script with extracted values
+          ./scripts/update-ios-config.sh dev --from-env
+
+      - name: 📊 Deployment Summary
+        run: |
+          echo "## 🎉 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Development environment updated**" >> $GITHUB_STEP_SUMMARY
+          echo "- API: Deployed to AWS Lambda" >> $GITHUB_STEP_SUMMARY
+          echo "- Infrastructure: CDK stacks updated" >> $GITHUB_STEP_SUMMARY
+          echo "- iOS: Configuration automatically updated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Test the deployment" >> $GITHUB_STEP_SUMMARY
+          echo "- Build and test iOS app with new config" >> $GITHUB_STEP_SUMMARY
+
+  # ================================
+  # QUALITY GATE SUMMARY
+  # ================================
+  quality-summary:
+    name: 📊 Quality Gate Summary
+    runs-on: ubuntu-latest
+    needs: [python-quality, typescript-quality]
+    if: always()
+    steps:
+      - name: 📊 Generate Report
+        run: |
+          echo "## 🏆 Quality Gate Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.python-quality.result }}" == "success" ]; then
+            echo "| 🐍 Python API | ✅ PASSED | MyPy, Black, Flake8, Bandit, Tests |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🐍 Python API | ❌ FAILED | Check logs for details |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.typescript-quality.result }}" == "success" ]; then
+            echo "| ⚡ TypeScript | ✅ PASSED | TSC, ESLint, Prettier |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| ⚡ TypeScript | ❌ FAILED | Check logs for details |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💰 **Cost Optimization:** iOS quality moved to manual utilities workflow" >> $GITHUB_STEP_SUMMARY
+          echo "📱 Run iOS checks manually when needed (macOS runners cost 10x more)" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🚨 Fail if Quality Gate Failed
+        if: needs.python-quality.result != 'success' || needs.typescript-quality.result != 'success'
+        run: |
+          echo "::error::🚨 QUALITY GATE FAILED"
+          echo "::error::❌ Fix quality issues before merging"
+          exit 1
+
+      - name: ✅ Quality Gate Success
+        if: needs.python-quality.result == 'success' && needs.typescript-quality.result == 'success'
+        run: |
+          echo "::notice::🏆 CORE QUALITY CHECKS PASSED!"
+          echo "::notice::✨ Backend & Infrastructure ready for deployment"
+          echo "::notice::💰 Cost-optimized: iOS checks available in utilities workflow"
