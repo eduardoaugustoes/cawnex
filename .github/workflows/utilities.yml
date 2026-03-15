@@ -50,7 +50,7 @@ jobs:
         env:
           STAGE: ${{ github.event.inputs.stage }}
           GH_PAT_TOKEN: ${{ secrets.WORKER_GITHUB_TOKEN }}
-          ANTHROPIC_KEY: ${{ secrets.WORKER_ANTHROPIC_API_KEY }}
+          ANTHROPIC_TOKEN: ${{ secrets.WORKER_ANTHROPIC_AUTH_TOKEN }}
         run: |
           echo "🔐 Setting up secrets for stage: $STAGE"
 
@@ -71,22 +71,22 @@ jobs:
 
           echo "✅ cawnex/${STAGE}/github-token created/updated"
 
-          # Anthropic API key for Worker Claude calls
-          if [ -z "$ANTHROPIC_KEY" ]; then
-            echo "::error::WORKER_ANTHROPIC_API_KEY secret is not set in GitHub Secrets"
+          # Anthropic OAuth token for Worker Claude calls
+          if [ -z "$ANTHROPIC_TOKEN" ]; then
+            echo "::error::WORKER_ANTHROPIC_AUTH_TOKEN secret is not set in GitHub Secrets"
             exit 1
           fi
 
           aws secretsmanager create-secret \
-            --name "cawnex/${STAGE}/anthropic-api-key" \
-            --secret-string "$ANTHROPIC_KEY" \
-            --description "Anthropic API key for Worker Claude calls" \
+            --name "cawnex/${STAGE}/anthropic-auth-token" \
+            --secret-string "$ANTHROPIC_TOKEN" \
+            --description "Anthropic OAuth token for Worker Claude calls" \
             2>/dev/null || \
           aws secretsmanager update-secret \
-            --secret-id "cawnex/${STAGE}/anthropic-api-key" \
-            --secret-string "$ANTHROPIC_KEY"
+            --secret-id "cawnex/${STAGE}/anthropic-auth-token" \
+            --secret-string "$ANTHROPIC_TOKEN"
 
-          echo "✅ cawnex/${STAGE}/anthropic-api-key created/updated"
+          echo "✅ cawnex/${STAGE}/anthropic-auth-token created/updated"
 
       - name: 📊 Summary
         env:
@@ -99,9 +99,9 @@ jobs:
           echo "| Secret | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| \`cawnex/$STAGE/github-token\` | ✅ Created/Updated |" >> $GITHUB_STEP_SUMMARY
-          echo "| \`cawnex/$STAGE/anthropic-api-key\` | ✅ Created/Updated |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`cawnex/$STAGE/anthropic-auth-token\` | ✅ Created/Updated |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Source:** GitHub Secrets \`WORKER_GITHUB_TOKEN\` and \`WORKER_ANTHROPIC_API_KEY\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** GitHub Secrets \`WORKER_GITHUB_TOKEN\` and \`WORKER_ANTHROPIC_AUTH_TOKEN\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "🔗 **Next:** Run \`deploy-dev\` via the main pipeline or utilities workflow" >> $GITHUB_STEP_SUMMARY
 

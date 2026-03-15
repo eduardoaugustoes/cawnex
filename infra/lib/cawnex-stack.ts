@@ -235,8 +235,8 @@ export class CawnexStack extends cdk.Stack {
     const githubTokenSecret = secretsmanager.Secret.fromSecretNameV2(
       this, "GithubTokenSecret", `cawnex/${stage}/github-token`
     );
-    const anthropicKeySecret = secretsmanager.Secret.fromSecretNameV2(
-      this, "AnthropicKeySecret", `cawnex/${stage}/anthropic-api-key`
+    const anthropicAuthSecret = secretsmanager.Secret.fromSecretNameV2(
+      this, "AnthropicAuthSecret", `cawnex/${stage}/anthropic-auth-token`
     );
 
     workerTaskDef.addContainer("worker", {
@@ -259,7 +259,7 @@ export class CawnexStack extends cdk.Stack {
       },
       secrets: {
         GITHUB_TOKEN: ecs.Secret.fromSecretsManager(githubTokenSecret),
-        ANTHROPIC_API_KEY: ecs.Secret.fromSecretsManager(anthropicKeySecret),
+        ANTHROPIC_AUTH_TOKEN: ecs.Secret.fromSecretsManager(anthropicAuthSecret),
       },
     });
 
