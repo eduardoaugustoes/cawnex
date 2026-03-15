@@ -44,8 +44,10 @@ npm ci
 
 echo ""
 echo "🪝 Setting up pre-commit hooks..."
-cd apps/api
+# Install pre-commit from the project root (where .git is)
 pre-commit install
+# Update pre-commit hooks to latest versions
+pre-commit autoupdate
 
 echo ""
 echo "✅ Local Development Environment Setup Complete!"

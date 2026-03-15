@@ -4,10 +4,10 @@ import os
 import time
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import anthropic
-from anthropic.types import MessageParam
+from anthropic.types import MessageParam  # noqa: TC002
 
 # Pricing per 1M tokens (USD)
 PRICING: Dict[str, Dict[str, float]] = {

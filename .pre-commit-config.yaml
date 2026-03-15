@@ -1,6 +1,4 @@
-# Cawnex Simplified Pre-commit Hooks
-# Core quality checks only
-
+# Cawnex Pre-commit Hooks - Match CI Pipeline Exactly
 repos:
   # ================================
   # GENERAL CODE QUALITY
@@ -8,9 +6,8 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      # File integrity checks
       - id: check-added-large-files
-        args: ["--maxkb=1024"] # Max 1MB files
+        args: ["--maxkb=1024"]
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: trailing-whitespace
@@ -19,7 +16,7 @@ repos:
         args: ["--fix=lf"]
 
   # ================================
-  # PYTHON QUALITY
+  # PYTHON QUALITY - MATCH CI EXACTLY
   # ================================
   - repo: https://github.com/psf/black
     rev: 24.3.0
@@ -35,6 +32,33 @@ repos:
       - id: isort
         args: ["--profile", "black", "--line-length=88"]
         files: ^apps/api/
+
+  # Flake8 - same as CI pipeline
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        files: ^apps/api/
+        additional_dependencies:
+          - flake8-docstrings
+          - flake8-type-checking
+        args:
+          - --max-line-length=88
+          - --max-complexity=10
+          - --ignore=E203,W503
+
+  # MyPy - same as CI pipeline
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        files: ^apps/api/src/
+        additional_dependencies:
+          - "types-boto3[secretsmanager]"
+          - "anthropic"
+          - "fastapi"
+          - "pydantic"
+        args: [--strict, --show-error-codes]
 
   # ================================
   # TYPESCRIPT QUALITY

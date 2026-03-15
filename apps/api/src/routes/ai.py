@@ -10,11 +10,10 @@ No conversation persistence — the app manages that.
 """
 
 from datetime import datetime, timezone
-from decimal import Decimal
 from typing import Annotated, Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from src.auth.dependencies import get_tenant
 from src.auth.tenant import TenantContext
@@ -96,8 +95,8 @@ def _track_cost(tenant: TenantContext, project_id: str, result: ChatResult) -> N
         table.update_item(
             Key={"PK": pk, "SK": "S#"},
             UpdateExpression=(
-                "ADD ai_tokens_in :tin, ai_tokens_out :tout, ai_cost_usd :cost, ai_call_count :one "
-                "SET updated_at = :now"
+                "ADD ai_tokens_in :tin, ai_tokens_out :tout, ai_cost_usd :cost, "
+                "ai_call_count :one SET updated_at = :now"
             ),
             ExpressionAttributeValues={
                 ":tin": result.tokens_in,
