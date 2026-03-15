@@ -1,7 +1,9 @@
-"""Tests for events — EVT record builders owned by Murder."""
+"""Tests for events — EVT record builders owned by Murder.
 
-import pytest
+All money values are integer microdollars (1 USD = 1_000_000).
+"""
 
+from murder.config import MICROS_PER_DOLLAR
 from murder.enums import CrowType, EventColor, EventType
 from murder.events import (
     build_budget_exceeded_event,
@@ -58,10 +60,11 @@ class TestWaveEvents:
             tenant="acme",
             project="cawnex",
             wave_id="w001",
-            credits_spent=18.50,
+            credits_spent=18_500_000,  # $18.50
         )
         assert event.event_type == EventType.WAVE_DELIVERED.value
         assert event.color == EventColor.GREEN.value
+        assert "$18.50" in event.message
 
 
 class TestBudgetEvents:
@@ -70,19 +73,21 @@ class TestBudgetEvents:
             tenant="acme",
             project="cawnex",
             wave_id="w001",
-            spent=16.0,
-            limit=20.0,
+            spent=16 * MICROS_PER_DOLLAR,
+            limit=20 * MICROS_PER_DOLLAR,
         )
         assert event.event_type == EventType.BUDGET_WARNING.value
         assert event.color == EventColor.YELLOW.value
+        assert "$16.00" in event.message
 
     def test_budget_exceeded(self) -> None:
         event = build_budget_exceeded_event(
             tenant="acme",
             project="cawnex",
             wave_id="w001",
-            spent=21.0,
-            limit=20.0,
+            spent=21 * MICROS_PER_DOLLAR,
+            limit=20 * MICROS_PER_DOLLAR,
         )
         assert event.event_type == EventType.BUDGET_EXCEEDED.value
         assert event.color == EventColor.RED.value
+        assert "$21.00" in event.message

@@ -1,4 +1,7 @@
-"""Snapshot dataclasses for the Murder bounded context."""
+"""Snapshot dataclasses for the Murder bounded context.
+
+All money fields are integer microdollars (1 USD = 1_000_000).
+"""
 
 from __future__ import annotations
 
@@ -6,6 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from murder.config import MICROS_PER_DOLLAR, WAVE_BUDGET_LIMIT
 from murder.enums import (
     CrowStatus,
     CrowType,
@@ -20,12 +24,12 @@ from murder.keys import build_pk, build_sk
 class Cost:
     tokens_in: int
     tokens_out: int
-    credits: float
+    credits: int
     duration_ms: int
 
     @classmethod
     def zero(cls) -> Cost:
-        return cls(tokens_in=0, tokens_out=0, credits=0.0, duration_ms=0)
+        return cls(tokens_in=0, tokens_out=0, credits=0, duration_ms=0)
 
     def __add__(self, other: Cost) -> Cost:
         return Cost(
@@ -35,7 +39,7 @@ class Cost:
             duration_ms=self.duration_ms + other.duration_ms,
         )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, int]:
         return {
             "tokens_in": self.tokens_in,
             "tokens_out": self.tokens_out,
@@ -48,9 +52,13 @@ class Cost:
         return cls(
             tokens_in=int(d["tokens_in"]),
             tokens_out=int(d["tokens_out"]),
-            credits=float(d["credits"]),
+            credits=int(d["credits"]),
             duration_ms=int(d["duration_ms"]),
         )
+
+    def to_dollars(self) -> float:
+        """Convert credits (microdollars) to dollars for display."""
+        return self.credits / MICROS_PER_DOLLAR
 
 
 @dataclass
@@ -80,11 +88,11 @@ class Progress:
 
 @dataclass
 class WaveBudget:
-    spent: float
-    limit: float
+    spent: int
+    limit: int
 
     @property
-    def remaining(self) -> float:
+    def remaining(self) -> int:
         return self.limit - self.spent
 
     @property
@@ -93,14 +101,22 @@ class WaveBudget:
 
     @property
     def is_warning(self) -> bool:
-        return self.spent >= self.limit * 0.80
+        return self.spent >= self.limit * 80 // 100
 
-    def to_dict(self) -> dict[str, float]:
+    def to_dict(self) -> dict[str, int]:
         return {"spent": self.spent, "limit": self.limit}
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> WaveBudget:
-        return cls(spent=float(d["spent"]), limit=float(d["limit"]))
+        return cls(spent=int(d["spent"]), limit=int(d["limit"]))
+
+    def spent_dollars(self) -> float:
+        """Convert spent to dollars for display."""
+        return self.spent / MICROS_PER_DOLLAR
+
+    def limit_dollars(self) -> float:
+        """Convert limit to dollars for display."""
+        return self.limit / MICROS_PER_DOLLAR
 
 
 def _now_iso() -> str:
@@ -120,7 +136,7 @@ class WaveSnapshot:
         )
     )
     budget: WaveBudget = field(
-        default_factory=lambda: WaveBudget(spent=0.0, limit=20.0)
+        default_factory=lambda: WaveBudget(spent=0, limit=WAVE_BUDGET_LIMIT)
     )
     created_at: str = field(default_factory=_now_iso)
 
@@ -171,7 +187,7 @@ class WaveSnapshot:
             budget=(
                 WaveBudget.from_dict(item["budget"])
                 if "budget" in item
-                else WaveBudget(spent=0.0, limit=20.0)
+                else WaveBudget(spent=0, limit=WAVE_BUDGET_LIMIT)
             ),
             created_at=item.get("created_at", ""),
         )
@@ -241,7 +257,7 @@ class CrowSnapshot:
     instructions: str
     repo: str
     branch: str
-    budget_remaining: float
+    budget_remaining: int
     behavior_state: str = "assigned"
     retry_count: int = 0
     outcome: dict[str, Any] | None = None

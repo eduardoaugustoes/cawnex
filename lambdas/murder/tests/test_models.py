@@ -1,9 +1,13 @@
-"""Tests for models — dataclasses, serialization, key generation."""
+"""Tests for models — dataclasses, serialization, key generation.
+
+All money values are integer microdollars (1 USD = 1_000_000).
+"""
 
 from datetime import datetime, timezone
 
 import pytest
 
+from murder.config import MICROS_PER_DOLLAR, WAVE_BUDGET_LIMIT
 from murder.enums import (
     CrowStatus,
     CrowType,
@@ -48,35 +52,35 @@ class TestKeyBuilders:
 
 class TestCost:
     def test_creation(self) -> None:
-        cost = Cost(tokens_in=5000, tokens_out=2000, credits=0.12, duration_ms=30000)
+        cost = Cost(tokens_in=5000, tokens_out=2000, credits=120_000, duration_ms=30000)
         assert cost.tokens_in == 5000
         assert cost.tokens_out == 2000
-        assert cost.credits == 0.12
+        assert cost.credits == 120_000  # $0.12
         assert cost.duration_ms == 30000
 
     def test_zero_cost(self) -> None:
         cost = Cost.zero()
         assert cost.tokens_in == 0
         assert cost.tokens_out == 0
-        assert cost.credits == 0.0
+        assert cost.credits == 0
         assert cost.duration_ms == 0
 
     def test_add(self) -> None:
-        a = Cost(tokens_in=1000, tokens_out=500, credits=0.05, duration_ms=10000)
-        b = Cost(tokens_in=2000, tokens_out=1000, credits=0.10, duration_ms=20000)
+        a = Cost(tokens_in=1000, tokens_out=500, credits=50_000, duration_ms=10000)
+        b = Cost(tokens_in=2000, tokens_out=1000, credits=100_000, duration_ms=20000)
         result = a + b
         assert result.tokens_in == 3000
         assert result.tokens_out == 1500
-        assert result.credits == pytest.approx(0.15)
+        assert result.credits == 150_000
         assert result.duration_ms == 30000
 
     def test_to_dict(self) -> None:
-        cost = Cost(tokens_in=5000, tokens_out=2000, credits=0.12, duration_ms=30000)
+        cost = Cost(tokens_in=5000, tokens_out=2000, credits=120_000, duration_ms=30000)
         d = cost.to_dict()
         assert d == {
             "tokens_in": 5000,
             "tokens_out": 2000,
-            "credits": 0.12,
+            "credits": 120_000,
             "duration_ms": 30000,
         }
 
@@ -84,12 +88,16 @@ class TestCost:
         d = {
             "tokens_in": 5000,
             "tokens_out": 2000,
-            "credits": 0.12,
+            "credits": 120_000,
             "duration_ms": 30000,
         }
         cost = Cost.from_dict(d)
         assert cost.tokens_in == 5000
-        assert cost.credits == 0.12
+        assert cost.credits == 120_000
+
+    def test_to_dollars(self) -> None:
+        cost = Cost(tokens_in=0, tokens_out=0, credits=3_500_000, duration_ms=0)
+        assert cost.to_dollars() == 3.5
 
 
 class TestProgress:
@@ -106,21 +114,26 @@ class TestProgress:
 
 class TestWaveBudget:
     def test_creation(self) -> None:
-        budget = WaveBudget(spent=18.50, limit=50.00)
-        assert budget.spent == 18.50
-        assert budget.limit == 50.00
+        budget = WaveBudget(spent=18_500_000, limit=50 * MICROS_PER_DOLLAR)
+        assert budget.spent == 18_500_000
+        assert budget.limit == 50_000_000
 
     def test_remaining(self) -> None:
-        budget = WaveBudget(spent=18.50, limit=50.00)
-        assert budget.remaining == pytest.approx(31.50)
+        budget = WaveBudget(spent=18_500_000, limit=50_000_000)
+        assert budget.remaining == 31_500_000
 
     def test_is_exceeded(self) -> None:
-        assert WaveBudget(spent=51.0, limit=50.0).is_exceeded
-        assert not WaveBudget(spent=49.0, limit=50.0).is_exceeded
+        assert WaveBudget(spent=51_000_000, limit=50_000_000).is_exceeded
+        assert not WaveBudget(spent=49_000_000, limit=50_000_000).is_exceeded
 
     def test_is_warning(self) -> None:
-        assert WaveBudget(spent=41.0, limit=50.0).is_warning
-        assert not WaveBudget(spent=39.0, limit=50.0).is_warning
+        assert WaveBudget(spent=41_000_000, limit=50_000_000).is_warning
+        assert not WaveBudget(spent=39_000_000, limit=50_000_000).is_warning
+
+    def test_display_dollars(self) -> None:
+        budget = WaveBudget(spent=18_500_000, limit=50_000_000)
+        assert budget.spent_dollars() == 18.5
+        assert budget.limit_dollars() == 50.0
 
 
 class TestWaveSnapshot:
@@ -152,6 +165,8 @@ class TestWaveSnapshot:
         assert item["status"] == "planning"
         assert item["human_directive"] == "Ship onboarding"
         assert item["entityType"] == "Snapshot"
+        assert item["budget"]["spent"] == 0
+        assert item["budget"]["limit"] == WAVE_BUDGET_LIMIT
 
     def test_from_item(self) -> None:
         item = {
@@ -167,7 +182,7 @@ class TestWaveSnapshot:
                 "tasks_done": 0,
                 "tasks_total": 0,
             },
-            "budget": {"spent": 0, "limit": 20.0},
+            "budget": {"spent": 0, "limit": WAVE_BUDGET_LIMIT},
             "created_at": "2026-03-14T10:00:00+00:00",
         }
         wave = WaveSnapshot.from_item(item)
@@ -224,7 +239,7 @@ class TestCrowSnapshot:
             instructions="Implement OAuth middleware",
             repo="owner/repo",
             branch="cawnex/w001-auth",
-            budget_remaining=5.0,
+            budget_remaining=5_000_000,  # $5
         )
         assert crow.pk == "T#acme#P#cawnex"
         assert crow.sk == "S#w001#mauth#cr_impl"
@@ -243,13 +258,13 @@ class TestCrowSnapshot:
             instructions="Implement OAuth middleware",
             repo="owner/repo",
             branch="cawnex/w001-auth",
-            budget_remaining=5.0,
+            budget_remaining=5_000_000,
         )
         item = crow.to_item()
         assert item["status"] == "pending"
         assert item["crow_type"] == "implementer"
         assert item["instructions"] == "Implement OAuth middleware"
-        assert item["budget_remaining"] == 5.0
+        assert item["budget_remaining"] == 5_000_000
 
     def test_gsi1_keys(self) -> None:
         crow = CrowSnapshot(
@@ -263,7 +278,7 @@ class TestCrowSnapshot:
             instructions="Implement OAuth middleware",
             repo="owner/repo",
             branch="cawnex/w001-auth",
-            budget_remaining=5.0,
+            budget_remaining=5_000_000,
         )
         item = crow.to_item()
         assert item["GSI1PK"] == "DISPATCH#pending"
@@ -281,7 +296,7 @@ class TestCrowSnapshot:
             instructions="Implement OAuth middleware",
             repo="owner/repo",
             branch="cawnex/w001-auth",
-            budget_remaining=5.0,
+            budget_remaining=5_000_000,
         )
         item = crow.to_item()
         assert "GSI1PK" not in item

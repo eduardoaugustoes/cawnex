@@ -10,14 +10,20 @@ TABLE_NAME: str = os.environ.get("BLACKBOARD_TABLE", "cawnex")
 # Claude / Anthropic
 ANTHROPIC_MODEL: str = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
 
-# Budget limits (USD)
-WAVE_BUDGET_LIMIT: float = float(os.environ.get("WAVE_BUDGET_LIMIT", "20.0"))
-MVI_BUDGET_LIMIT: float = float(os.environ.get("MVI_BUDGET_LIMIT", "5.0"))
-CROW_BUDGET_LIMIT: float = float(os.environ.get("CROW_BUDGET_LIMIT", "0.50"))
+# Money is stored as integer microdollars (1 USD = 1_000_000 microdollars).
+# This eliminates floating-point rounding and DynamoDB's Decimal requirement.
+MICROS_PER_DOLLAR: int = 1_000_000
 
-# Pricing (Sonnet: $3/M input, $15/M output)
-PRICE_PER_INPUT_TOKEN: float = 3.0 / 1_000_000
-PRICE_PER_OUTPUT_TOKEN: float = 15.0 / 1_000_000
+# Budget limits (microdollars)
+WAVE_BUDGET_LIMIT: int = 20 * MICROS_PER_DOLLAR   # $20
+MVI_BUDGET_LIMIT: int = 5 * MICROS_PER_DOLLAR      # $5
+CROW_BUDGET_LIMIT: int = 500_000                    # $0.50
 
-# Budget warning threshold
-BUDGET_WARNING_THRESHOLD: float = 0.80
+# Pricing (Sonnet: $3/M input, $15/M output) — microdollars per token
+# $3 / 1M tokens = 3 microdollars per token
+PRICE_PER_INPUT_TOKEN: int = 3
+# $15 / 1M tokens = 15 microdollars per token
+PRICE_PER_OUTPUT_TOKEN: int = 15
+
+# Budget warning threshold (percentage as integer, 80 = 80%)
+BUDGET_WARNING_PCT: int = 80

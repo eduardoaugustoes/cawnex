@@ -65,6 +65,25 @@ class Blackboard:
         except self._table.meta.client.exceptions.ConditionalCheckFailedException:
             return False
 
+    def increment_nested(
+        self,
+        pk: str,
+        sk: str,
+        parent_key: str,
+        child_key: str,
+        amount: int,
+    ) -> None:
+        """Atomically increment a nested map field: item[parent_key][child_key] += amount."""
+        self._table.update_item(
+            Key={"PK": pk, "SK": sk},
+            UpdateExpression="SET #parent.#child = #parent.#child + :amt",
+            ExpressionAttributeNames={
+                "#parent": parent_key,
+                "#child": child_key,
+            },
+            ExpressionAttributeValues={":amt": amount},
+        )
+
     def update(
         self,
         pk: str,

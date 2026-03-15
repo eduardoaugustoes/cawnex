@@ -105,6 +105,27 @@ class TestBlackboardUpdate:
         assert item["n"] == 5
 
 
+class TestBlackboardIncrementNested:
+    def test_increment_nested_field(self, blackboard: Blackboard) -> None:
+        blackboard.write_item(
+            {"PK": "T#a#P#b", "SK": "S#w01", "budget": {"spent": 0, "limit": 20000000}}
+        )
+        blackboard.increment_nested("T#a#P#b", "S#w01", "budget", "spent", 5000)
+        item = blackboard.read("T#a#P#b", "S#w01")
+        assert item is not None
+        assert int(item["budget"]["spent"]) == 5000
+
+    def test_increment_nested_accumulates(self, blackboard: Blackboard) -> None:
+        blackboard.write_item(
+            {"PK": "T#a#P#b", "SK": "S#w02", "budget": {"spent": 1000, "limit": 20000000}}
+        )
+        blackboard.increment_nested("T#a#P#b", "S#w02", "budget", "spent", 500)
+        blackboard.increment_nested("T#a#P#b", "S#w02", "budget", "spent", 300)
+        item = blackboard.read("T#a#P#b", "S#w02")
+        assert item is not None
+        assert int(item["budget"]["spent"]) == 1800
+
+
 class TestDeserializeStreamRecord:
     def test_deserialize_strings_and_numbers(self) -> None:
         stream_item = {

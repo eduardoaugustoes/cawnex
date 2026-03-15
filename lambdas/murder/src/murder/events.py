@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from murder.config import MICROS_PER_DOLLAR
 from murder.enums import CrowType, EventColor, EventType
 from murder.models import EventRecord
+
+
+def _to_dollars(micros: int) -> float:
+    return micros / MICROS_PER_DOLLAR
 
 
 def build_crow_assigned_event(
@@ -62,14 +67,14 @@ def build_wave_delivered_event(
     tenant: str,
     project: str,
     wave_id: str,
-    credits_spent: float,
+    credits_spent: int,
 ) -> EventRecord:
     return EventRecord(
         tenant=tenant,
         project=project,
         wave_id=wave_id,
         event_type=EventType.WAVE_DELIVERED.value,
-        message=f"Wave delivered — ${credits_spent:.2f} spent",
+        message=f"Wave delivered — ${_to_dollars(credits_spent):.2f} spent",
         color=EventColor.GREEN.value,
         extra={"credits_spent": credits_spent},
     )
@@ -79,16 +84,16 @@ def build_budget_warning_event(
     tenant: str,
     project: str,
     wave_id: str,
-    spent: float,
-    limit: float,
+    spent: int,
+    limit: int,
 ) -> EventRecord:
-    pct = int((spent / limit) * 100)
+    pct = spent * 100 // limit
     return EventRecord(
         tenant=tenant,
         project=project,
         wave_id=wave_id,
         event_type=EventType.BUDGET_WARNING.value,
-        message=f"Budget at {pct}% — ${spent:.2f} of ${limit:.2f}",
+        message=f"Budget at {pct}% — ${_to_dollars(spent):.2f} of ${_to_dollars(limit):.2f}",
         color=EventColor.YELLOW.value,
         extra={"spent": spent, "limit": limit, "pct": pct},
     )
@@ -98,15 +103,15 @@ def build_budget_exceeded_event(
     tenant: str,
     project: str,
     wave_id: str,
-    spent: float,
-    limit: float,
+    spent: int,
+    limit: int,
 ) -> EventRecord:
     return EventRecord(
         tenant=tenant,
         project=project,
         wave_id=wave_id,
         event_type=EventType.BUDGET_EXCEEDED.value,
-        message=f"Budget exceeded — ${spent:.2f} of ${limit:.2f}",
+        message=f"Budget exceeded — ${_to_dollars(spent):.2f} of ${_to_dollars(limit):.2f}",
         color=EventColor.RED.value,
         extra={"spent": spent, "limit": limit},
     )
