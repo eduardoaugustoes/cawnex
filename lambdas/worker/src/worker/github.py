@@ -21,7 +21,7 @@ def github_api(
     req = urllib.request.Request(url, data=data, method=method)
     req.add_header("Authorization", f"token {token or GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
-    req.add_header("User-Agent", "cawnex-orchestration")
+    req.add_header("User-Agent", "cawnex-worker")
     if data:
         req.add_header("Content-Type", "application/json")
     with urllib.request.urlopen(req) as resp:

@@ -1,4 +1,7 @@
-"""Snapshot dataclasses for the Worker bounded context."""
+"""Snapshot dataclasses for the Worker bounded context.
+
+All money fields are integer microdollars (1 USD = 1_000_000).
+"""
 
 from __future__ import annotations
 
@@ -6,6 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from worker.config import MICROS_PER_DOLLAR
 from worker.enums import CrowStatus, CrowType
 from worker.keys import build_pk, build_sk
 
@@ -18,12 +22,12 @@ def _now_iso() -> str:
 class Cost:
     tokens_in: int
     tokens_out: int
-    credits: float
+    credits: int
     duration_ms: int
 
     @classmethod
     def zero(cls) -> Cost:
-        return cls(tokens_in=0, tokens_out=0, credits=0.0, duration_ms=0)
+        return cls(tokens_in=0, tokens_out=0, credits=0, duration_ms=0)
 
     def __add__(self, other: Cost) -> Cost:
         return Cost(
@@ -33,7 +37,7 @@ class Cost:
             duration_ms=self.duration_ms + other.duration_ms,
         )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, int]:
         return {
             "tokens_in": self.tokens_in,
             "tokens_out": self.tokens_out,
@@ -46,9 +50,13 @@ class Cost:
         return cls(
             tokens_in=int(d["tokens_in"]),
             tokens_out=int(d["tokens_out"]),
-            credits=float(d["credits"]),
+            credits=int(d["credits"]),
             duration_ms=int(d["duration_ms"]),
         )
+
+    def to_dollars(self) -> float:
+        """Convert credits (microdollars) to dollars for display."""
+        return self.credits / MICROS_PER_DOLLAR
 
 
 @dataclass
@@ -63,7 +71,7 @@ class CrowSnapshot:
     instructions: str
     repo: str
     branch: str
-    budget_remaining: float
+    budget_remaining: int
     behavior_state: str = "assigned"
     retry_count: int = 0
     outcome: dict[str, Any] | None = None
