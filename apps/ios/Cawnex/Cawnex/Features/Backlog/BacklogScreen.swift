@@ -21,11 +21,39 @@ struct BacklogScreen: View {
                     }
                 }
 
-                if case .error(let message) = viewModel.state {
+                switch viewModel.state {
+                case .loading:
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .tint(CawnexColors.primaryLight)
+                        Spacer()
+                    }
+                    .padding(.vertical, CawnexSpacing.xxl)
+
+                case .loaded(let milestones) where milestones.isEmpty:
+                    VStack(spacing: CawnexSpacing.md) {
+                        Image(systemName: "flag.2.crossed")
+                            .font(.system(size: 36))
+                            .foregroundStyle(CawnexColors.mutedForeground)
+                        Text("No milestones yet")
+                            .font(CawnexTypography.body)
+                            .foregroundStyle(CawnexColors.mutedForeground)
+                        Text("Tap + Milestone to plan your first one with AI")
+                            .font(CawnexTypography.caption)
+                            .foregroundStyle(CawnexColors.muted)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, CawnexSpacing.xxl)
+
+                case .error(let message):
                     Text(message)
                         .font(CawnexTypography.caption)
                         .foregroundStyle(CawnexColors.destructive)
                         .padding(.horizontal)
+
+                default:
+                    EmptyView()
                 }
 
                 ForEach(viewModel.milestones) { milestone in
