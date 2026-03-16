@@ -100,9 +100,10 @@ struct ContentView: View {
     /// Whichever finishes last triggers the transition — user never sees a spinner.
     private func transitionIfReady() {
         guard splashDone, let service = authService else { return }
-        // Create API client for authenticated requests
         apiClient = APIClient(authService: service)
-        router.splashFinished(authService: service)
+        router.splashFinished(authService: service) { session in
+            store.setUser(from: session)
+        }
     }
 }
 

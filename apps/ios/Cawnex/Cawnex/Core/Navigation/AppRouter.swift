@@ -13,11 +13,12 @@ enum AppRoute: Equatable {
 final class AppRouter {
     var currentRoute: AppRoute = .splash
 
-    func splashFinished(authService: any AuthService) {
+    func splashFinished(authService: any AuthService, onSessionRestored: ((AuthSession) -> Void)? = nil) {
         currentRoute = .checking
         Task {
-            if await authService.currentSession() != nil {
+            if let session = await authService.currentSession() {
                 await MainActor.run {
+                    onSessionRestored?(session)
                     currentRoute = .main
                 }
             } else {
