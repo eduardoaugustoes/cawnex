@@ -194,6 +194,7 @@ struct MainTabView: View {
                 viewModel: GoalDetailViewModel(
                     goalService: services.makeGoalService()
                 ),
+                apiClient: apiClient,
                 onBack: { tabRouter.projectPath.removeLast() },
                 onMVITap: { mviId in tabRouter.pushMVI(projectId, mviId: mviId) }
             )

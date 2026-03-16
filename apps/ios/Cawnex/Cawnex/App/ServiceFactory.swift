@@ -42,7 +42,10 @@ struct ServiceFactory {
     }
 
     func makeGoalService() -> any GoalService {
-        InMemoryGoalService(store: store)
+        if let apiClient {
+            return APIGoalService(client: apiClient, store: store)
+        }
+        return InMemoryGoalService(store: store)
     }
 
     func makeMVIService() -> any MVIService {

@@ -4,8 +4,11 @@ struct GoalDetailScreen: View {
     let projectId: String
     let goalId: String
     @State var viewModel: GoalDetailViewModel
+    var apiClient: APIClient?
     var onBack: () -> Void = {}
     var onMVITap: (String) -> Void = { _ in }
+
+    @State private var isShowingMVIPlanning = false
 
     var body: some View {
         ScrollView {
@@ -36,6 +39,25 @@ struct GoalDetailScreen: View {
         .background(CawnexColors.background)
         .navigationBarHidden(true)
         .task { await viewModel.load(projectId: projectId, goalId: goalId) }
+        .fullScreenCover(isPresented: $isShowingMVIPlanning) {
+            if let apiClient {
+                MVIPlanningScreen(
+                    projectId: projectId,
+                    goalId: goalId,
+                    goalName: viewModel.detail?.goal.name ?? "Goal",
+                    planningService: APIMVIPlanningService(
+                        client: apiClient,
+                        projectId: projectId,
+                        goalId: goalId
+                    ),
+                    onCancel: { isShowingMVIPlanning = false },
+                    onComplete: {
+                        isShowingMVIPlanning = false
+                        Task { await viewModel.load(projectId: projectId, goalId: goalId) }
+                    }
+                )
+            }
+        }
     }
 
     // MARK: - Loading
@@ -132,16 +154,53 @@ struct GoalDetailScreen: View {
 
     private func mviSection(detail: GoalDetail) -> some View {
         VStack(alignment: .leading, spacing: CawnexSpacing.md) {
-            Text("MVIs")
-                .font(CawnexTypography.sectionTitle)
-                .foregroundStyle(CawnexColors.cardForeground)
+            HStack {
+                Text("MVIs")
+                    .font(CawnexTypography.sectionTitle)
+                    .foregroundStyle(CawnexColors.cardForeground)
 
-            ForEach(detail.mvis) { mvi in
-                MVICard(
-                    mvi: mvi,
-                    onTap: { onMVITap(mvi.id) },
-                    onStatusChange: { _ in }
-                )
+                Spacer()
+
+                Button {
+                    isShowingMVIPlanning = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("MVI")
+                            .font(CawnexTypography.label)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(CawnexColors.primaryLight)
+                    .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
+                }
+                .buttonStyle(.plain)
+            }
+
+            if detail.mvis.isEmpty {
+                VStack(spacing: CawnexSpacing.md) {
+                    Image(systemName: "cube.transparent")
+                        .font(.system(size: 32))
+                        .foregroundStyle(CawnexColors.mutedForeground)
+                    Text("No MVIs yet")
+                        .font(CawnexTypography.body)
+                        .foregroundStyle(CawnexColors.mutedForeground)
+                    Text("Tap + MVI to plan deliverables with AI")
+                        .font(CawnexTypography.caption)
+                        .foregroundStyle(CawnexColors.muted)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, CawnexSpacing.xl)
+            } else {
+                ForEach(detail.mvis) { mvi in
+                    MVICard(
+                        mvi: mvi,
+                        onTap: { onMVITap(mvi.id) },
+                        onStatusChange: { _ in }
+                    )
+                }
             }
         }
     }
