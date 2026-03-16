@@ -7,6 +7,7 @@ final class DocumentViewModel {
     var state: ViewState<DocumentDetail> = .idle
     var messageText: String = ""
     var isSending: Bool = false
+    var isComplete: Bool = false
 
     var detail: DocumentDetail? {
         if case .loaded(let d) = state { return d }
@@ -31,6 +32,7 @@ final class DocumentViewModel {
         do {
             let loaded = try await documentService.getDocument(projectId: projectId, type: documentType)
             state = .loaded(loaded)
+            checkCompletion()
         } catch {
             state = .error(error.localizedDescription)
         }
@@ -54,16 +56,31 @@ final class DocumentViewModel {
 
         do {
             let response = try await documentService.sendMessage(projectId: projectId, type: documentType, content: trimmed)
+
+            // Update sections if a section was synthesized
+            var updatedSections = current.sections
+            if let synthesized = response.synthesizedSection {
+                updatedSections = updatedSections.map { section in
+                    section.id == synthesized.id ? synthesized : section
+                }
+            }
+
             current = DocumentDetail(
                 projectId: current.projectId,
-                sections: current.sections,
+                sections: updatedSections,
                 messages: current.messages + [response]
             )
             state = .loaded(current)
+            checkCompletion()
         } catch {
             state = .error(error.localizedDescription)
         }
 
         isSending = false
+    }
+
+    private func checkCompletion() {
+        guard let detail else { return }
+        isComplete = detail.sections.allSatisfy { $0.status == .complete }
     }
 }
