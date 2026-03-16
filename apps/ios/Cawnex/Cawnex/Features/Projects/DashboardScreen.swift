@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DashboardScreen: View {
-    let userName: String
+    @Environment(AppStore.self) private var store
     @State var viewModel: DashboardViewModel
     var onBellTap: () -> Void = {}
     var onAddTap: () -> Void = {}
@@ -93,6 +93,10 @@ struct DashboardScreen: View {
         }
     }
 
+    private var userName: String {
+        store.currentUser?.name ?? ""
+    }
+
     private var greetingLine: String {
         let firstName = userName.split(separator: " ").first.map(String.init) ?? userName
         return firstName.isEmpty ? greeting : "\(greeting), \(firstName)"
@@ -111,17 +115,15 @@ struct DashboardScreen: View {
 }
 
 #Preview {
-    ZStack {
+    let store = AppStore()
+    store.seedData()
+    return ZStack {
         CawnexColors.background.ignoresSafeArea()
         DashboardScreen(
-            userName: "Eduardo",
-            viewModel: {
-                let store = AppStore()
-                store.seedData()
-                return DashboardViewModel(
-                    projectService: InMemoryProjectService(store: store)
-                )
-            }()
+            viewModel: DashboardViewModel(
+                projectService: InMemoryProjectService(store: store)
+            )
         )
     }
+    .environment(store)
 }

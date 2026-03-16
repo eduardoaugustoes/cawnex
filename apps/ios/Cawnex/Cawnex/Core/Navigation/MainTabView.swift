@@ -55,7 +55,6 @@ struct MainTabView: View {
         @Bindable var router = tabRouter
         return NavigationStack(path: $router.projectPath) {
             DashboardScreen(
-                userName: store.currentUser?.name ?? "",
                 viewModel: DashboardViewModel(
                     projectService: services.makeProjectService()
                 ),
