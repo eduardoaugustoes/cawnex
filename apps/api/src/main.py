@@ -13,6 +13,7 @@ from src.routes import (
     ai,
     config,
     documents,
+    goals,
     health,
     hub,
     milestones,
@@ -42,4 +43,5 @@ app.include_router(waves.router)
 app.include_router(mvi.router)
 app.include_router(hub.router)
 app.include_router(milestones.router)
+app.include_router(goals.router)
 app.include_router(documents.router)
