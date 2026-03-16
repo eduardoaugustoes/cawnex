@@ -35,8 +35,8 @@ struct MilestonePlanningScreen: View {
                 VStack(alignment: .leading, spacing: CawnexSpacing.lg) {
                     navRow
                     chatArea
-                    if planningService.hasMilestones {
-                        previewButton
+                    if planningService.hasMilestones && !isSaved {
+                        actionButtons
                     }
                 }
                 .padding(.top, CawnexSpacing.sm)
@@ -70,17 +70,7 @@ struct MilestonePlanningScreen: View {
 
             Spacer()
 
-            if planningService.hasMilestones && !isSaved {
-                Button("Save Plan") {
-                    Task { await savePlan() }
-                }
-                .font(CawnexTypography.label)
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(CawnexColors.success)
-                .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
-            } else if isSaved {
+            if isSaved {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 14))
@@ -119,25 +109,73 @@ struct MilestonePlanningScreen: View {
         }
     }
 
-    // MARK: - Preview Button
+    // MARK: - Action Buttons (shown after milestones are proposed)
 
-    private var previewButton: some View {
-        Button(action: { isShowingPreview = true }) {
-            HStack(spacing: CawnexSpacing.sm) {
-                Image(systemName: "list.bullet.clipboard")
-                    .font(.system(size: 15))
-                Text("Preview Milestones")
-                    .font(CawnexTypography.subheading)
+    private var actionButtons: some View {
+        VStack(spacing: CawnexSpacing.sm) {
+            // Save Plan — primary action
+            Button {
+                Task { await savePlan() }
+            } label: {
+                HStack(spacing: CawnexSpacing.sm) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16))
+                    Text("Save Plan")
+                        .font(CawnexTypography.bodyBold)
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(CawnexColors.success)
+                .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
             }
-            .foregroundStyle(accentColor)
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-            .overlay(
-                RoundedRectangle(cornerRadius: CawnexRadius.md)
-                    .stroke(accentColor, lineWidth: 1)
-            )
+            .buttonStyle(.plain)
+
+            HStack(spacing: CawnexSpacing.sm) {
+                // Preview
+                Button(action: { isShowingPreview = true }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "list.bullet.clipboard")
+                            .font(.system(size: 14))
+                        Text("Preview")
+                            .font(CawnexTypography.label)
+                    }
+                    .foregroundStyle(accentColor)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CawnexRadius.sm)
+                            .stroke(accentColor, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                // Refine
+                Button {
+                    messageText = "Let me refine these milestones."
+                    Task { await sendMessage() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 14))
+                        Text("Refine")
+                            .font(CawnexTypography.label)
+                    }
+                    .foregroundStyle(CawnexColors.warning)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CawnexRadius.sm)
+                            .stroke(CawnexColors.warning, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
+            Text("Or type specific changes below")
+                .font(CawnexTypography.footnote)
+                .foregroundStyle(CawnexColors.mutedForeground)
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Input Bar
