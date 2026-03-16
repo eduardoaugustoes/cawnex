@@ -1,9 +1,9 @@
 """Milestones routes — save and retrieve AI-generated milestones."""
 
 from datetime import datetime, timezone
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from src.auth.dependencies import get_tenant
@@ -134,8 +134,7 @@ async def get_planning_context(
             docs[doc_type] = {
                 "status": "complete",
                 "content": "\n\n".join(
-                    f"## {s.get('title', '')}\n{s.get('content', '')}"
-                    for s in sections
+                    f"## {s.get('title', '')}\n{s.get('content', '')}" for s in sections
                 ),
             }
         else:
