@@ -210,7 +210,6 @@ final class APIDocumentService: DocumentService {
             aiMessage: aiMessage
         )
     }
-}
 
     private func extractJSON(from content: String) -> String {
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)

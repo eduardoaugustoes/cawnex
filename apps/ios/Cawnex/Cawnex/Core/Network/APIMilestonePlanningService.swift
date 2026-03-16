@@ -204,29 +204,22 @@ final class APIMilestonePlanningService {
 
         return ParsedPlanningResponse(message: message, milestones: nil)
     }
-}
 
     /// Extract JSON from content that may contain plain text + ```json blocks
     private func extractJSON(from content: String) -> String {
-        // Try 1: Content is pure JSON
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.hasPrefix("{") {
-            return trimmed
-        }
+        if trimmed.hasPrefix("{") { return trimmed }
 
-        // Try 2: Extract ```json ... ``` block
         if let startRange = content.range(of: "```json") ?? content.range(of: "```\n{"),
            let endRange = content.range(of: "```", range: startRange.upperBound..<content.endIndex) {
             var json = String(content[startRange.upperBound..<endRange.lowerBound])
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            // Remove "json" label if present at start
             if json.hasPrefix("json") {
                 json = String(json.dropFirst(4)).trimmingCharacters(in: .whitespacesAndNewlines)
             }
             return json
         }
 
-        // Try 3: Find first { ... last } in the content
         if let firstBrace = content.firstIndex(of: "{"),
            let lastBrace = content.lastIndex(of: "}") {
             return String(content[firstBrace...lastBrace])
