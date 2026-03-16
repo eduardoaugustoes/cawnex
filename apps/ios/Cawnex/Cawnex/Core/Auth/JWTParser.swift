@@ -31,10 +31,6 @@ enum JWTParser {
         let tenantId = json["custom:tenant_id"] as? String ?? ""
         let expTimestamp = json["exp"] as? TimeInterval ?? 0
 
-        #if DEBUG
-        print("[JWT] Claims: sub=\(sub), email=\(email), name='\(name)', tenant=\(tenantId)")
-        print("[JWT] All keys: \(json.keys.sorted())")
-        #endif
 
         return Claims(
             sub: sub,

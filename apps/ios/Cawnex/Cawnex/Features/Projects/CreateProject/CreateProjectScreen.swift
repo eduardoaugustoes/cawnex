@@ -204,6 +204,13 @@ struct CreateProjectScreen: View {
             .buttonStyle(.plain)
             .disabled(!viewModel.canCreate || viewModel.isSubmitting)
 
+            if let error = viewModel.error {
+                Text(error)
+                    .font(CawnexTypography.footnote)
+                    .foregroundStyle(CawnexColors.destructive)
+                    .multilineTextAlignment(.center)
+            }
+
             Text("You'll set up Vision, Architecture & more next")
                 .font(CawnexTypography.footnote)
                 .foregroundStyle(CawnexColors.mutedForeground)

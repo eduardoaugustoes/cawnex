@@ -54,11 +54,20 @@ final class APIClient: @unchecked Sendable {
     // MARK: - Execution
 
     private func execute<T: Decodable>(_ request: URLRequest) async throws -> T {
+        #if DEBUG
+        print("[API] \(request.httpMethod ?? "?") \(request.url?.path ?? "?")")
+        #endif
+
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.networkError("Invalid response")
         }
+
+        #if DEBUG
+        let bodyPreview = String(data: data, encoding: .utf8)?.prefix(500) ?? "nil"
+        print("[API] \(httpResponse.statusCode) \(bodyPreview)")
+        #endif
 
         guard (200...299).contains(httpResponse.statusCode) else {
             let body = String(data: data, encoding: .utf8) ?? ""
