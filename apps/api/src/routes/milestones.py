@@ -94,6 +94,53 @@ async def save_milestones(
     return {"count": len(milestones_data), "status": "saved"}
 
 
+@router.post("", response_model=MilestoneResponse, status_code=201)
+async def add_milestone(
+    project_id: str,
+    body: MilestoneInput,
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
+) -> Dict[str, Any]:
+    """Add a single milestone to the project backlog."""
+    db = TenantDB(tenant)
+    now = _now_iso()
+
+    # Load existing milestones
+    existing = db.get_project_item(project_id=project_id, sk="BACKLOG#milestones")
+    milestones_data: List[Dict[str, Any]] = (
+        existing.get("milestones", []) if existing else []
+    )
+
+    # Append new milestone
+    new_milestone = {
+        "id": body.id,
+        "name": body.name,
+        "description": body.description,
+        "status": body.status,
+        "goals": [
+            {
+                "id": g.id,
+                "name": g.name,
+                "description": g.description,
+                "status": g.status,
+            }
+            for g in body.goals
+        ],
+    }
+    milestones_data.append(new_milestone)
+
+    db.put_project_item(
+        project_id=project_id,
+        sk="BACKLOG#milestones",
+        entityType="Backlog",
+        milestones=milestones_data,
+        count=len(milestones_data),
+        created_at=existing.get("created_at", now) if existing else now,
+        updated_at=now,
+    )
+
+    return {"count": len(milestones_data), "status": "saved"}
+
+
 @router.get("")
 async def get_milestones(
     project_id: str,

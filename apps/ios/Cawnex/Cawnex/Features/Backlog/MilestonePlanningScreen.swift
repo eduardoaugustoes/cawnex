@@ -35,7 +35,7 @@ struct MilestonePlanningScreen: View {
                 VStack(alignment: .leading, spacing: CawnexSpacing.lg) {
                     navRow
                     chatArea
-                    if planningService.hasMilestones && !isSaved {
+                    if planningService.hasMilestone && !isSaved {
                         actionButtons
                     }
                 }
@@ -120,7 +120,7 @@ struct MilestonePlanningScreen: View {
                 HStack(spacing: CawnexSpacing.sm) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 16))
-                    Text("Save Plan")
+                    Text("Save Milestone")
                         .font(CawnexTypography.bodyBold)
                 }
                 .foregroundStyle(.white)
@@ -201,13 +201,14 @@ struct MilestonePlanningScreen: View {
                         .font(CawnexTypography.heading1)
                         .foregroundStyle(CawnexColors.cardForeground)
 
-                    Text("\(planningService.plannedMilestones.count) milestones")
+                    Text("Next milestone to add")
                         .font(CawnexTypography.caption)
                         .foregroundStyle(CawnexColors.mutedForeground)
 
                     Divider().overlay(accentColor)
 
-                    ForEach(Array(planningService.plannedMilestones.enumerated()), id: \.offset) { index, milestone in
+                    if let milestone = planningService.proposedMilestone {
+                        let index = planningService.existingCount
                         VStack(alignment: .leading, spacing: CawnexSpacing.sm) {
                             Text("M\(index + 1): \(milestone.name)")
                                 .font(CawnexTypography.bodyBold)
@@ -299,7 +300,7 @@ struct MilestonePlanningScreen: View {
 
     private func savePlan() async {
         do {
-            try await planningService.saveMilestones()
+            try await planningService.saveMilestone()
             isSaved = true
             // Auto-close after brief delay
             try? await Task.sleep(for: .seconds(1.5))

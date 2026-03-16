@@ -1,23 +1,22 @@
 import Foundation
 
-/// AI-driven milestone planning service.
-/// Reads all 4 project documents from the backend, then uses the AI chat proxy
-/// to guide the founder through breaking the vision into milestones and goals.
+/// AI-driven milestone planning service — plans ONE milestone at a time.
+/// Loads existing milestones as context so the AI builds on what's already planned.
 final class APIMilestonePlanningService {
     private let client: APIClient
     private let projectId: String
 
     private var context: PlanningContext?
-    private var milestones: [PlannedMilestone] = []
+    private var existingMilestones: [PlannedMilestone] = []
+    private var proposedMilestone: PlannedMilestone?
     private var messages: [ChatMessage] = []
-    private var currentPhase: PlanningPhase = .proposingMilestones
 
     init(client: APIClient, projectId: String) {
         self.client = client
         self.projectId = projectId
     }
 
-    // MARK: - Load Context (call before first message)
+    // MARK: - Load Context
 
     func loadContext() async throws -> ChatMessage {
         let response: PlanningContextDTO = try await client.get("/projects/\(projectId)/milestones/context")
@@ -27,32 +26,16 @@ final class APIMilestonePlanningService {
         }
         context = PlanningContext(documents: docs)
 
-        // Check if milestones already exist
+        // Load existing milestones as context
         if let existing: ExistingMilestonesDTO = try? await client.get("/projects/\(projectId)/milestones") {
-            if !existing.milestones.isEmpty {
-                milestones = existing.milestones.map { m in
-                    PlannedMilestone(
-                        id: m.id,
-                        name: m.name,
-                        description: m.description,
-                        goals: m.goals.map { g in
-                            PlannedGoal(id: g.id, name: g.name, description: g.description)
-                        }
-                    )
-                }
-                let summary = milestones.map { "• \($0.name): \($0.goals.count) goals" }.joined(separator: "\n")
-                let msg = ChatMessage(
-                    id: UUID().uuidString,
-                    role: .ai,
-                    content: "You already have milestones planned:\n\n\(summary)\n\nWould you like to revise them or start fresh?",
-                    synthesizedSection: nil
+            existingMilestones = existing.milestones.map { m in
+                PlannedMilestone(
+                    id: m.id, name: m.name, description: m.description,
+                    goals: m.goals.map { g in PlannedGoal(id: g.id, name: g.name, description: g.description) }
                 )
-                messages.append(msg)
-                return msg
             }
         }
 
-        // No existing milestones — start the planning conversation
         let firstMessage = ChatMessage(
             id: UUID().uuidString,
             role: .ai,
@@ -66,11 +49,9 @@ final class APIMilestonePlanningService {
     // MARK: - Send Message
 
     func sendMessage(_ content: String) async throws -> ChatMessage {
-        // Add user message
         let userMsg = ChatMessage(id: UUID().uuidString, role: .user, content: content, synthesizedSection: nil)
         messages.append(userMsg)
 
-        // Build Claude messages
         var claudeMessages: [AIChatMsg] = []
         for msg in messages {
             claudeMessages.append(AIChatMsg(
@@ -79,32 +60,20 @@ final class APIMilestonePlanningService {
             ))
         }
 
-        let request = AIChatReq(
-            system: buildSystemPrompt(),
-            messages: claudeMessages,
-            project_id: projectId
-        )
-
+        let request = AIChatReq(system: buildSystemPrompt(), messages: claudeMessages, project_id: projectId)
         let response: AIChatResp = try await client.post("/ai/chat", body: request)
-
-        // Parse response — try JSON first, fall back to plain text
         let parsed = parseResponse(response.content)
 
-        // If milestones were proposed, store them and build a synthesized card
         var synthesized: DocumentSection? = nil
-        if let proposed = parsed.milestones {
-            milestones = proposed
-            let summary = proposed.enumerated().map { i, m in
-                var line = "M\(i+1): \(m.name) — \(m.description)"
-                if !m.goals.isEmpty {
-                    let goalList = m.goals.map { "  • \($0.name)" }.joined(separator: "\n")
-                    line += "\n\(goalList)"
-                }
-                return line
-            }.joined(separator: "\n\n")
+        if let proposed = parsed.milestone {
+            proposedMilestone = proposed
+            var summary = "\(proposed.name)\n\(proposed.description)"
+            if !proposed.goals.isEmpty {
+                summary += "\n\n" + proposed.goals.map { "• \($0.name): \($0.description)" }.joined(separator: "\n")
+            }
             synthesized = DocumentSection(
-                id: "milestones",
-                title: "\(proposed.count) Milestones Planned",
+                id: "milestone",
+                title: "M\(existingMilestones.count + 1): \(proposed.name)",
                 content: summary,
                 status: .complete
             )
@@ -120,33 +89,61 @@ final class APIMilestonePlanningService {
         return aiMsg
     }
 
-    // MARK: - Save Milestones
+    // MARK: - Save (append ONE milestone)
 
-    func saveMilestones() async throws {
-        let body = SaveMilestonesDTO(
-            milestones: milestones.map { m in
-                MilestoneDTO(
-                    id: m.id,
-                    name: m.name,
-                    description: m.description,
-                    status: "planned",
-                    goals: m.goals.map { g in
-                        GoalDTO(id: g.id, name: g.name, description: g.description, status: "planned")
-                    }
-                )
+    func saveMilestone() async throws {
+        guard let milestone = proposedMilestone else { return }
+        let body = MilestoneDTO(
+            id: milestone.id,
+            name: milestone.name,
+            description: milestone.description,
+            status: "planned",
+            goals: milestone.goals.map { g in
+                GoalDTO(id: g.id, name: g.name, description: g.description, status: "planned")
             }
         )
-        let _: SaveMilestonesRespDTO = try await client.put("/projects/\(projectId)/milestones", body: body)
+        let _: SaveMilestonesRespDTO = try await client.post("/projects/\(projectId)/milestones", body: body)
     }
 
-    var plannedMilestones: [PlannedMilestone] { milestones }
+    var hasMilestone: Bool { proposedMilestone != nil }
     var allMessages: [ChatMessage] { messages }
-    var hasMilestones: Bool { !milestones.isEmpty }
+    var existingCount: Int { existingMilestones.count }
 
     // MARK: - System Prompt
 
     private func buildSystemPrompt() -> String {
-        var prompt = MilestonePlanningPrompt.system
+        var prompt = """
+        You are Cawnex Milestone Planner — a product strategist who helps founders \
+        define their next milestone.
+
+        You have access to the founder's project documents and existing milestones. \
+        Your job is to propose ONE milestone — the next major deliverable that \
+        unlocks real value.
+
+        ## Principles
+        - Propose exactly ONE milestone, not a full roadmap.
+        - Each milestone has 2-5 goals. Each goal becomes work the AI agents execute.
+        - The milestone should build on what's already been delivered.
+        - M1 should be the minimum viable loop — the smallest thing that proves the product works.
+        - Be specific. "Build MVP" is not a milestone. "First user completes X via Y" is.
+        - Respect the founder's priorities — if they want to adjust, do it.
+
+        ## Output Format
+        When proposing or updating a milestone, respond with JSON:
+        {
+          "ai_message": "Your conversational response",
+          "milestone": {
+            "id": "m1",
+            "name": "Milestone Name",
+            "description": "What this milestone delivers",
+            "goals": [
+              {"id": "g1", "name": "Goal Name", "description": "What this goal achieves"}
+            ]
+          }
+        }
+
+        When having a conversational exchange (no milestone changes), respond with plain text only.
+        """
 
         if let ctx = context {
             prompt += "\n\n## Project Documents\n"
@@ -157,14 +154,15 @@ final class APIMilestonePlanningService {
             }
         }
 
-        if !milestones.isEmpty {
-            prompt += "\n\n## Current Milestone Plan\n"
-            for (i, m) in milestones.enumerated() {
+        if !existingMilestones.isEmpty {
+            prompt += "\n\n## Existing Milestones (already planned)\n"
+            for (i, m) in existingMilestones.enumerated() {
                 prompt += "\nM\(i+1): \(m.name) — \(m.description)"
                 for g in m.goals {
                     prompt += "\n  - \(g.name): \(g.description)"
                 }
             }
+            prompt += "\n\nPropose the NEXT milestone (M\(existingMilestones.count + 1))."
         }
 
         return prompt
@@ -172,55 +170,57 @@ final class APIMilestonePlanningService {
 
     private func buildOpeningMessage() -> String {
         guard let ctx = context else {
-            return "Let's plan your milestones. What's the most important thing to deliver first?"
+            return "Let's plan your next milestone. What's the most important thing to deliver?"
         }
 
         let completedDocs = ctx.documents.filter { !$0.value.content.isEmpty }.map { $0.key.capitalized }
 
         if completedDocs.isEmpty {
-            return "I don't see any completed documents yet. Complete your Vision document first — it's the foundation for milestone planning."
+            return "Complete your Vision document first — it's the foundation for milestone planning."
         }
 
-        return "I've read your \(completedDocs.joined(separator: ", ")) documents. Based on your vision, let me propose milestones.\n\nEach milestone should be a major deliverable that unlocks real value for your users. What's the single most important thing to ship first?"
+        let milestoneNum = existingMilestones.count + 1
+
+        if existingMilestones.isEmpty {
+            return "I've read your \(completedDocs.joined(separator: ", ")) documents. Let's define your first milestone — the minimum viable deliverable that proves your product works.\n\nWhat's the single most important thing to ship first?"
+        }
+
+        let existing = existingMilestones.map { "• \($0.name)" }.joined(separator: "\n")
+        return "You have \(existingMilestones.count) milestone(s) planned:\n\n\(existing)\n\nLet's define M\(milestoneNum). Based on what you've planned, what should come next?"
     }
 
     // MARK: - Parse Response
 
     private func parseResponse(_ content: String) -> ParsedPlanningResponse {
-        // Extract JSON from mixed content (plain text + ```json block)
         let jsonString = extractJSON(from: content)
 
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            // No JSON found — treat entire content as plain conversation
-            return ParsedPlanningResponse(message: content, milestones: nil)
+            return ParsedPlanningResponse(message: content, milestone: nil)
         }
 
         let message = json["ai_message"] as? String ?? content
 
-        if let milestonesJson = json["milestones"] as? [[String: Any]] {
-            let parsed = milestonesJson.enumerated().map { (i, m) in
-                let goals = (m["goals"] as? [[String: Any]])?.enumerated().map { (j, g) in
-                    PlannedGoal(
-                        id: g["id"] as? String ?? "g\(i+1)_\(j+1)",
-                        name: g["name"] as? String ?? "",
-                        description: g["description"] as? String ?? ""
-                    )
-                } ?? []
-                return PlannedMilestone(
-                    id: m["id"] as? String ?? "m\(i+1)",
-                    name: m["name"] as? String ?? "",
-                    description: m["description"] as? String ?? "",
-                    goals: goals
+        if let m = json["milestone"] as? [String: Any] {
+            let goals = (m["goals"] as? [[String: Any]])?.enumerated().map { (j, g) in
+                PlannedGoal(
+                    id: g["id"] as? String ?? "g\(j+1)",
+                    name: g["name"] as? String ?? "",
+                    description: g["description"] as? String ?? ""
                 )
-            }
-            return ParsedPlanningResponse(message: message, milestones: parsed)
+            } ?? []
+            let milestone = PlannedMilestone(
+                id: m["id"] as? String ?? "m\(existingMilestones.count + 1)",
+                name: m["name"] as? String ?? "",
+                description: m["description"] as? String ?? "",
+                goals: goals
+            )
+            return ParsedPlanningResponse(message: message, milestone: milestone)
         }
 
-        return ParsedPlanningResponse(message: message, milestones: nil)
+        return ParsedPlanningResponse(message: message, milestone: nil)
     }
 
-    /// Extract JSON from content that may contain plain text + ```json blocks
     private func extractJSON(from content: String) -> String {
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.hasPrefix("{") { return trimmed }
@@ -269,66 +269,7 @@ private struct DocContext {
 
 private struct ParsedPlanningResponse {
     let message: String
-    let milestones: [PlannedMilestone]?
-}
-
-private enum PlanningPhase {
-    case proposingMilestones
-    case refiningGoals
-    case complete
-}
-
-// MARK: - System Prompt
-
-enum MilestonePlanningPrompt {
-    static let system = """
-    You are Cawnex Milestone Planner — a product strategist who helps founders \
-    break their vision into executable milestones.
-
-    You have access to the founder's completed project documents (Vision, \
-    Architecture, Glossary, Design System). Use them to propose milestones \
-    that are grounded in the actual product strategy.
-
-    ## Principles
-    - Each milestone is a MAJOR DELIVERABLE that unlocks real user value.
-    - Milestones are ordered: M1 ships first, M2 depends on M1, etc.
-    - Each milestone has 2-5 goals. Each goal becomes a set of MVIs.
-    - M1 should be the minimum viable loop — the smallest thing that proves \
-      the product works end-to-end.
-    - Be specific. "Build MVP" is not a milestone. "First user completes a \
-      full collection flow via WhatsApp" is.
-    - Respect the founder's priorities — if they want to reorder, do it.
-    - After proposing milestones, break each into goals when the founder agrees.
-
-    ## Conversation Flow
-    1. Read the documents, propose 3-5 milestones with brief descriptions
-    2. Founder steers (reorder, rename, split, merge, add, remove)
-    3. Once milestones are agreed, break each into 2-5 goals
-    4. Founder confirms, done
-
-    ## Output Format
-    When proposing or updating milestones, respond with JSON:
-    ```
-    {
-      "ai_message": "Your conversational response explaining the proposal",
-      "milestones": [
-        {
-          "id": "m1",
-          "name": "WhatsApp Bot POC",
-          "description": "First debtor receives automated collection message via WhatsApp",
-          "goals": [
-            {"id": "g1_1", "name": "WhatsApp API Integration", "description": "Connect to WhatsApp Business API"},
-            {"id": "g1_2", "name": "Debt Data Import", "description": "Import overdue invoices from spreadsheet"}
-          ]
-        }
-      ]
-    }
-    ```
-
-    When having a conversational exchange (no milestone changes), respond with plain text only.
-
-    When all milestones and goals are agreed upon, include `"status": "complete"` in the JSON.
-    """
+    let milestone: PlannedMilestone?
 }
 
 // MARK: - DTOs
@@ -390,10 +331,6 @@ private struct MilestoneDTO: Encodable {
     let description: String
     let status: String
     let goals: [GoalDTO]
-}
-
-private struct SaveMilestonesDTO: Encodable {
-    let milestones: [MilestoneDTO]
 }
 
 private struct SaveMilestonesRespDTO: Decodable {
