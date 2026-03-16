@@ -103,7 +103,7 @@ export class CawnexStack extends cdk.Stack {
       code: lambda.Code.fromAsset("../apps/api/dist"), // built artifact
       memorySize: 512,
       timeout: cdk.Duration.seconds(29), // API GW limit is 30s
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64, // CI builds on x86_64
       environment: {
         STAGE: stage,
         TABLE_NAME: tableName,
