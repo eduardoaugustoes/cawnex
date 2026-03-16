@@ -22,12 +22,52 @@ final class APIDocumentService: DocumentService {
     }
 
     func getDocument(projectId: String, type: DocumentType) async throws -> DocumentDetail {
+        // Check if a saved document exists on the backend
+        if conversations[type] == nil {
+            if let saved = try? await loadSavedDocument(projectId: projectId, type: type) {
+                return saved
+            }
+        }
+
         let state = getOrCreateConversation(type: type)
         return DocumentDetail(
             projectId: projectId,
             sections: state.sections,
             messages: state.messages
         )
+    }
+
+    private func loadSavedDocument(projectId: String, type: DocumentType) async throws -> DocumentDetail? {
+        // Backend returns null (204-like) when no document saved yet
+        guard let doc: SavedDocumentDTO = try? await client.get("/projects/\(projectId)/documents/\(type.rawValue)") else {
+            return nil
+        }
+        guard !doc.sections.isEmpty else { return nil }
+
+        let sections = doc.sections.map { s in
+            DocumentSection(
+                id: s.id,
+                title: s.title,
+                content: s.content,
+                status: s.status == "complete" ? .complete : .pending
+            )
+        }
+
+        // Store in conversation state so subsequent views use it
+        let completionMessage = ChatMessage(
+            id: UUID().uuidString,
+            role: .ai,
+            content: "This document is complete. Tap 'Preview Document' to review.",
+            synthesizedSection: nil
+        )
+        let state = ConversationState(
+            sections: sections,
+            messages: [completionMessage],
+            currentSectionMessageStart: 0
+        )
+        conversations[type] = state
+
+        return DocumentDetail(projectId: projectId, sections: sections, messages: [completionMessage])
     }
 
     func sendMessage(projectId: String, type: DocumentType, content: String) async throws -> ChatMessage {
@@ -240,6 +280,21 @@ private struct SaveDocumentDTO: Encodable {
 private struct SaveDocumentResponseDTO: Decodable {
     let doc_type: String
     let status: String
+}
+
+private struct SavedDocumentSectionDTO: Decodable {
+    let id: String
+    let title: String
+    let content: String
+    let status: String
+}
+
+private struct SavedDocumentDTO: Decodable {
+    let doc_type: String
+    let status: String
+    let sections: [SavedDocumentSectionDTO]
+    let created_at: String
+    let updated_at: String
 }
 
 // MARK: - Vision Guide System Prompt
