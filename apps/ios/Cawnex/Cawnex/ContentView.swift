@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(AppStore.self) private var store
     @State private var router = AppRouter()
-    @State private var store = AppStore()
     @State private var remoteConfig = RemoteConfig()
     @State private var authService: (any AuthService)?
     @State private var apiClient: APIClient?
