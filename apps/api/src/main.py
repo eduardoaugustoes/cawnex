@@ -13,7 +13,7 @@ from src.routes import ai, config, documents, health, hub, mvi, projects, waves
 
 app = FastAPI(
     title="Cawnex API",
-    version="0.1.0",
+    version="0.2.0",
     docs_url="/docs" if __import__("os").environ.get("STAGE") != "prod" else None,
 )
 
