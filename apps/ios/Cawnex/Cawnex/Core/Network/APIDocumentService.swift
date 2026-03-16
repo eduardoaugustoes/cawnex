@@ -14,6 +14,13 @@ final class APIDocumentService: DocumentService {
         self.projectId = projectId
     }
 
+    func saveDocument(projectId: String, type: DocumentType, sections: [DocumentSection]) async throws {
+        let body = SaveDocumentDTO(
+            sections: sections.map { SectionDTO(id: $0.id, title: $0.title, content: $0.content, status: $0.status == .complete ? "complete" : "pending") }
+        )
+        let _: SaveDocumentResponseDTO = try await client.put("/projects/\(projectId)/documents/\(type.rawValue)", body: body)
+    }
+
     func getDocument(projectId: String, type: DocumentType) async throws -> DocumentDetail {
         let state = getOrCreateConversation(type: type)
         return DocumentDetail(
@@ -217,6 +224,22 @@ private struct AIChatResponseDTO: Decodable {
     let cost_usd: String
     let model: String
     let duration_ms: Int
+}
+
+private struct SectionDTO: Encodable {
+    let id: String
+    let title: String
+    let content: String
+    let status: String
+}
+
+private struct SaveDocumentDTO: Encodable {
+    let sections: [SectionDTO]
+}
+
+private struct SaveDocumentResponseDTO: Decodable {
+    let doc_type: String
+    let status: String
 }
 
 // MARK: - Vision Guide System Prompt

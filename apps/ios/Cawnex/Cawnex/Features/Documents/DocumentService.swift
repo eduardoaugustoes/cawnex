@@ -3,6 +3,7 @@ import Foundation
 protocol DocumentService {
     func getDocument(projectId: String, type: DocumentType) async throws -> DocumentDetail
     func sendMessage(projectId: String, type: DocumentType, content: String) async throws -> ChatMessage
+    func saveDocument(projectId: String, type: DocumentType, sections: [DocumentSection]) async throws
 }
 
 struct InMemoryDocumentService: DocumentService {
@@ -27,6 +28,10 @@ struct InMemoryDocumentService: DocumentService {
             content: "Thanks for sharing that. Let me synthesize this into the document.",
             synthesizedSection: nil
         )
+    }
+
+    func saveDocument(projectId: String, type: DocumentType, sections: [DocumentSection]) async throws {
+        // No-op for in-memory
     }
 
     // MARK: - Seed Data

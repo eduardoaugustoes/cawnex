@@ -121,7 +121,14 @@ struct DocumentScreen: View {
                 ForEach(detail.messages) { message in
                     ChatMessageBubble(message: message, accentColor: accentColor)
                 }
+
+                // Typing indicator while waiting for Claude
+                if viewModel.isSending {
+                    TypingIndicator(accentColor: accentColor)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
             }
+            .animation(.easeInOut(duration: 0.2), value: viewModel.isSending)
         } else if case .loading = viewModel.state {
             HStack {
                 Spacer()
@@ -165,6 +172,42 @@ struct DocumentScreen: View {
             },
             isSending: viewModel.isSending
         )
+    }
+}
+
+// MARK: - Typing Indicator
+
+struct TypingIndicator: View {
+    let accentColor: Color
+    @State private var phase: Int = 0
+
+    var body: some View {
+        HStack(alignment: .top, spacing: CawnexSpacing.sm) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(accentColor)
+                .padding(.top, 4)
+
+            HStack(spacing: 4) {
+                ForEach(0..<3, id: \.self) { index in
+                    Circle()
+                        .fill(accentColor.opacity(phase == index ? 1.0 : 0.3))
+                        .frame(width: 8, height: 8)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(CawnexColors.card)
+            .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
+        }
+        .padding(.leading, 4)
+        .onAppear {
+            Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    phase = (phase + 1) % 3
+                }
+            }
+        }
     }
 }
 

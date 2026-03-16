@@ -81,6 +81,20 @@ final class DocumentViewModel {
 
     private func checkCompletion() {
         guard let detail else { return }
-        isComplete = detail.sections.allSatisfy { $0.status == .complete }
+        let allDone = detail.sections.allSatisfy { $0.status == .complete }
+        if allDone && !isComplete {
+            isComplete = true
+            // Auto-save to backend
+            Task {
+                try? await documentService.saveDocument(
+                    projectId: detail.projectId,
+                    type: documentType,
+                    sections: detail.sections
+                )
+                #if DEBUG
+                print("[Document] Auto-saved \(documentType.rawValue) to backend")
+                #endif
+            }
+        }
     }
 }
