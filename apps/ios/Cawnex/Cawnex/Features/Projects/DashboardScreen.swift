@@ -28,10 +28,7 @@ struct DashboardScreen: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(greeting)
-                    .font(CawnexTypography.caption)
-                    .foregroundStyle(CawnexColors.mutedForeground)
-                Text(userName)
+                Text(greetingLine)
                     .font(CawnexTypography.heading1)
                     .foregroundStyle(CawnexColors.cardForeground)
             }
@@ -94,6 +91,11 @@ struct DashboardScreen: View {
         case 12..<18: return "Good afternoon"
         default: return "Good evening"
         }
+    }
+
+    private var greetingLine: String {
+        let firstName = userName.split(separator: " ").first.map(String.init) ?? userName
+        return firstName.isEmpty ? greeting : "\(greeting), \(firstName)"
     }
 
     private func circleButton(icon: String, fill: Color, action: @escaping () -> Void) -> some View {
