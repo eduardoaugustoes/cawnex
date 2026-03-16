@@ -8,7 +8,7 @@ final class APIMilestonePlanningService {
 
     private var context: PlanningContext?
     private var existingMilestones: [PlannedMilestone] = []
-    private var proposedMilestone: PlannedMilestone?
+    private(set) var proposedMilestone: PlannedMilestone?
     private var messages: [ChatMessage] = []
 
     init(client: APIClient, projectId: String) {
