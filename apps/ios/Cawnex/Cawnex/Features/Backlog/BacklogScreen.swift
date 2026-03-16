@@ -41,8 +41,7 @@ struct BacklogScreen: View {
                             onGoalTap(goal.id)
                         },
                         onEdit: {
-                            editingMilestone = milestone
-                            isShowingForm = true
+                            // Edit via AI planning in future iteration
                         },
                         onStatusChange: { newStatus in
                             viewModel.milestoneStatusChanged(milestone.id, to: newStatus)
