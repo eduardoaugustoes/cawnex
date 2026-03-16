@@ -173,6 +173,7 @@ struct MainTabView: View {
                 viewModel: BacklogViewModel(
                     backlogService: services.makeBacklogService()
                 ),
+                apiClient: apiClient,
                 onBack: { tabRouter.projectPath.removeLast() },
                 onGoalTap: { goalId in tabRouter.pushGoal(projectId, goalId: goalId) }
             )

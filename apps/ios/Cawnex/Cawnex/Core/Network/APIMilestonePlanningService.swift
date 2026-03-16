@@ -21,23 +21,23 @@ final class APIMilestonePlanningService {
 
     func loadContext() async throws -> ChatMessage {
         let response: PlanningContextDTO = try await client.get("/projects/\(projectId)/milestones/context")
-        context = PlanningContext(documents: response.documents)
+        var docs: [String: DocContext] = [:]
+        for (key, dto) in response.documents {
+            docs[key] = DocContext(content: dto.content)
+        }
+        context = PlanningContext(documents: docs)
 
         // Check if milestones already exist
-        if let existing: MilestonesDTO = try? await client.get("/projects/\(projectId)/milestones") {
+        if let existing: ExistingMilestonesDTO = try? await client.get("/projects/\(projectId)/milestones") {
             if !existing.milestones.isEmpty {
                 milestones = existing.milestones.map { m in
                     PlannedMilestone(
-                        id: m["id"] as? String ?? UUID().uuidString,
-                        name: m["name"] as? String ?? "",
-                        description: m["description"] as? String ?? "",
-                        goals: (m["goals"] as? [[String: Any]])?.map { g in
-                            PlannedGoal(
-                                id: g["id"] as? String ?? UUID().uuidString,
-                                name: g["name"] as? String ?? "",
-                                description: g["description"] as? String ?? ""
-                            )
-                        } ?? []
+                        id: m.id,
+                        name: m.name,
+                        description: m.description,
+                        goals: m.goals.map { g in
+                            PlannedGoal(id: g.id, name: g.name, description: g.description)
+                        }
                     )
                 }
                 let summary = milestones.map { "• \($0.name): \($0.goals.count) goals" }.joined(separator: "\n")
@@ -328,19 +328,21 @@ private struct PlanningContextDTO: Decodable {
     let documents: [String: PlanningContextDocDTO]
 }
 
-private struct MilestonesDTO: Decodable {
-    let milestones: [[String: Any]]
+private struct ExistingGoalDTO: Decodable {
+    let id: String
+    let name: String
+    let description: String
+}
 
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let data = try container.decode(Data.self)
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let milestones = json["milestones"] as? [[String: Any]] else {
-            self.milestones = []
-            return
-        }
-        self.milestones = milestones
-    }
+private struct ExistingMilestoneDTO: Decodable {
+    let id: String
+    let name: String
+    let description: String
+    let goals: [ExistingGoalDTO]
+}
+
+private struct ExistingMilestonesDTO: Decodable {
+    let milestones: [ExistingMilestoneDTO]
 }
 
 private struct GoalDTO: Encodable {

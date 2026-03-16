@@ -3,11 +3,11 @@ import SwiftUI
 struct BacklogScreen: View {
     let projectId: String
     @State var viewModel: BacklogViewModel
+    var apiClient: APIClient?
     var onBack: () -> Void = {}
     var onGoalTap: (String) -> Void = { _ in }
 
-    @State private var isShowingForm = false
-    @State private var editingMilestone: Milestone?
+    @State private var isShowingPlanning = false
 
     var body: some View {
         ScrollView {
@@ -17,8 +17,7 @@ struct BacklogScreen: View {
                     onBack: onBack
                 ) {
                     NavBarActionButton(icon: "plus", label: "Milestone") {
-                        editingMilestone = nil
-                        isShowingForm = true
+                        isShowingPlanning = true
                     }
                 }
 
@@ -58,23 +57,21 @@ struct BacklogScreen: View {
         .background(CawnexColors.background)
         .navigationBarHidden(true)
         .task { await viewModel.load(projectId: projectId) }
-        .sheet(isPresented: $isShowingForm) {
-            MilestoneFormScreen(
-                viewModel: MilestoneFormViewModel(
-                    backlogService: viewModel.backlogService,
+        .fullScreenCover(isPresented: $isShowingPlanning) {
+            if let apiClient {
+                MilestonePlanningScreen(
                     projectId: projectId,
-                    milestone: editingMilestone
-                ),
-                onCancel: { isShowingForm = false },
-                onSave: { milestone in
-                    isShowingForm = false
-                    if editingMilestone != nil {
-                        viewModel.milestoneUpdated(milestone)
-                    } else {
-                        viewModel.milestoneCreated(milestone)
+                    planningService: APIMilestonePlanningService(
+                        client: apiClient,
+                        projectId: projectId
+                    ),
+                    onCancel: { isShowingPlanning = false },
+                    onComplete: {
+                        isShowingPlanning = false
+                        Task { await viewModel.load(projectId: projectId) }
                     }
-                }
-            )
+                )
+            }
         }
     }
 }
