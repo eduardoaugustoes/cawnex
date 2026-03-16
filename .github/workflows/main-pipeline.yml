@@ -253,12 +253,13 @@ jobs:
             cd apps/api
             python -m pip install --upgrade pip
             pip install -e .[dev]
-            make build-lambda || echo "Build completed"
+            make build-lambda
+            # Zip the dist directory for Lambda upload
+            cd dist && zip -r ../lambda-deployment.zip . && cd ..
             # Update Lambda function directly
             aws lambda update-function-code \
-              --function-name cawnex-dev-api \
-              --zip-file fileb://dist/lambda-deployment.zip \
-              || echo "Lambda update completed"
+              --function-name cawnex-api-dev \
+              --zip-file fileb://lambda-deployment.zip
             echo "✅ Fast API deployment completed" >> $GITHUB_STEP_SUMMARY
 
           elif [[ "${{ needs.detect-changes.outputs.auth_lambdas }}" == "true" ]]; then
