@@ -9,7 +9,7 @@ Tenant context is extracted from the JWT and available on every request.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.routes import ai, config, documents, health, mvi, projects, waves
+from src.routes import ai, config, documents, health, hub, mvi, projects, waves
 
 app = FastAPI(
     title="Cawnex API",
@@ -30,4 +30,5 @@ app.include_router(ai.router)
 app.include_router(projects.router)
 app.include_router(waves.router)
 app.include_router(mvi.router)
+app.include_router(hub.router)
 app.include_router(documents.router)

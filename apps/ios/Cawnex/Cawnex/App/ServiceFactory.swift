@@ -24,7 +24,10 @@ struct ServiceFactory {
     }
 
     func makeProjectHubService() -> any ProjectHubService {
-        InMemoryProjectHubService(store: store)
+        if let apiClient {
+            return APIProjectHubService(client: apiClient, store: store)
+        }
+        return InMemoryProjectHubService(store: store)
     }
 
     func makeBacklogService() -> any BacklogService {
