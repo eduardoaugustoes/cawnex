@@ -92,12 +92,12 @@ struct DocumentScreen: View {
 
             Spacer()
 
-            Text("Draft")
+            Text(viewModel.isComplete ? "Complete" : "Draft")
                 .font(CawnexTypography.label)
-                .foregroundStyle(CawnexColors.warning)
+                .foregroundStyle(viewModel.isComplete ? CawnexColors.success : CawnexColors.warning)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 3)
-                .background(CawnexColors.warning.opacity(0.13))
+                .background((viewModel.isComplete ? CawnexColors.success : CawnexColors.warning).opacity(0.13))
                 .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
         }
     }

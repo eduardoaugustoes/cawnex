@@ -44,12 +44,47 @@ struct DashboardScreen: View {
 
     // MARK: - Projects Section
 
+    @ViewBuilder
     private var projectsSection: some View {
         VStack(alignment: .leading, spacing: CawnexSpacing.md) {
             projectsSectionHeader
-            ForEach(viewModel.projects) { project in
-                ProjectCard(project: project) {
-                    onProjectTap(project)
+
+            switch viewModel.state {
+            case .loading:
+                HStack {
+                    Spacer()
+                    ProgressView()
+                        .tint(CawnexColors.primaryLight)
+                    Spacer()
+                }
+                .padding(.vertical, CawnexSpacing.xxl)
+
+            case .loaded(let projects) where projects.isEmpty:
+                VStack(spacing: CawnexSpacing.md) {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 36))
+                        .foregroundStyle(CawnexColors.mutedForeground)
+                    Text("No projects yet")
+                        .font(CawnexTypography.body)
+                        .foregroundStyle(CawnexColors.mutedForeground)
+                    Text("Tap + to create your first project")
+                        .font(CawnexTypography.caption)
+                        .foregroundStyle(CawnexColors.muted)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, CawnexSpacing.xxl)
+
+            case .error(let message):
+                Text(message)
+                    .font(CawnexTypography.caption)
+                    .foregroundStyle(CawnexColors.destructive)
+                    .padding(.vertical, CawnexSpacing.lg)
+
+            default:
+                ForEach(viewModel.projects) { project in
+                    ProjectCard(project: project) {
+                        onProjectTap(project)
+                    }
                 }
             }
         }
