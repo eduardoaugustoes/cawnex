@@ -172,18 +172,12 @@ final class APIMilestonePlanningService {
     // MARK: - Parse Response
 
     private func parseResponse(_ content: String) -> ParsedPlanningResponse {
-        var cleaned = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleaned.hasPrefix("```") {
-            if let firstNewline = cleaned.firstIndex(of: "\n") {
-                cleaned = String(cleaned[cleaned.index(after: firstNewline)...])
-            }
-            if cleaned.hasSuffix("```") {
-                cleaned = String(cleaned.dropLast(3)).trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-        }
+        // Extract JSON from mixed content (plain text + ```json block)
+        let jsonString = extractJSON(from: content)
 
-        guard let data = cleaned.data(using: .utf8),
+        guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            // No JSON found — treat entire content as plain conversation
             return ParsedPlanningResponse(message: content, milestones: nil)
         }
 
@@ -209,6 +203,36 @@ final class APIMilestonePlanningService {
         }
 
         return ParsedPlanningResponse(message: message, milestones: nil)
+    }
+}
+
+    /// Extract JSON from content that may contain plain text + ```json blocks
+    private func extractJSON(from content: String) -> String {
+        // Try 1: Content is pure JSON
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("{") {
+            return trimmed
+        }
+
+        // Try 2: Extract ```json ... ``` block
+        if let startRange = content.range(of: "```json") ?? content.range(of: "```\n{"),
+           let endRange = content.range(of: "```", range: startRange.upperBound..<content.endIndex) {
+            var json = String(content[startRange.upperBound..<endRange.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            // Remove "json" label if present at start
+            if json.hasPrefix("json") {
+                json = String(json.dropFirst(4)).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            return json
+        }
+
+        // Try 3: Find first { ... last } in the content
+        if let firstBrace = content.firstIndex(of: "{"),
+           let lastBrace = content.lastIndex(of: "}") {
+            return String(content[firstBrace...lastBrace])
+        }
+
+        return content
     }
 }
 

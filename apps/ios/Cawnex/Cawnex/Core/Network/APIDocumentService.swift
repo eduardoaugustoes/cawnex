@@ -193,23 +193,10 @@ final class APIDocumentService: DocumentService {
     // MARK: - Parse Claude Response
 
     private func parseClaudeResponse(_ content: String) -> ParsedResponse {
-        // Strip markdown fences if present (```json ... ```)
-        var cleaned = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleaned.hasPrefix("```") {
-            // Remove opening fence (```json or ```)
-            if let firstNewline = cleaned.firstIndex(of: "\n") {
-                cleaned = String(cleaned[cleaned.index(after: firstNewline)...])
-            }
-            // Remove closing fence
-            if cleaned.hasSuffix("```") {
-                cleaned = String(cleaned.dropLast(3)).trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-        }
+        let jsonString = extractJSON(from: content)
 
-        // Try to parse as JSON
-        guard let data = cleaned.data(using: .utf8),
+        guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            // Fallback: treat entire response as the AI message
             return ParsedResponse(isSufficient: false, synthesizedContent: nil, aiMessage: content)
         }
 
@@ -222,6 +209,29 @@ final class APIDocumentService: DocumentService {
             synthesizedContent: isSufficient ? synthesized : nil,
             aiMessage: aiMessage
         )
+    }
+}
+
+    private func extractJSON(from content: String) -> String {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("{") { return trimmed }
+
+        if let startRange = content.range(of: "```json") ?? content.range(of: "```\n{"),
+           let endRange = content.range(of: "```", range: startRange.upperBound..<content.endIndex) {
+            var json = String(content[startRange.upperBound..<endRange.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if json.hasPrefix("json") {
+                json = String(json.dropFirst(4)).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            return json
+        }
+
+        if let firstBrace = content.firstIndex(of: "{"),
+           let lastBrace = content.lastIndex(of: "}") {
+            return String(content[firstBrace...lastBrace])
+        }
+
+        return content
     }
 }
 
