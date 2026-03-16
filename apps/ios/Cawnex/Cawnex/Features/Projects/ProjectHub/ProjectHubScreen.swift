@@ -8,23 +8,65 @@ struct ProjectHubScreen: View {
     var onBacklogTap: () -> Void = {}
 
     var body: some View {
-        Group {
+        ZStack {
+            CawnexColors.background
+                .ignoresSafeArea()
+
             switch viewModel.state {
             case .idle, .loading:
-                ProgressView()
-                    .tint(CawnexColors.primary)
+                VStack {
+                    navBar(title: "Loading...")
+                    Spacer()
+                    ProgressView()
+                        .tint(CawnexColors.primary)
+                    Spacer()
+                }
             case .loaded(let detail):
                 hubContent(detail)
             case .error(let message):
-                Text(message)
-                    .font(CawnexTypography.caption)
-                    .foregroundStyle(CawnexColors.destructive)
-                    .padding()
+                VStack(spacing: CawnexSpacing.xl) {
+                    navBar(title: "Project")
+
+                    Spacer()
+
+                    VStack(spacing: CawnexSpacing.md) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 36))
+                            .foregroundStyle(CawnexColors.warning)
+                        Text("Something went wrong")
+                            .font(CawnexTypography.heading3)
+                            .foregroundStyle(CawnexColors.cardForeground)
+                        Text(message)
+                            .font(CawnexTypography.caption)
+                            .foregroundStyle(CawnexColors.mutedForeground)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, CawnexSpacing.xl)
+                    }
+
+                    Button("Try Again") {
+                        Task { await viewModel.load(projectId: projectId) }
+                    }
+                    .font(CawnexTypography.bodyBold)
+                    .foregroundStyle(CawnexColors.primary)
+
+                    Spacer()
+                }
             }
         }
-        .background(CawnexColors.background)
         .navigationBarHidden(true)
         .task { await viewModel.load(projectId: projectId) }
+    }
+
+    private func navBar(title: String) -> some View {
+        CawnexNavBar(
+            title: title,
+            backColor: CawnexColors.primary,
+            onBack: onBack
+        ) {
+            NavBarIconButton(icon: "rectangle.grid.2x2")
+        }
+        .padding(.horizontal, CawnexSpacing.xl)
+        .padding(.top, CawnexSpacing.sm)
     }
 
     private func hubContent(_ detail: ProjectHubDetail) -> some View {
