@@ -146,8 +146,21 @@ final class APIDocumentService: DocumentService {
     // MARK: - Parse Claude Response
 
     private func parseClaudeResponse(_ content: String) -> ParsedResponse {
+        // Strip markdown fences if present (```json ... ```)
+        var cleaned = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("```") {
+            // Remove opening fence (```json or ```)
+            if let firstNewline = cleaned.firstIndex(of: "\n") {
+                cleaned = String(cleaned[cleaned.index(after: firstNewline)...])
+            }
+            // Remove closing fence
+            if cleaned.hasSuffix("```") {
+                cleaned = String(cleaned.dropLast(3)).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+
         // Try to parse as JSON
-        guard let data = content.data(using: .utf8),
+        guard let data = cleaned.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             // Fallback: treat entire response as the AI message
             return ParsedResponse(isSufficient: false, synthesizedContent: nil, aiMessage: content)
