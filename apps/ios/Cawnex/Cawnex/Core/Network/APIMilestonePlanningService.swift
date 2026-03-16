@@ -90,16 +90,31 @@ final class APIMilestonePlanningService {
         // Parse response — try JSON first, fall back to plain text
         let parsed = parseResponse(response.content)
 
-        // If milestones were proposed, store them
+        // If milestones were proposed, store them and build a synthesized card
+        var synthesized: DocumentSection? = nil
         if let proposed = parsed.milestones {
             milestones = proposed
+            let summary = proposed.enumerated().map { i, m in
+                var line = "M\(i+1): \(m.name) — \(m.description)"
+                if !m.goals.isEmpty {
+                    let goalList = m.goals.map { "  • \($0.name)" }.joined(separator: "\n")
+                    line += "\n\(goalList)"
+                }
+                return line
+            }.joined(separator: "\n\n")
+            synthesized = DocumentSection(
+                id: "milestones",
+                title: "\(proposed.count) Milestones Planned",
+                content: summary,
+                status: .complete
+            )
         }
 
         let aiMsg = ChatMessage(
             id: UUID().uuidString,
             role: .ai,
             content: parsed.message,
-            synthesizedSection: nil
+            synthesizedSection: synthesized
         )
         messages.append(aiMsg)
         return aiMsg
