@@ -31,7 +31,10 @@ struct ServiceFactory {
     }
 
     func makeBacklogService() -> any BacklogService {
-        InMemoryBacklogService(store: store)
+        if let apiClient {
+            return APIBacklogService(client: apiClient)
+        }
+        return InMemoryBacklogService(store: store)
     }
 
     func makeMilestoneService() -> any MilestoneService {
