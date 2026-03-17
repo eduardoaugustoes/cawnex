@@ -1,6 +1,7 @@
 """Goals routes — MVI planning within goals."""
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Annotated, Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -143,7 +144,7 @@ async def save_mvis(
             "name": m.name,
             "description": m.description,
             "acceptance_criteria": m.acceptance_criteria,
-            "estimated_hours": float(m.estimated_hours),
+            "estimated_hours": Decimal(str(m.estimated_hours)),
             "status": m.status,
         }
         for m in body.mvis
@@ -158,7 +159,7 @@ async def save_mvis(
         goal_id=goal_id,
         mvis=mvis_data,
         count=len(mvis_data),
-        total_estimated_hours=float(total_hours),
+        total_estimated_hours=Decimal(str(total_hours)),
         created_at=now,
         updated_at=now,
     )

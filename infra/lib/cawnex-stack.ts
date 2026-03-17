@@ -423,8 +423,14 @@ export class CawnexStack extends cdk.Stack {
       readOnly: false,
     });
 
-    // Grant Worker access to resources
+    // Grant Worker access to resources (table + GSI indexes)
     table.grantReadWriteData(workerTaskDef.taskRole);
+    workerTaskDef.taskRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:Query"],
+        resources: [`${tableArn}/index/*`],
+      })
+    );
     eventsTable.grantReadWriteData(workerTaskDef.taskRole);
     artifactsBucket.grantReadWrite(workerTaskDef.taskRole);
     assetsBucket.grantRead(workerTaskDef.taskRole);
