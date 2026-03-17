@@ -22,6 +22,7 @@ class CreateProjectRequest(BaseModel):
 
     name: str
     one_liner: str = ""
+    repo: str = ""
     murders: List[str] = Field(default=["dev"])
 
 
@@ -83,6 +84,7 @@ async def create_project(
         project_id=project_id,
         name=body.name,
         one_liner=body.one_liner,
+        repo=body.repo,
         murders=murders,
         status="draft",
         created_at=now,
@@ -99,8 +101,8 @@ async def create_project(
         one_liner=body.one_liner,
         murders=murders,
         status="draft",
-        repo=None,
-        repo_status="pending",
+        repo=body.repo or None,
+        repo_status="ready" if body.repo else "pending",
         created_at=now,
         updated_at=now,
         entityType="Snapshot",

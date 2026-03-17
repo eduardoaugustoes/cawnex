@@ -39,12 +39,19 @@ def run_git(
     return result.stdout.strip()
 
 
+def _normalize_repo(repo: str) -> str:
+    """Normalize repo to owner/repo format, stripping full URLs."""
+    repo = repo.removeprefix("https://github.com/").removesuffix(".git")
+    return repo
+
+
 def ensure_repo(
     repo: str,
     efs_mount: str = EFS_MOUNT,
     github_token: str = GITHUB_TOKEN,
 ) -> str:
     """Clone repo to EFS if not present, otherwise fetch. Returns repo dir."""
+    repo = _normalize_repo(repo)
     repo_dir = os.path.join(efs_mount, repo.replace("/", "_"))
     clone_url = f"https://x-access-token:{github_token}@github.com/{repo}.git"
 
@@ -85,7 +92,11 @@ def create_worktree(
 
     run_git("git worktree prune", cwd=repo_dir)
     run_git("git fetch --prune origin", cwd=repo_dir)
-    run_git(f"git branch -D {branch}", cwd=repo_dir, check=False)
+
+    # If branch is main/master, use a crow-scoped branch to avoid collision
+    worktree_branch = branch if branch not in ("main", "master") else f"cawnex/{crow_id}"
+
+    run_git(f"git branch -D {worktree_branch}", cwd=repo_dir, check=False)
 
     # Detect remote branch (sequential crow building on previous push)
     remote_ref = run_git(
@@ -100,7 +111,7 @@ def create_worktree(
     )
 
     run_git(
-        f"git worktree add {worktree_dir} -b {branch} {start_ref}",
+        f"git worktree add {worktree_dir} -b {worktree_branch} {start_ref}",
         cwd=repo_dir,
     )
     run_git('git config user.email "cawnex-worker@cawnex.ai"', cwd=worktree_dir)
@@ -147,6 +158,7 @@ def commit_and_push(
     github_token: str = GITHUB_TOKEN,
 ) -> str:
     """Git add, commit, push. Returns commit SHA or empty if nothing to commit."""
+    repo = _normalize_repo(repo)
     run_git("git add -A", cwd=worktree_dir)
     diff = run_git("git diff --cached --name-only", cwd=worktree_dir, check=False)
     if not diff:
