@@ -13,6 +13,11 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as efs from "aws-cdk-lib/aws-efs";
+import * as events from "aws-cdk-lib/aws-events";
+import * as eventsTargets from "aws-cdk-lib/aws-events-targets";
+import * as iam from "aws-cdk-lib/aws-iam";
+import * as kms from "aws-cdk-lib/aws-kms";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 
 interface CawnexStackProps extends cdk.StackProps {
@@ -55,6 +60,67 @@ export class CawnexStack extends cdk.Stack {
           expiration: cdk.Duration.days(7),
         },
       ],
+    });
+
+    // ─────────────────────────────────────────────
+    // KMS — Vault encryption key
+    // ─────────────────────────────────────────────
+    const vaultKey = new kms.Key(this, "VaultKey", {
+      alias: `alias/cawnex-vault-${stage}`,
+      description: "Encrypts secrets in the Cawnex vault",
+      enableKeyRotation: true,
+      removalPolicy:
+        stage === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+    });
+
+    // ─────────────────────────────────────────────
+    // S3 — Assets bucket (uploads, human task files)
+    // ─────────────────────────────────────────────
+    const assetsBucket = new s3.Bucket(this, "AssetsBucket", {
+      bucketName: `cawnex-assets-${stage}-${this.account}`,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy:
+        stage === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: stage !== "prod",
+      cors: [
+        {
+          allowedOrigins: ["*"],
+          allowedMethods: [
+            s3.HttpMethods.PUT,
+            s3.HttpMethods.GET,
+          ],
+          allowedHeaders: ["*"],
+          maxAge: 3600,
+        },
+      ],
+      lifecycleRules: [
+        {
+          id: "expire-temp-uploads",
+          prefix: "tmp/",
+          expiration: cdk.Duration.days(1),
+        },
+      ],
+    });
+
+    // ─────────────────────────────────────────────
+    // DynamoDB — Events table (separate from main, TTL enabled)
+    // ─────────────────────────────────────────────
+    const eventsTable = new dynamodb.Table(this, "EventsTable", {
+      tableName: `cawnex-events-${stage}`,
+      partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "SK", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: "expires_at",
+      removalPolicy:
+        stage === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+    });
+
+    eventsTable.addGlobalSecondaryIndex({
+      indexName: "GSI1",
+      partitionKey: { name: "GSI1PK", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "GSI1SK", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
     });
 
     // ─────────────────────────────────────────────
@@ -129,10 +195,28 @@ export class CawnexStack extends cdk.Stack {
       "ANTHROPIC_AUTH_SECRET_ARN", anthropicAuthForApi.secretArn
     );
 
+    // Add vault, assets, events, and ECS env vars to API
+    apiFunction.addEnvironment("VAULT_KMS_KEY_ID", vaultKey.keyId);
+    apiFunction.addEnvironment("ASSETS_BUCKET_NAME", assetsBucket.bucketName);
+    apiFunction.addEnvironment("EVENTS_TABLE_NAME", eventsTable.tableName);
+    apiFunction.addEnvironment("ECS_CLUSTER_NAME", `cawnex-${stage}`);
+    apiFunction.addEnvironment("ECS_SERVICE_NAME", `cawnex-worker-${stage}`);
+
     // Grant API access to resources
     table.grantReadWriteData(apiFunction);
+    eventsTable.grantReadWriteData(apiFunction);
     artifactsBucket.grantReadWrite(apiFunction);
+    assetsBucket.grantReadWrite(apiFunction);
+    vaultKey.grantEncrypt(apiFunction);
     taskQueue.grantSendMessages(apiFunction);
+
+    // Allow API to scale ECS worker
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["ecs:UpdateService", "ecs:DescribeServices"],
+        resources: [`arn:aws:ecs:${this.region}:${this.account}:service/cawnex-${stage}/cawnex-worker-${stage}`],
+      })
+    );
 
     // HTTP API (API Gateway v2)
     const httpApi = new apigw.HttpApi(this, "HttpApi", {
@@ -202,8 +286,11 @@ export class CawnexStack extends cdk.Stack {
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
 
+    murderFn.addEnvironment("EVENTS_TABLE_NAME", eventsTable.tableName);
+
     table.grantReadWriteData(murderFn);
     table.grantStreamRead(murderFn);
+    eventsTable.grantReadWriteData(murderFn);
 
     murderFn.addEventSource(
       new lambdaEventSources.DynamoEventSource(table, {
@@ -245,10 +332,54 @@ export class CawnexStack extends cdk.Stack {
       containerInsights: stage === "prod",
     });
 
+    // ─────────────────────────────────────────────
+    // EFS — Persistent repo storage with tenant isolation
+    // ─────────────────────────────────────────────
+    const repoFs = new efs.FileSystem(this, "RepoFileSystem", {
+      fileSystemName: `cawnex-repos-${stage}`,
+      vpc,
+      encrypted: true,
+      performanceMode: efs.PerformanceMode.GENERAL_PURPOSE,
+      throughputMode: efs.ThroughputMode.BURSTING,
+      lifecyclePolicy: efs.LifecyclePolicy.AFTER_30_DAYS,
+      removalPolicy:
+        stage === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+    });
+
+    // Access Point — hard tenant isolation at NFS level
+    // MVP: single access point for dev tenant
+    // Production: create access point per tenant at signup time
+    const devAccessPoint = repoFs.addAccessPoint("DevTenantAP", {
+      path: "/T/dev-tenant",
+      posixUser: { uid: "1000", gid: "1000" },
+      createAcl: { ownerUid: "1000", ownerGid: "1000", permissions: "750" },
+    });
+
+    // Restrict NFS traffic to ECS security group only
+    const workerSg = new ec2.SecurityGroup(this, "WorkerSG", {
+      vpc,
+      description: "Worker ECS tasks",
+      allowAllOutbound: true,
+    });
+    repoFs.connections.allowDefaultPortFrom(workerSg, "ECS worker NFS access");
+
     const workerTaskDef = new ecs.FargateTaskDefinition(this, "WorkerTask", {
       family: `cawnex-worker-${stage}`,
       cpu: 1024, // 1 vCPU
       memoryLimitMiB: 2048, // 2 GB
+    });
+
+    // Mount EFS via Access Point
+    workerTaskDef.addVolume({
+      name: "repos",
+      efsVolumeConfiguration: {
+        fileSystemId: repoFs.fileSystemId,
+        transitEncryption: "ENABLED",
+        authorizationConfig: {
+          accessPointId: devAccessPoint.accessPointId,
+          iam: "ENABLED",
+        },
+      },
     });
 
     // Runtime secrets from AWS Secrets Manager
@@ -259,7 +390,7 @@ export class CawnexStack extends cdk.Stack {
       this, "AnthropicAuthSecret", `cawnex/${stage}/anthropic-auth-token`
     );
 
-    workerTaskDef.addContainer("worker", {
+    const workerContainer = workerTaskDef.addContainer("worker", {
       containerName: "murder",
       image: ecs.ContainerImage.fromAsset("..", {
         file: "apps/worker/Dockerfile",
@@ -271,11 +402,14 @@ export class CawnexStack extends cdk.Stack {
       environment: {
         STAGE: stage,
         TABLE_NAME: tableName,
+        EVENTS_TABLE_NAME: eventsTable.tableName,
         BUCKET_NAME: artifactsBucket.bucketName,
         QUEUE_URL: taskQueue.queueUrl,
         ANTHROPIC_MODEL: "claude-sonnet-4-20250514",
         EFS_MOUNT: "/mnt/repos",
         MEMORY_INJECTION_ENABLED: "true",
+        VAULT_KMS_KEY_ID: vaultKey.keyId,
+        ASSETS_BUCKET_NAME: assetsBucket.bucketName,
       },
       secrets: {
         GITHUB_TOKEN: ecs.Secret.fromSecretsManager(githubTokenSecret),
@@ -283,19 +417,31 @@ export class CawnexStack extends cdk.Stack {
       },
     });
 
+    workerContainer.addMountPoints({
+      containerPath: "/mnt/repos",
+      sourceVolume: "repos",
+      readOnly: false,
+    });
+
     // Grant Worker access to resources
     table.grantReadWriteData(workerTaskDef.taskRole);
+    eventsTable.grantReadWriteData(workerTaskDef.taskRole);
     artifactsBucket.grantReadWrite(workerTaskDef.taskRole);
+    assetsBucket.grantRead(workerTaskDef.taskRole);
+    vaultKey.grantDecrypt(workerTaskDef.taskRole);
     taskQueue.grantConsumeMessages(workerTaskDef.taskRole);
-    taskQueue.grantSendMessages(workerTaskDef.taskRole); // for re-queue
+    taskQueue.grantSendMessages(workerTaskDef.taskRole);
+    repoFs.grantReadWrite(workerTaskDef.taskRole);
 
-    // Worker needs to call LLM APIs (BYOL) — outbound internet
-    const _workerService = new ecs.FargateService(this, "WorkerService", {
+    // Worker ECS service — outbound internet for LLM APIs + GitHub
+    const workerService = new ecs.FargateService(this, "WorkerService", {
       serviceName: `cawnex-worker-${stage}`,
       cluster,
       taskDefinition: workerTaskDef,
-      desiredCount: stage === "prod" ? 1 : 0, // scale to zero in dev
-      assignPublicIp: stage !== "prod", // public subnet in dev (no NAT)
+      desiredCount: 0, // wave activation scales up, scaler scales down
+      assignPublicIp: stage !== "prod",
+      securityGroups: [workerSg],
+      platformVersion: ecs.FargatePlatformVersion.VERSION1_4, // required for EFS
       capacityProviderStrategies: [
         {
           capacityProvider: "FARGATE_SPOT",
@@ -306,6 +452,106 @@ export class CawnexStack extends cdk.Stack {
           weight: stage === "prod" ? 1 : 0,
         },
       ],
+    });
+
+    // ─────────────────────────────────────────────
+    // Lambda — Checker (scheduled verification)
+    // ─────────────────────────────────────────────
+    const checkerFn = new lambda.Function(this, "CheckerFunction", {
+      functionName: `cawnex-checker-${stage}`,
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: "handler.lambda_handler",
+      code: lambda.Code.fromAsset("../lambdas/orchestration/checker"),
+      memorySize: 256,
+      timeout: cdk.Duration.seconds(60),
+      architecture: lambda.Architecture.ARM_64,
+      environment: {
+        TABLE_NAME: tableName,
+        STAGE: stage,
+        QUEUE_URL: taskQueue.queueUrl,
+      },
+      logRetention: logs.RetentionDays.ONE_MONTH,
+    });
+
+    table.grantReadWriteData(checkerFn);
+    taskQueue.grantSendMessages(checkerFn);
+
+    // Run checker every hour
+    new events.Rule(this, "CheckerSchedule", {
+      ruleName: `cawnex-checker-${stage}`,
+      schedule: events.Schedule.rate(cdk.Duration.hours(1)),
+      targets: [new eventsTargets.LambdaFunction(checkerFn)],
+    });
+
+    // ─────────────────────────────────────────────
+    // Lambda — SSE (Server-Sent Events streaming)
+    // ─────────────────────────────────────────────
+    const sseFn = new lambda.Function(this, "SSEFunction", {
+      functionName: `cawnex-sse-${stage}`,
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: "handler.handler",
+      code: lambda.Code.fromAsset("../lambdas/sse"),
+      memorySize: 256,
+      timeout: cdk.Duration.minutes(15),
+      architecture: lambda.Architecture.ARM_64,
+      environment: {
+        EVENTS_TABLE_NAME: eventsTable.tableName,
+        TABLE_NAME: tableName,
+        USER_POOL_ID: userPoolId,
+        COGNITO_DOMAIN: cognitoDomain,
+        AWS_REGION_NAME: this.region,
+        STAGE: stage,
+      },
+      logRetention: logs.RetentionDays.ONE_MONTH,
+    });
+
+    eventsTable.grantReadData(sseFn);
+    table.grantReadData(sseFn);
+
+    const sseUrl = sseFn.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE, // JWT validated in code
+      invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+      cors: {
+        allowedOrigins: ["*"],
+        allowedMethods: [lambda.HttpMethod.GET],
+        allowedHeaders: ["Authorization", "Content-Type"],
+        maxAge: cdk.Duration.hours(1),
+      },
+    });
+
+    // ─────────────────────────────────────────────
+    // Lambda — Worker Scaler (auto scale-down)
+    // ─────────────────────────────────────────────
+    const scalerFn = new lambda.Function(this, "WorkerScalerFunction", {
+      functionName: `cawnex-worker-scaler-${stage}`,
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: "handler.lambda_handler",
+      code: lambda.Code.fromAsset("../lambdas/orchestration/worker-scaler"),
+      memorySize: 128,
+      timeout: cdk.Duration.seconds(30),
+      architecture: lambda.Architecture.ARM_64,
+      environment: {
+        TABLE_NAME: tableName,
+        ECS_CLUSTER_NAME: `cawnex-${stage}`,
+        ECS_SERVICE_NAME: `cawnex-worker-${stage}`,
+        STAGE: stage,
+      },
+      logRetention: logs.RetentionDays.ONE_MONTH,
+    });
+
+    table.grantReadData(scalerFn);
+    scalerFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["ecs:UpdateService", "ecs:DescribeServices"],
+        resources: [`arn:aws:ecs:${this.region}:${this.account}:service/cawnex-${stage}/cawnex-worker-${stage}`],
+      })
+    );
+
+    // Run scaler every 15 minutes
+    new events.Rule(this, "WorkerScalerSchedule", {
+      ruleName: `cawnex-worker-scaler-${stage}`,
+      schedule: events.Schedule.rate(cdk.Duration.minutes(15)),
+      targets: [new eventsTargets.LambdaFunction(scalerFn)],
     });
 
     // ─────────────────────────────────────────────
@@ -348,6 +594,31 @@ export class CawnexStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, "QueueUrl", {
       value: taskQueue.queueUrl,
+    });
+
+    new cdk.CfnOutput(this, "AssetsBucketName", {
+      value: assetsBucket.bucketName,
+      description: "S3 bucket for human task file uploads",
+    });
+
+    new cdk.CfnOutput(this, "VaultKeyId", {
+      value: vaultKey.keyId,
+      description: "KMS key for vault encryption",
+    });
+
+    new cdk.CfnOutput(this, "EventsTableName", {
+      value: eventsTable.tableName,
+      description: "DynamoDB events table (separate from main, TTL enabled)",
+    });
+
+    new cdk.CfnOutput(this, "SSEUrl", {
+      value: sseUrl.url,
+      description: "Lambda Function URL for SSE event streaming",
+    });
+
+    new cdk.CfnOutput(this, "RepoFileSystemId", {
+      value: repoFs.fileSystemId,
+      description: "EFS filesystem for git repos",
     });
 
     // Note: PostConfirmation Lambda is handled entirely in AuthStack
