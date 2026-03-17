@@ -14,7 +14,7 @@ DOC_TYPES = ["vision", "architecture", "glossary", "design"]
 
 
 @router.get("/hub")
-async def get_project_hub(
+async def get_project_hub(  # noqa: C901
     project_id: str,
     tenant: Annotated[TenantContext, Depends(get_tenant)],
 ) -> Dict[str, Any]:
@@ -50,6 +50,36 @@ async def get_project_hub(
     ai_cost = float(project.get("ai_cost_usd", 0) or 0)
     ai_calls = int(project.get("ai_call_count", 0) or 0)
 
+    # Wave and execution stats
+    wave_items = db.query_project(project_id=project_id, sk_prefix="S#")
+    active_waves = 0
+    pending_ship = 0
+    pending_human_tasks = 0
+    total_budget_spent = 0
+    total_budget_limit = 0
+
+    for item in wave_items:
+        level = item.get("level", "")
+        if level == "wave":
+            status = item.get("status", "")
+            if status in ("executing", "paused"):
+                active_waves += 1
+            budget = item.get("budget", {})
+            total_budget_spent += int(budget.get("spent", 0))
+            total_budget_limit += int(budget.get("limit", 0))
+        elif level == "murder":
+            if item.get("status") == "ready_to_ship":
+                pending_ship += 1
+        elif level == "crow" and item.get("task_type") == "human":
+            ht_status = item.get("status", "")
+            if ht_status in (
+                "pending",
+                "notified",
+                "in_progress",
+                "verification_failed",
+            ):
+                pending_human_tasks += 1
+
     return {
         "project": {
             "id": project_id,
@@ -66,5 +96,12 @@ async def get_project_hub(
             "pending_approvals": 0,
             "ai_cost_usd": ai_cost,
             "ai_call_count": ai_calls,
+        },
+        "waves": {
+            "active_count": active_waves,
+            "pending_ship": pending_ship,
+            "pending_human_tasks": pending_human_tasks,
+            "budget_spent": total_budget_spent,
+            "budget_limit": total_budget_limit,
         },
     }

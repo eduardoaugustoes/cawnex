@@ -16,9 +16,11 @@ from src.routes import (
     goals,
     health,
     hub,
+    human_tasks,
     milestones,
     mvi,
     projects,
+    vault,
     waves,
 )
 
@@ -45,3 +47,5 @@ app.include_router(hub.router)
 app.include_router(milestones.router)
 app.include_router(goals.router)
 app.include_router(documents.router)
+app.include_router(human_tasks.router)
+app.include_router(vault.router)
