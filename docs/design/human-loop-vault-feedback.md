@@ -8,14 +8,14 @@
 
 ## Problems Solved
 
-| #   | Problem                                                           |
-| --- | ----------------------------------------------------------------- |
-| 2   | Human must stay in control (approve, steer, reject)               |
-| 7   | Failure resilience (retry, fix, escalate)                         |
-| NEW | Tasks that depend on human actions outside the platform           |
-| NEW | Crows need credentials but should never see raw values            |
-| NEW | External dependencies discovered mid-execution must not deadlock  |
-| NEW | Blocked tasks must communicate clearly what they need and why     |
+| #   | Problem                                                          |
+| --- | ---------------------------------------------------------------- |
+| 2   | Human must stay in control (approve, steer, reject)              |
+| 7   | Failure resilience (retry, fix, escalate)                        |
+| NEW | Tasks that depend on human actions outside the platform          |
+| NEW | Crows need credentials but should never see raw values           |
+| NEW | External dependencies discovered mid-execution must not deadlock |
+| NEW | Blocked tasks must communicate clearly what they need and why    |
 
 ---
 
@@ -23,15 +23,15 @@
 
 The Caioo project (M1: WhatsApp Channel Foundation) surfaces every gap:
 
-| Dependency                         | Type           | Who         | Duration  | Blocks              |
-| ---------------------------------- | -------------- | ----------- | --------- | -------------------- |
-| Buy e-SIM number                   | Physical       | Eduardo     | 5 days    | g1, g2, g3, g5       |
-| Meta Business App approval         | External       | Meta        | 7 days    | g1 templates         |
-| Meta template approval             | External       | Meta        | 3 days    | g2 outbound          |
-| WhatsApp Business API token        | Credential     | Eduardo     | After app | g2, g3, g5           |
-| Webhook verification token         | Credential     | Eduardo     | After app | g3                   |
-| Upload message template content    | Content        | Eduardo     | 1 hour    | g2                   |
-| Dashboard design mockup            | Asset          | Eduardo     | 2 hours   | g4                   |
+| Dependency                      | Type       | Who     | Duration  | Blocks         |
+| ------------------------------- | ---------- | ------- | --------- | -------------- |
+| Buy e-SIM number                | Physical   | Eduardo | 5 days    | g1, g2, g3, g5 |
+| Meta Business App approval      | External   | Meta    | 7 days    | g1 templates   |
+| Meta template approval          | External   | Meta    | 3 days    | g2 outbound    |
+| WhatsApp Business API token     | Credential | Eduardo | After app | g2, g3, g5     |
+| Webhook verification token      | Credential | Eduardo | After app | g3             |
+| Upload message template content | Content    | Eduardo | 1 hour    | g2             |
+| Dashboard design mockup         | Asset      | Eduardo | 2 hours   | g4             |
 
 Every single goal has at least one human dependency. Without this design, the engine would spin up crows that immediately fail or produce unusable output.
 
@@ -55,15 +55,15 @@ Every task in the system gets an explicit type. Crow tasks are dispatched to wor
 
 ### Human Task Subtypes
 
-| Subtype           | Description                                    | Example                                      |
-| ----------------- | ---------------------------------------------- | -------------------------------------------- |
-| `provide_secret`  | User must supply a credential or API key       | WhatsApp Business API token                  |
-| `upload_asset`    | User must upload a file, image, or document    | Logo image (PNG/SVG), reference PDF          |
-| `fill_content`    | User must write or paste text content          | Message template body text                   |
-| `configure_ext`   | User must configure an external platform       | Meta Business Manager setup                  |
-| `physical_action` | User must do something in the physical world   | Buy e-SIM, mail a document                   |
-| `wait_external`   | Waiting for an external party (no user action) | Meta template approval (3 day wait)          |
-| `confirm`         | User must confirm something happened           | "Did you receive the e-SIM?"                 |
+| Subtype           | Description                                    | Example                             |
+| ----------------- | ---------------------------------------------- | ----------------------------------- |
+| `provide_secret`  | User must supply a credential or API key       | WhatsApp Business API token         |
+| `upload_asset`    | User must upload a file, image, or document    | Logo image (PNG/SVG), reference PDF |
+| `fill_content`    | User must write or paste text content          | Message template body text          |
+| `configure_ext`   | User must configure an external platform       | Meta Business Manager setup         |
+| `physical_action` | User must do something in the physical world   | Buy e-SIM, mail a document          |
+| `wait_external`   | Waiting for an external party (no user action) | Meta template approval (3 day wait) |
+| `confirm`         | User must confirm something happened           | "Did you receive the e-SIM?"        |
 
 ### Human Task Lifecycle
 
@@ -118,10 +118,7 @@ Lives in the same snapshot tree as crow tasks. Same PK, same SK pattern.
   "estimated_human_hours": 1,
   "deadline_hint": "2026-03-21T00:00:00Z",
 
-  "blocks": [
-    "S#w001#m_dev#cr_meta_setup",
-    "S#w001#m_dev#cr_outbound_api"
-  ],
+  "blocks": ["S#w001#m_dev#cr_meta_setup", "S#w001#m_dev#cr_outbound_api"],
 
   "response": null,
   "steer": null,
@@ -152,18 +149,18 @@ The `input_schema` defines what the human must provide. It supports rich validat
 
 #### Field Types
 
-| Type       | Description                         | iOS Renders As            | Validation                              |
-| ---------- | ----------------------------------- | ------------------------- | --------------------------------------- |
-| `string`   | Plain text input                    | Text field                | `pattern`, `minLength`, `maxLength`     |
-| `text`     | Multi-line text                     | Text area                 | `minLength`, `maxLength`                |
-| `secret`   | Sensitive credential                | Password field (masked)   | `pattern`, routes to vault on submit    |
-| `file`     | File upload (image, PDF, document)  | File picker + upload      | `accept`, `maxSizeMB`                   |
-| `url`      | URL input                           | URL field with validation | Auto-validates URL format               |
-| `email`    | Email input                         | Email field               | Auto-validates email format             |
-| `color`    | Color value                         | Color picker              | Hex format `#RRGGBB`                    |
-| `enum`     | Pick from allowed values            | Dropdown / segmented      | `options` array                         |
-| `boolean`  | Yes/No confirmation                 | Toggle / checkbox         | N/A                                     |
-| `number`   | Numeric input                       | Number field              | `min`, `max`                            |
+| Type      | Description                        | iOS Renders As            | Validation                           |
+| --------- | ---------------------------------- | ------------------------- | ------------------------------------ |
+| `string`  | Plain text input                   | Text field                | `pattern`, `minLength`, `maxLength`  |
+| `text`    | Multi-line text                    | Text area                 | `minLength`, `maxLength`             |
+| `secret`  | Sensitive credential               | Password field (masked)   | `pattern`, routes to vault on submit |
+| `file`    | File upload (image, PDF, document) | File picker + upload      | `accept`, `maxSizeMB`                |
+| `url`     | URL input                          | URL field with validation | Auto-validates URL format            |
+| `email`   | Email input                        | Email field               | Auto-validates email format          |
+| `color`   | Color value                        | Color picker              | Hex format `#RRGGBB`                 |
+| `enum`    | Pick from allowed values           | Dropdown / segmented      | `options` array                      |
+| `boolean` | Yes/No confirmation                | Toggle / checkbox         | N/A                                  |
+| `number`  | Numeric input                      | Number field              | `min`, `max`                         |
 
 #### Validation Properties
 
@@ -235,18 +232,18 @@ Human submits response via iOS
 
 ### 10 Real-World Examples with Schema
 
-| # | Scenario | Schema | Score |
-|---|----------|--------|-------|
-| 1 | **Logo image** | `{ logo: { type: "file", accept: ["image/png","image/svg+xml"], maxSizeMB: 5, minResolution: {w:512,h:512} } }` | 9/10 |
-| 2 | **Meta Access Token** | `{ token: { type: "secret", pattern: "^EAAGm0.+", pattern_hint: "Starts with EAAGm0..." } }` | 10/10 |
-| 3 | **PDF reference doc** | `{ document: { type: "file", accept: ["application/pdf"], maxSizeMB: 20 }, post_processing: "extract_text" }` | 9/10 |
-| 4 | **e-SIM phone number** | `{ phone: { type: "string", pattern: "^\\+[1-9]\\d{1,14}$", pattern_hint: "E.164: +5511999999999" } }` | 10/10 |
-| 5 | **Meta Business config** | `{ confirmed: { type: "boolean", label: "I have configured Meta Business Manager" }, verification: { crow_check: "call Meta API to validate WABA status" } }` | 9/10 |
-| 6 | **Webhook verify token** | `{ token: { type: "secret", minLength: 8, description: "Any random string you set in Meta" } }` | 10/10 |
-| 7 | **Message template content** | `{ body: { type: "text", maxLength: 1024 }, header: { type: "string", maxLength: 60 }, has_variables: { type: "boolean" } }` | 9/10 |
-| 8 | **Wait for Meta approval** | No input needed — `wait_external` with checker pattern | 9/10 |
-| 9 | **Brand color palette** | `{ primary: { type: "color" }, secondary: { type: "color" }, accent: { type: "color" } }` | 9/10 |
-| 10 | **Domain/DNS config** | `{ domain: { type: "url" }, verification: { crow_check: "DNS lookup to verify A/CNAME record" } }` | 9/10 |
+| #   | Scenario                     | Schema                                                                                                                                                        | Score |
+| --- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1   | **Logo image**               | `{ logo: { type: "file", accept: ["image/png","image/svg+xml"], maxSizeMB: 5, minResolution: {w:512,h:512} } }`                                               | 9/10  |
+| 2   | **Meta Access Token**        | `{ token: { type: "secret", pattern: "^EAAGm0.+", pattern_hint: "Starts with EAAGm0..." } }`                                                                  | 10/10 |
+| 3   | **PDF reference doc**        | `{ document: { type: "file", accept: ["application/pdf"], maxSizeMB: 20 }, post_processing: "extract_text" }`                                                 | 9/10  |
+| 4   | **e-SIM phone number**       | `{ phone: { type: "string", pattern: "^\\+[1-9]\\d{1,14}$", pattern_hint: "E.164: +5511999999999" } }`                                                        | 10/10 |
+| 5   | **Meta Business config**     | `{ confirmed: { type: "boolean", label: "I have configured Meta Business Manager" }, verification: { crow_check: "call Meta API to validate WABA status" } }` | 9/10  |
+| 6   | **Webhook verify token**     | `{ token: { type: "secret", minLength: 8, description: "Any random string you set in Meta" } }`                                                               | 10/10 |
+| 7   | **Message template content** | `{ body: { type: "text", maxLength: 1024 }, header: { type: "string", maxLength: 60 }, has_variables: { type: "boolean" } }`                                  | 9/10  |
+| 8   | **Wait for Meta approval**   | No input needed — `wait_external` with checker pattern                                                                                                        | 9/10  |
+| 9   | **Brand color palette**      | `{ primary: { type: "color" }, secondary: { type: "color" }, accent: { type: "color" } }`                                                                     | 9/10  |
+| 10  | **Domain/DNS config**        | `{ domain: { type: "url" }, verification: { crow_check: "DNS lookup to verify A/CNAME record" } }`                                                            | 9/10  |
 
 ### File Upload Flow (S3 Presigned URLs)
 
@@ -304,11 +301,11 @@ cawnex-assets-{stage}/
 
 Some uploaded files need processing before Crows can use them. The `post_processing` field on a file schema field tells the system what to do after upload.
 
-| Processing Type  | Trigger                    | Output                                      | Used For                |
-| ---------------- | -------------------------- | -------------------------------------------- | ----------------------- |
-| `extract_text`   | PDF or document upload     | Plain text stored in `extracted/` prefix     | Reference docs, formulas|
-| `extract_meta`   | Image upload               | Dimensions, format, color profile            | Design assets           |
-| `none`           | Default                    | File stored as-is                            | Logos, icons            |
+| Processing Type | Trigger                | Output                                   | Used For                 |
+| --------------- | ---------------------- | ---------------------------------------- | ------------------------ |
+| `extract_text`  | PDF or document upload | Plain text stored in `extracted/` prefix | Reference docs, formulas |
+| `extract_meta`  | Image upload           | Dimensions, format, color profile        | Design assets            |
+| `none`          | Default                | File stored as-is                        | Logos, icons             |
 
 ```
 Post-processing flow:
@@ -487,6 +484,7 @@ GET /projects/{pid}/human-tasks/{htid}
 A new section appears in the Project Hub (S12): **"Needs Your Input"** — a card showing the count of pending human tasks. Tapping it opens a list of human tasks with clear instructions and input fields.
 
 Each human task card shows:
+
 - What is needed (plain language)
 - Why it is needed (which goals it unblocks)
 - Input fields matching the `input_schema`
@@ -534,10 +532,10 @@ For V1, secrets are stored as encrypted DynamoDB items. No need for AWS Secrets 
 
 ### Secret Scoping
 
-| Scope     | PK                         | SK Pattern                    | Visible To                    |
-| --------- | -------------------------- | ----------------------------- | ----------------------------- |
-| Project   | `T#{tenant}#VAULT`         | `P#{project}#{secret_name}`   | Crows working on this project |
-| Tenant    | `T#{tenant}#VAULT`         | `TENANT#{secret_name}`        | All crows for this tenant     |
+| Scope   | PK                 | SK Pattern                  | Visible To                    |
+| ------- | ------------------ | --------------------------- | ----------------------------- |
+| Project | `T#{tenant}#VAULT` | `P#{project}#{secret_name}` | Crows working on this project |
+| Tenant  | `T#{tenant}#VAULT` | `TENANT#{secret_name}`      | All crows for this tenant     |
 
 Project-scoped secrets take precedence over tenant-scoped secrets with the same name.
 
@@ -624,11 +622,11 @@ Existing:  pending → running → completed | failed
 New:       pending → running → blocked_on_human | blocked_on_secret | blocked_on_external
 ```
 
-| Status               | Meaning                                                | Next Step                              |
-| -------------------- | ------------------------------------------------------ | -------------------------------------- |
-| `blocked_on_human`   | Crow discovered it needs human input mid-execution     | Creates human task, pauses, notifies   |
-| `blocked_on_secret`  | Crow needs a credential that does not exist in vault   | Creates provide_secret task, notifies  |
-| `blocked_on_external`| Waiting for external system (API approval, DNS, etc.)  | Creates wait_external task, notifies   |
+| Status                | Meaning                                               | Next Step                             |
+| --------------------- | ----------------------------------------------------- | ------------------------------------- |
+| `blocked_on_human`    | Crow discovered it needs human input mid-execution    | Creates human task, pauses, notifies  |
+| `blocked_on_secret`   | Crow needs a credential that does not exist in vault  | Creates provide_secret task, notifies |
+| `blocked_on_external` | Waiting for external system (API approval, DNS, etc.) | Creates wait_external task, notifies  |
 
 ### Feedback Loop: Credential Failure
 
@@ -909,6 +907,7 @@ Human completes a human task or provides a secret
 ### Why Input Is Never Lost
 
 Even if the wave/MVI has moved on, the human's input persists:
+
 - **Secrets** → stored in vault (`T#{tenant}#VAULT` partition), available to any future wave
 - **Files** → stored in S3 (`cawnex-assets-{stage}/`), referenced by asset_key
 - **Context** → extracted text stored in `CTX#` records, available via `{{context:...}}`
@@ -987,17 +986,17 @@ Every time a task enters a blocked state, a notification is created:
 
 ### Notification Types (Extended)
 
-| Type                    | Severity          | Trigger                                     | Action                    |
-| ----------------------- | ----------------- | ------------------------------------------- | ------------------------- |
-| `task_blocked`          | action_required   | Task enters blocked state                   | Respond to human task     |
-| `secret_needed`         | action_required   | Crow needs a credential not in vault        | Provide via vault UI      |
-| `secret_expired`        | action_required   | Credential failed (401/403)                 | Rotate via vault UI       |
-| `external_waiting`      | info              | Task waiting on external party              | No action (informational) |
-| `external_resolved`     | info              | External dependency resolved                | No action (work resumes)  |
-| `dependency_discovered` | action_required   | Crow discovered new requirement mid-task    | Review and provide input  |
-| `wave_proposed`         | approval_required | Wave plan ready for review                  | Approve / revise / reject |
-| `mvi_ready`             | approval_required | MVI ready to ship                           | Review and ship           |
-| `budget_warning`        | warning           | 80% of wave budget consumed                 | Increase or reduce scope  |
+| Type                    | Severity          | Trigger                                  | Action                    |
+| ----------------------- | ----------------- | ---------------------------------------- | ------------------------- |
+| `task_blocked`          | action_required   | Task enters blocked state                | Respond to human task     |
+| `secret_needed`         | action_required   | Crow needs a credential not in vault     | Provide via vault UI      |
+| `secret_expired`        | action_required   | Credential failed (401/403)              | Rotate via vault UI       |
+| `external_waiting`      | info              | Task waiting on external party           | No action (informational) |
+| `external_resolved`     | info              | External dependency resolved             | No action (work resumes)  |
+| `dependency_discovered` | action_required   | Crow discovered new requirement mid-task | Review and provide input  |
+| `wave_proposed`         | approval_required | Wave plan ready for review               | Approve / revise / reject |
+| `mvi_ready`             | approval_required | MVI ready to ship                        | Review and ship           |
+| `budget_warning`        | warning           | 80% of wave budget consumed              | Increase or reduce scope  |
 
 ---
 
@@ -1089,14 +1088,14 @@ Eduardo provides corrected token
 
 ### Contract Extensions
 
-| Contract   | Current                          | Extension                                              |
-| ---------- | -------------------------------- | ------------------------------------------------------ |
-| Contract 1 | API creates wave + MVI snapshots | Also creates human task snapshots from planner output   |
-| Contract 2 | Murder assigns crow tasks        | Murder also creates human tasks + checks vault          |
-| Contract 3 | Worker completes crow tasks      | Worker can set blocked_on_* status instead of completed |
-| Contract 4 | Murder marks MVI ready_to_ship   | Only when all tasks (crow AND human) are completed      |
-| Contract 5 | API ships MVI                    | No change                                               |
-| Contract 6 | Stream updates materialized views| Also processes human task completions and unblocking    |
+| Contract   | Current                           | Extension                                                |
+| ---------- | --------------------------------- | -------------------------------------------------------- |
+| Contract 1 | API creates wave + MVI snapshots  | Also creates human task snapshots from planner output    |
+| Contract 2 | Murder assigns crow tasks         | Murder also creates human tasks + checks vault           |
+| Contract 3 | Worker completes crow tasks       | Worker can set blocked*on*\* status instead of completed |
+| Contract 4 | Murder marks MVI ready_to_ship    | Only when all tasks (crow AND human) are completed       |
+| Contract 5 | API ships MVI                     | No change                                                |
+| Contract 6 | Stream updates materialized views | Also processes human task completions and unblocking     |
 
 ### New Contract: Contract 7 — Human Task Response
 
@@ -1264,22 +1263,22 @@ class NotificationType(str, Enum):
 
 ### What to Build First (V1 Scope)
 
-| Priority | Component                           | Why First                                                       |
-| -------- | ----------------------------------- | --------------------------------------------------------------- |
-| P0       | Human task records + API endpoints  | Without this, no real project can start (every goal has human deps) |
-| P0       | Input schema with validation        | Inputs must be validated before Crows use them — garbage in = failure |
-| P0       | Vault (DynamoDB + KMS)              | Crows need credentials to call external APIs                    |
-| P0       | Murder blocking logic               | Murder must skip blocked tasks and dispatch non-blocked ones    |
-| P0       | Notification for human tasks        | Human must know what the AI needs                               |
-| P1       | File upload (S3 presigned URLs)     | Logo images, reference PDFs are common from Day 1               |
-| P1       | Secret resolution in Worker         | Worker must resolve {{secret:...}} before crow execution        |
-| P1       | Feedback loop (credential failure)  | Most common real-world failure mode                             |
-| P1       | Unblocking flow (stream-triggered)  | Automatic resume when human provides input                      |
-| P1       | Verification step (crow checks)     | Don't trust "I configured DNS" — verify it                      |
-| P2       | PDF/doc post-processing             | Extract text for Crow context — can paste text manually in V1   |
-| P2       | External check pattern              | Needed for Meta approval wait, but can be manual in V1          |
-| P2       | iOS human task UI                   | Can use existing notification UI + API calls for V1             |
-| P2       | Circular dependency detection       | Good practice but unlikely in V1 with simple task graphs        |
+| Priority | Component                          | Why First                                                             |
+| -------- | ---------------------------------- | --------------------------------------------------------------------- |
+| P0       | Human task records + API endpoints | Without this, no real project can start (every goal has human deps)   |
+| P0       | Input schema with validation       | Inputs must be validated before Crows use them — garbage in = failure |
+| P0       | Vault (DynamoDB + KMS)             | Crows need credentials to call external APIs                          |
+| P0       | Murder blocking logic              | Murder must skip blocked tasks and dispatch non-blocked ones          |
+| P0       | Notification for human tasks       | Human must know what the AI needs                                     |
+| P1       | File upload (S3 presigned URLs)    | Logo images, reference PDFs are common from Day 1                     |
+| P1       | Secret resolution in Worker        | Worker must resolve {{secret:...}} before crow execution              |
+| P1       | Feedback loop (credential failure) | Most common real-world failure mode                                   |
+| P1       | Unblocking flow (stream-triggered) | Automatic resume when human provides input                            |
+| P1       | Verification step (crow checks)    | Don't trust "I configured DNS" — verify it                            |
+| P2       | PDF/doc post-processing            | Extract text for Crow context — can paste text manually in V1         |
+| P2       | External check pattern             | Needed for Meta approval wait, but can be manual in V1                |
+| P2       | iOS human task UI                  | Can use existing notification UI + API calls for V1                   |
+| P2       | Circular dependency detection      | Good practice but unlikely in V1 with simple task graphs              |
 
 ### What NOT to Build in V1
 
@@ -1333,19 +1332,25 @@ const assetsBucket = new s3.Bucket(this, "AssetsBucket", {
   bucketName: `cawnex-assets-${stage}`,
   encryption: s3.BucketEncryption.S3_MANAGED,
   blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-  cors: [{
-    allowedMethods: [s3.HttpMethods.PUT],
-    allowedOrigins: ["*"],  // iOS uploads directly
-    allowedHeaders: ["Content-Type"],
-    maxAge: 300,
-  }],
-  lifecycleRules: [{
-    prefix: "T/",
-    transitions: [{
-      storageClass: s3.StorageClass.INFREQUENT_ACCESS,
-      transitionAfter: Duration.days(90),
-    }],
-  }],
+  cors: [
+    {
+      allowedMethods: [s3.HttpMethods.PUT],
+      allowedOrigins: ["*"], // iOS uploads directly
+      allowedHeaders: ["Content-Type"],
+      maxAge: 300,
+    },
+  ],
+  lifecycleRules: [
+    {
+      prefix: "T/",
+      transitions: [
+        {
+          storageClass: s3.StorageClass.INFREQUENT_ACCESS,
+          transitionAfter: Duration.days(90),
+        },
+      ],
+    },
+  ],
 });
 ```
 

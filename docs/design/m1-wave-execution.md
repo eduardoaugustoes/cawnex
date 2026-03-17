@@ -18,17 +18,17 @@ Plan MVIs (exists) → Create Wave (SM2) → Activate (SM2) →
 
 ## Decisions Made
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Worker runtime | ECS Fargate (not Lambda) | Crows need git, worktrees, persistent repo cache |
-| Repo storage | EFS with Access Points | Hard isolation by design — no application-level guards |
-| Tenant isolation | EFS Access Point per tenant | NFS-level enforcement, no path traversal possible |
-| Instances | 1 for MVP | Sequential crows, Claude API latency dominates |
-| Scale-up | Wave activation sets desiredCount=1 | Zero cost when idle |
-| Scale-down | EventBridge checks every 15min | Auto-shutdown after work completes |
-| Events | Separate DynamoDB table with TTL | No bloat in main table, no false Murder triggers |
-| Real-time UI | SSE via Lambda Function URL (streaming) | <1s latency, no API GW timeout issue |
-| ECS warm-up | Synthetic events written at activation time | Founder sees full lifecycle from "warming up" to "crow working" |
+| Decision         | Choice                                      | Rationale                                                       |
+| ---------------- | ------------------------------------------- | --------------------------------------------------------------- |
+| Worker runtime   | ECS Fargate (not Lambda)                    | Crows need git, worktrees, persistent repo cache                |
+| Repo storage     | EFS with Access Points                      | Hard isolation by design — no application-level guards          |
+| Tenant isolation | EFS Access Point per tenant                 | NFS-level enforcement, no path traversal possible               |
+| Instances        | 1 for MVP                                   | Sequential crows, Claude API latency dominates                  |
+| Scale-up         | Wave activation sets desiredCount=1         | Zero cost when idle                                             |
+| Scale-down       | EventBridge checks every 15min              | Auto-shutdown after work completes                              |
+| Events           | Separate DynamoDB table with TTL            | No bloat in main table, no false Murder triggers                |
+| Real-time UI     | SSE via Lambda Function URL (streaming)     | <1s latency, no API GW timeout issue                            |
+| ECS warm-up      | Synthetic events written at activation time | Founder sees full lifecycle from "warming up" to "crow working" |
 
 ## Sub-Milestones
 
@@ -39,6 +39,7 @@ Plan MVIs (exists) → Create Wave (SM2) → Activate (SM2) →
 #### CDK Changes (`infra/lib/cawnex-stack.ts`)
 
 **EFS:**
+
 - New EFS filesystem `cawnex-repos-{stage}`
   - Encrypted at rest (AWS-managed KMS)
   - Performance mode: generalPurpose
@@ -54,6 +55,7 @@ Plan MVIs (exists) → Create Wave (SM2) → Activate (SM2) →
 - ECS task definition mounts the Access Point (not raw filesystem) at `/mnt/repos`
 
 **Events Table:**
+
 - New DynamoDB table `cawnex-events-{stage}`
   - PK: `T#{tenant}#P#{project}#W#{wave_id}` (string)
   - SK: `{iso_timestamp}#{event_type}` (string)
@@ -65,6 +67,7 @@ Plan MVIs (exists) → Create Wave (SM2) → Activate (SM2) →
 - Environment variable: `EVENTS_TABLE_NAME` on all four
 
 **ECS Auto-Scale:**
+
 - EventBridge rule `cawnex-worker-scaledown-{stage}`: every 15 minutes
   - Target: new Lambda `cawnex-worker-scaler-{stage}`
   - Logic: query GSI1 for DISPATCH#pending; if empty AND no running crows → set desiredCount=0
@@ -72,6 +75,7 @@ Plan MVIs (exists) → Create Wave (SM2) → Activate (SM2) →
 - API Lambda gets environment variables: `ECS_CLUSTER_NAME`, `ECS_SERVICE_NAME`
 
 **SSE Lambda:**
+
 - New Lambda `cawnex-sse-{stage}`
   - Runtime: Python 3.12
   - Memory: 256 MB
@@ -85,18 +89,23 @@ Plan MVIs (exists) → Create Wave (SM2) → Activate (SM2) →
 #### Murder Changes
 
 **`lambdas/murder/src/murder/models.py`:**
+
 - Update `EventRecord`: add `to_events_item()` with new PK/SK pattern + `expires_at` TTL
 
 **`lambdas/murder/src/murder/config.py`:**
+
 - Add `EVENTS_TABLE_NAME`, `EVENT_TTL_DAYS`
 
 **`lambdas/murder/src/murder/blackboard.py`:**
+
 - Add `events_table` parameter, `write_event()` method
 
 **`lambdas/murder/src/murder/handler.py`:**
+
 - Instantiate events table, pass to Blackboard
 
 **`lambdas/murder/src/murder/reactor.py`:**
+
 - Replace `blackboard.write_item(evt.to_item())` → `blackboard.write_event(evt.to_events_item())`
 
 #### Worker Changes
@@ -107,6 +116,7 @@ Plan MVIs (exists) → Create Wave (SM2) → Activate (SM2) →
 #### SSE Lambda
 
 **`lambdas/sse/handler.py`:**
+
 - Validate JWT from Authorization header
 - Query events table for initial batch
 - Loop: poll events table every 1s for new events (SK > last seen)
@@ -127,24 +137,30 @@ Plan MVIs (exists) → Create Wave (SM2) → Activate (SM2) →
 #### Endpoints
 
 **POST `/projects/{pid}/waves`** — Create wave from backlog MVIs
+
 - Reads backlog MVIs, creates wave + MVI snapshots
 - Annotates backlog MVIs with `wave_id`
 
 **GET `/projects/{pid}/waves`** — List waves
+
 - Returns wave summaries sorted by created_at desc
 
 **POST `/projects/{pid}/waves/{wid}/activate`** — Start execution
+
 - Transitions wave to `executing`, queues MVIs
 - Writes synthetic events: `wave_activated`, `worker_warming`
 - Calls ECS UpdateService (desiredCount=1)
 
 **POST `/projects/{pid}/waves/{wid}/pause`**
+
 - Transitions to paused, writes event
 
 **POST `/projects/{pid}/waves/{wid}/cancel`**
+
 - Cancels wave + all non-terminal MVIs, writes event
 
 **GET `/projects/{pid}/waves/{wid}/events`**
+
 - Paginated read from events table (fallback for non-SSE clients)
 
 ---
@@ -165,12 +181,14 @@ Plan MVIs (exists) → Create Wave (SM2) → Activate (SM2) →
 #### SSE Client (iOS)
 
 `WaveSSEClient` — connects to Lambda Function URL, receives events:
+
 ```swift
 final class WaveSSEClient {
     func connect(waveId: String, token: String) -> AsyncStream<WaveEvent>
     func disconnect()
 }
 ```
+
 - Uses `URLSession` with `URLSessionDataDelegate`
 - Parses `data: {json}\n\n` SSE format
 - Reconnects on disconnect with exponential backoff
@@ -185,6 +203,7 @@ final class WaveSSEClient {
 #### ECS Warm-Up Visibility
 
 Events rendered in the feed:
+
 1. `wave_activated` → "Wave activated — starting execution engine" (blue dot)
 2. `worker_warming` → "Execution engine warming up (~30s)" (yellow dot, pulsing)
 3. `worker_ready` → "Engine ready — dispatching crows" (green dot)
@@ -205,6 +224,7 @@ SM2 (Wave API) ─────────┤
 ## What This Unlocks
 
 After M1, the full execution flow works end-to-end:
+
 1. Plan MVIs from goal-level AI chat (exists)
 2. Create wave selecting MVIs (SM2)
 3. Activate → see "Engine warming up..." (SM2 + SSE)
