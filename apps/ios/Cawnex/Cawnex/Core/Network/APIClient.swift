@@ -48,6 +48,10 @@ final class APIClient: @unchecked Sendable {
         }
         request.setValue("Bearer \(authSession.idToken)", forHTTPHeaderField: "Authorization")
 
+        #if DEBUG
+        print("[JWT] \(authSession.idToken)")
+        #endif
+
         return request
     }
 

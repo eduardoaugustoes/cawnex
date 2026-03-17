@@ -13,6 +13,10 @@ enum CawnexColors {
     static let cardForeground = Color.white
     static let mutedForeground = Color(hex: 0x9CA3AF)
 
+    // MARK: - Elevated
+
+    static let cardElevated = Color(hex: 0x252729)
+
     // MARK: - Brand
 
     static let primary = Color(hex: 0x7C3AED)

@@ -10,7 +10,7 @@ struct InputFieldView: View {
             HStack(spacing: 4) {
                 Text(field.label)
                     .font(CawnexTypography.captionBold)
-                    .foregroundColor(CawnexColors.textPrimary)
+                    .foregroundColor(CawnexColors.cardForeground)
                 if field.required {
                     Text("*")
                         .font(CawnexTypography.captionBold)
@@ -22,7 +22,7 @@ struct InputFieldView: View {
             if !field.description.isEmpty {
                 Text(field.description)
                     .font(CawnexTypography.tiny)
-                    .foregroundColor(CawnexColors.textTertiary)
+                    .foregroundColor(CawnexColors.mutedForeground)
             }
 
             // Input widget by type
@@ -57,7 +57,7 @@ struct InputFieldView: View {
     private var textField: some View {
         TextField(field.placeholder, text: $value)
             .font(CawnexTypography.body)
-            .foregroundColor(CawnexColors.textPrimary)
+            .foregroundColor(CawnexColors.cardForeground)
             .padding(CawnexSpacing.sm)
             .background(CawnexColors.cardElevated)
             .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
@@ -68,7 +68,7 @@ struct InputFieldView: View {
     private var textArea: some View {
         TextEditor(text: $value)
             .font(CawnexTypography.body)
-            .foregroundColor(CawnexColors.textPrimary)
+            .foregroundColor(CawnexColors.cardForeground)
             .scrollContentBackground(.hidden)
             .frame(minHeight: 100)
             .padding(CawnexSpacing.sm)
@@ -79,7 +79,7 @@ struct InputFieldView: View {
     private var secretField: some View {
         SecureField(field.placeholder, text: $value)
             .font(CawnexTypography.body)
-            .foregroundColor(CawnexColors.textPrimary)
+            .foregroundColor(CawnexColors.cardForeground)
             .padding(CawnexSpacing.sm)
             .background(CawnexColors.cardElevated)
             .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
@@ -94,7 +94,7 @@ struct InputFieldView: View {
                     .foregroundColor(CawnexColors.primary)
                 Text(value.isEmpty ? "Choose file..." : value)
                     .font(CawnexTypography.body)
-                    .foregroundColor(value.isEmpty ? CawnexColors.textTertiary : CawnexColors.textPrimary)
+                    .foregroundColor(value.isEmpty ? CawnexColors.mutedForeground : CawnexColors.cardForeground)
                 Spacer()
             }
             .padding(CawnexSpacing.sm)
@@ -108,7 +108,7 @@ struct InputFieldView: View {
         HStack {
             TextField("#RRGGBB", text: $value)
                 .font(CawnexTypography.mono)
-                .foregroundColor(CawnexColors.textPrimary)
+                .foregroundColor(CawnexColors.cardForeground)
                 .padding(CawnexSpacing.sm)
                 .background(CawnexColors.cardElevated)
                 .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
@@ -129,10 +129,10 @@ struct InputFieldView: View {
                 } label: {
                     HStack {
                         Image(systemName: value == option.value ? "checkmark.circle.fill" : "circle")
-                            .foregroundColor(value == option.value ? CawnexColors.primary : CawnexColors.textTertiary)
+                            .foregroundColor(value == option.value ? CawnexColors.primary : CawnexColors.mutedForeground)
                         Text(option.label)
                             .font(CawnexTypography.body)
-                            .foregroundColor(CawnexColors.textPrimary)
+                            .foregroundColor(CawnexColors.cardForeground)
                         Spacer()
                     }
                     .padding(CawnexSpacing.sm)
@@ -151,7 +151,7 @@ struct InputFieldView: View {
         )) {
             Text(field.label)
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textPrimary)
+                .foregroundColor(CawnexColors.cardForeground)
         }
         .tint(CawnexColors.primary)
     }
@@ -159,7 +159,7 @@ struct InputFieldView: View {
     private var numberField: some View {
         TextField(field.placeholder, text: $value)
             .font(CawnexTypography.body)
-            .foregroundColor(CawnexColors.textPrimary)
+            .foregroundColor(CawnexColors.cardForeground)
             .keyboardType(.decimalPad)
             .padding(CawnexSpacing.sm)
             .background(CawnexColors.cardElevated)

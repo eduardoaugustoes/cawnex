@@ -33,11 +33,11 @@ struct HumanTaskDetailScreen: View {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(CawnexColors.textPrimary)
+                    .foregroundColor(CawnexColors.cardForeground)
             }
             Text("Task Detail")
                 .font(CawnexTypography.heading2)
-                .foregroundColor(CawnexColors.textPrimary)
+                .foregroundColor(CawnexColors.cardForeground)
             Spacer()
         }
         .padding(.top, CawnexSpacing.md)
@@ -50,19 +50,19 @@ struct HumanTaskDetailScreen: View {
             // Ask
             Text(detail.ask)
                 .font(CawnexTypography.heading3)
-                .foregroundColor(CawnexColors.textPrimary)
+                .foregroundColor(CawnexColors.cardForeground)
 
             // Instructions
             Text(detail.instructions)
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
 
             // What this unblocks
             if !detail.blocks.isEmpty {
                 VStack(alignment: .leading, spacing: CawnexSpacing.sm) {
                     Text("Unblocks")
                         .font(CawnexTypography.captionBold)
-                        .foregroundColor(CawnexColors.textTertiary)
+                        .foregroundColor(CawnexColors.mutedForeground)
                     ForEach(detail.blocks, id: \.self) { block in
                         HStack(spacing: CawnexSpacing.sm) {
                             Image(systemName: "link")
@@ -70,7 +70,7 @@ struct HumanTaskDetailScreen: View {
                                 .foregroundColor(CawnexColors.primary)
                             Text(block)
                                 .font(CawnexTypography.caption)
-                                .foregroundColor(CawnexColors.textSecondary)
+                                .foregroundColor(CawnexColors.mutedForeground)
                         }
                     }
                 }
@@ -113,15 +113,15 @@ struct HumanTaskDetailScreen: View {
 
             Text("Guidance for the AI (optional)")
                 .font(CawnexTypography.captionBold)
-                .foregroundColor(CawnexColors.textTertiary)
+                .foregroundColor(CawnexColors.mutedForeground)
 
             Text("You can skip the fields above if your guidance replaces the original request")
                 .font(CawnexTypography.tiny)
-                .foregroundColor(CawnexColors.textTertiary)
+                .foregroundColor(CawnexColors.mutedForeground)
 
             TextEditor(text: $viewModel.steerText)
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textPrimary)
+                .foregroundColor(CawnexColors.cardForeground)
                 .scrollContentBackground(.hidden)
                 .frame(minHeight: 80)
                 .padding(CawnexSpacing.sm)
@@ -163,7 +163,7 @@ struct HumanTaskDetailScreen: View {
                 .tint(CawnexColors.primary)
             Text("Loading task...")
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 100)
@@ -176,7 +176,7 @@ struct HumanTaskDetailScreen: View {
                 .foregroundColor(.red)
             Text(message)
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 100)

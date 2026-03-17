@@ -33,11 +33,11 @@ struct HumanTasksScreen: View {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(CawnexColors.textPrimary)
+                    .foregroundColor(CawnexColors.cardForeground)
             }
             Text("Needs Your Input")
                 .font(CawnexTypography.heading2)
-                .foregroundColor(CawnexColors.textPrimary)
+                .foregroundColor(CawnexColors.cardForeground)
             Spacer()
             if viewModel.pendingCount > 0 {
                 Text("\(viewModel.pendingCount)")
@@ -91,10 +91,10 @@ struct HumanTasksScreen: View {
         HStack {
             Text(title)
                 .font(CawnexTypography.heading3)
-                .foregroundColor(CawnexColors.textPrimary)
+                .foregroundColor(CawnexColors.cardForeground)
             Text("\(count)")
                 .font(CawnexTypography.caption)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
         }
     }
 
@@ -107,13 +107,13 @@ struct HumanTasksScreen: View {
                     subtypeIcon(task.subtype)
                     Text(task.ask)
                         .font(CawnexTypography.body)
-                        .foregroundColor(CawnexColors.textPrimary)
+                        .foregroundColor(CawnexColors.cardForeground)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14))
-                        .foregroundColor(CawnexColors.textTertiary)
+                        .foregroundColor(CawnexColors.mutedForeground)
                 }
 
                 HStack {
@@ -122,7 +122,7 @@ struct HumanTasksScreen: View {
                     if !task.deadlineHint.isEmpty {
                         Text(task.deadlineHint)
                             .font(CawnexTypography.caption)
-                            .foregroundColor(CawnexColors.textTertiary)
+                            .foregroundColor(CawnexColors.mutedForeground)
                     }
                 }
             }
@@ -158,7 +158,7 @@ struct HumanTasksScreen: View {
         case .notified, .inProgress, .verificationFailed: CawnexColors.primary
         case .responded, .verifying: Color.orange
         case .completed: Color.green
-        default: CawnexColors.textTertiary
+        default: CawnexColors.mutedForeground
         }
 
         return Text(status.displayName)
@@ -178,7 +178,7 @@ struct HumanTasksScreen: View {
                 .tint(CawnexColors.primary)
             Text("Loading tasks...")
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 100)
@@ -191,7 +191,7 @@ struct HumanTasksScreen: View {
                 .foregroundColor(.red)
             Text(message)
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

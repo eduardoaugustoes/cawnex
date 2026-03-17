@@ -35,11 +35,11 @@ struct WaveExecutionScreen: View {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(CawnexColors.textPrimary)
+                    .foregroundColor(CawnexColors.cardForeground)
             }
             Text("Wave Execution")
                 .font(CawnexTypography.heading2)
-                .foregroundColor(CawnexColors.textPrimary)
+                .foregroundColor(CawnexColors.cardForeground)
             Spacer()
             if let wave = viewModel.wave {
                 Text(wave.status.label)
@@ -61,7 +61,7 @@ struct WaveExecutionScreen: View {
             // Directive
             Text(detail.wave.directive)
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
 
             // Budget bar
             budgetSection(detail.wave.budget)
@@ -96,11 +96,11 @@ struct WaveExecutionScreen: View {
             HStack {
                 Text("Budget")
                     .font(CawnexTypography.captionBold)
-                    .foregroundColor(CawnexColors.textTertiary)
+                    .foregroundColor(CawnexColors.mutedForeground)
                 Spacer()
                 Text("$\(String(format: "%.2f", budget.spentDollars)) / $\(String(format: "%.2f", budget.limitDollars))")
                     .font(CawnexTypography.caption)
-                    .foregroundColor(CawnexColors.textSecondary)
+                    .foregroundColor(CawnexColors.mutedForeground)
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -170,7 +170,7 @@ struct WaveExecutionScreen: View {
                     .foregroundColor(.orange)
                 Text("Needs Your Input")
                     .font(CawnexTypography.captionBold)
-                    .foregroundColor(CawnexColors.textPrimary)
+                    .foregroundColor(CawnexColors.cardForeground)
                 Spacer()
                 Text("\(tasks.count)")
                     .font(CawnexTypography.tiny)
@@ -211,7 +211,7 @@ struct WaveExecutionScreen: View {
         VStack(alignment: .leading, spacing: CawnexSpacing.sm) {
             Text("MVIs")
                 .font(CawnexTypography.captionBold)
-                .foregroundColor(CawnexColors.textTertiary)
+                .foregroundColor(CawnexColors.mutedForeground)
 
             ForEach(mvis) { mvi in
                 mviCard(mvi)
@@ -293,7 +293,7 @@ struct WaveExecutionScreen: View {
         VStack(alignment: .leading, spacing: CawnexSpacing.sm) {
             Text("Live Feed")
                 .font(CawnexTypography.captionBold)
-                .foregroundColor(CawnexColors.textTertiary)
+                .foregroundColor(CawnexColors.mutedForeground)
 
             if viewModel.events.isEmpty {
                 Text("Waiting for events...")
@@ -334,7 +334,7 @@ struct WaveExecutionScreen: View {
             ProgressView().tint(CawnexColors.primary)
             Text("Loading wave...")
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 100)
@@ -347,7 +347,7 @@ struct WaveExecutionScreen: View {
                 .foregroundColor(.red)
             Text(message)
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 100)

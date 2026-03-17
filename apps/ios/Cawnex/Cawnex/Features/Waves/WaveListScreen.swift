@@ -33,11 +33,11 @@ struct WaveListScreen: View {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(CawnexColors.textPrimary)
+                    .foregroundColor(CawnexColors.cardForeground)
             }
             Text("Waves")
                 .font(CawnexTypography.heading2)
-                .foregroundColor(CawnexColors.textPrimary)
+                .foregroundColor(CawnexColors.cardForeground)
             Spacer()
         }
         .padding(.top, CawnexSpacing.md)
@@ -71,10 +71,10 @@ struct WaveListScreen: View {
         HStack {
             Text(title)
                 .font(CawnexTypography.heading3)
-                .foregroundColor(CawnexColors.textPrimary)
+                .foregroundColor(CawnexColors.cardForeground)
             Text("\(count)")
                 .font(CawnexTypography.caption)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
         }
     }
 
@@ -140,7 +140,7 @@ struct WaveListScreen: View {
             ProgressView().tint(CawnexColors.primary)
             Text("Loading waves...")
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 100)
@@ -170,7 +170,7 @@ struct WaveListScreen: View {
                 .foregroundColor(.red)
             Text(message)
                 .font(CawnexTypography.body)
-                .foregroundColor(CawnexColors.textSecondary)
+                .foregroundColor(CawnexColors.mutedForeground)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 100)
