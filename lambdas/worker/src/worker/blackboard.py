@@ -3,9 +3,21 @@
 from __future__ import annotations
 
 import time
+from decimal import Decimal
 from typing import Any
 
 from boto3.dynamodb.conditions import Key as DKey
+
+
+def _sanitize_floats(obj: Any) -> Any:
+    """Recursively convert float → Decimal for DynamoDB compatibility."""
+    if isinstance(obj, float):
+        return Decimal(str(obj))
+    if isinstance(obj, dict):
+        return {k: _sanitize_floats(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_floats(v) for v in obj]
+    return obj
 
 
 class ConditionalCheckFailed(Exception):
@@ -24,13 +36,13 @@ class Blackboard:
         target = self._events_table if self._events_table else self._table
         if "ts" not in item:
             item["ts"] = int(time.time())
-        target.put_item(Item=item)
+        target.put_item(Item=_sanitize_floats(item))
 
     def write_item(self, item: dict[str, Any]) -> None:
         """Write a pre-built item (including GSI keys)."""
         if "ts" not in item:
             item["ts"] = int(time.time())
-        self._table.put_item(Item=item)
+        self._table.put_item(Item=_sanitize_floats(item))
 
     def read(self, pk: str, sk: str) -> dict[str, Any] | None:
         """Read a single record. Returns None if not found."""
