@@ -405,7 +405,7 @@ export class CawnexStack extends cdk.Stack {
         EVENTS_TABLE_NAME: eventsTable.tableName,
         BUCKET_NAME: artifactsBucket.bucketName,
         QUEUE_URL: taskQueue.queueUrl,
-        ANTHROPIC_MODEL: "claude-sonnet-4-20250514",
+        ANTHROPIC_MODEL: "claude-haiku-4-5-20251001",
         EFS_MOUNT: "/mnt/repos",
         MEMORY_INJECTION_ENABLED: "true",
         VAULT_KMS_KEY_ID: vaultKey.keyId,
