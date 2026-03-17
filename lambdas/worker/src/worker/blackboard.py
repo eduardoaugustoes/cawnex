@@ -15,8 +15,16 @@ class ConditionalCheckFailed(Exception):
 class Blackboard:
     """DynamoDB wrapper for the Worker bounded context."""
 
-    def __init__(self, table: Any) -> None:
+    def __init__(self, table: Any, events_table: Any | None = None) -> None:
         self._table = table
+        self._events_table = events_table
+
+    def write_event(self, item: dict[str, Any]) -> None:
+        """Write an event item to the events table (or fall back to main table)."""
+        target = self._events_table if self._events_table else self._table
+        if "ts" not in item:
+            item["ts"] = int(time.time())
+        target.put_item(Item=item)
 
     def write_item(self, item: dict[str, Any]) -> None:
         """Write a pre-built item (including GSI keys)."""

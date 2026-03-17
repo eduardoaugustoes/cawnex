@@ -6,6 +6,12 @@ import signal
 from datetime import datetime, timezone
 from typing import Any
 
+import os
+import re
+
+import boto3
+from boto3.dynamodb.conditions import Key as DKey
+
 from worker.claude import call_claude
 from worker.config import CROW_TIMEOUT_SECONDS, ExecutionConfig
 from worker.context import (
@@ -31,6 +37,82 @@ from worker.logging import StructuredLogger
 from worker.models import Cost
 from worker.parsing import parse_json_output
 from worker.prompts import CROW_IDENTITIES
+
+
+_SECRET_RE = re.compile(r"\{\{secret:([a-zA-Z0-9_\-]+)\}\}")
+_CONTEXT_RE = re.compile(r"\{\{context:([a-zA-Z0-9_\-]+)\}\}")
+
+
+def _resolve_templates(
+    instructions: str,
+    snapshot: dict[str, Any],
+    logger: StructuredLogger,
+) -> tuple[str, dict[str, str]]:
+    """Resolve {{secret:...}} and {{context:...}} templates in instructions.
+
+    Returns (resolved_instructions, env_vars_dict).
+    Secrets are NOT injected into the prompt — they are set as env vars.
+    Context references are resolved inline.
+    """
+    table_name = os.environ.get("TABLE_NAME", "cawnex")
+    pk = snapshot.get("PK", "")
+    env_vars: dict[str, str] = {}
+
+    # Resolve secrets
+    secret_names = _SECRET_RE.findall(instructions)
+    if secret_names:
+        # Extract tenant from PK
+        pk_parts = pk.split("#")
+        tenant = pk_parts[1] if len(pk_parts) > 1 else ""
+        project = pk_parts[3] if len(pk_parts) > 3 else ""
+        vault_pk = f"T#{tenant}#VAULT"
+
+        table = boto3.resource("dynamodb").Table(table_name)
+        for name in secret_names:
+            vault_sk = f"P#{project}#S#{name}"
+            resp = table.get_item(Key={"PK": vault_pk, "SK": vault_sk})
+            item = resp.get("Item")
+            if item:
+                encrypted_value = item.get("encrypted_value", "")
+                # Decrypt with KMS if needed
+                kms_key_id = os.environ.get("VAULT_KMS_KEY_ID", "")
+                if kms_key_id and isinstance(encrypted_value, bytes):
+                    try:
+                        kms = boto3.client("kms")
+                        result = kms.decrypt(CiphertextBlob=encrypted_value)
+                        decrypted = result["Plaintext"].decode("utf-8")
+                    except Exception:
+                        logger.warning("secret_decrypt_failed", name=name)
+                        decrypted = ""
+                else:
+                    decrypted = str(encrypted_value)
+                env_vars[f"SECRET_{name.upper()}"] = decrypted
+                # Replace template with env var reference (not the actual secret)
+                instructions = instructions.replace(
+                    f"{{{{secret:{name}}}}}",
+                    f"${{SECRET_{name.upper()}}}",
+                )
+            else:
+                logger.warning("secret_not_found", name=name)
+
+    # Resolve context
+    context_keys = _CONTEXT_RE.findall(instructions)
+    if context_keys:
+        table = boto3.resource("dynamodb").Table(table_name)
+        for key in context_keys:
+            ctx_sk = f"CTX#{key}"
+            resp = table.get_item(Key={"PK": pk, "SK": ctx_sk})
+            item = resp.get("Item")
+            if item:
+                content = item.get("content", "")
+                instructions = instructions.replace(
+                    f"{{{{context:{key}}}}}",
+                    content,
+                )
+            else:
+                logger.warning("context_not_found", key=key)
+
+    return instructions, env_vars
 
 
 def _build_git_diff(worktree_dir: str, base_branch: str = "main") -> tuple[str, list[str]]:
@@ -156,7 +238,18 @@ def execute(
                     "memory_injected", crow_id=crow_id, entries=len(memory_entries)
                 )
 
-        user_prompt = f"## Instructions\n{instructions}\n\n## Codebase\n{context}"
+        # Resolve {{secret:...}} and {{context:...}} templates
+        resolved_instructions, secret_env_vars = _resolve_templates(
+            instructions, snapshot, logger,
+        )
+        if secret_env_vars:
+            for env_key, env_val in secret_env_vars.items():
+                os.environ[env_key] = env_val
+            logger.event(
+                "secrets_resolved", crow_id=crow_id, count=len(secret_env_vars)
+            )
+
+        user_prompt = f"## Instructions\n{resolved_instructions}\n\n## Codebase\n{context}"
 
         # Call Claude
         claude_result = call_claude(system_prompt, user_prompt)
@@ -204,8 +297,15 @@ def execute(
                     commit=git_commit[:12] if git_commit else "",
                 )
 
-                # Create PR for implementer only (fixer reuses existing branch)
-                if crow_type == CrowType.IMPLEMENTER and git_commit:
+                # Create PR or reuse existing one
+                existing_pr = snapshot.get("existing_pr")
+                if existing_pr:
+                    # Reuse existing PR — just push commits, no new PR
+                    pr_data = existing_pr
+                    logger.event(
+                        "pr_reused", crow_id=crow_id, pr_number=existing_pr.get("number")
+                    )
+                elif crow_type == CrowType.IMPLEMENTER and git_commit:
                     try:
                         pr_title = parsed.get("summary", f"Cawnex: {crow_id}")[:256]
                         pr_body = (
@@ -252,6 +352,10 @@ def execute(
     finally:
         signal.alarm(0)
         signal.signal(signal.SIGALRM, prev_handler)
+        # Clean up secret env vars
+        for env_key in list(os.environ.keys()):
+            if env_key.startswith("SECRET_"):
+                del os.environ[env_key]
         if repo_dir and worktree_dir:
             cleanup_worktree(repo_dir, worktree_dir)
 

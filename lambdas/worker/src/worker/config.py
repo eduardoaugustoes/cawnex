@@ -7,6 +7,11 @@ from dataclasses import dataclass
 
 # DynamoDB
 TABLE_NAME: str = os.environ.get("TABLE_NAME", "cawnex")
+EVENTS_TABLE_NAME: str = os.environ.get("EVENTS_TABLE_NAME", "")
+
+# Stage
+STAGE: str = os.environ.get("STAGE", "dev")
+EVENT_TTL_DAYS: int = 365 if STAGE == "prod" else 90
 
 # Claude / Anthropic
 ANTHROPIC_MODEL: str = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")

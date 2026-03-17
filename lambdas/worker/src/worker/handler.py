@@ -7,7 +7,7 @@ from typing import Any
 import boto3
 
 from worker.blackboard import Blackboard
-from worker.config import MEMORY_INJECTION_ENABLED, TABLE_NAME, ExecutionConfig
+from worker.config import EVENT_TTL_DAYS, EVENTS_TABLE_NAME, MEMORY_INJECTION_ENABLED, TABLE_NAME, ExecutionConfig
 from worker.enums import CrowStatus, CrowType
 from worker.keys import build_pk, build_sk
 from worker.events import build_crow_completed_event, build_crow_failed_event
@@ -52,7 +52,8 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Poll GSI for pending crows, claim and execute each."""
     dynamodb = boto3.resource("dynamodb")
     table = dynamodb.Table(TABLE_NAME)
-    blackboard = Blackboard(table)
+    events_table = dynamodb.Table(EVENTS_TABLE_NAME) if EVENTS_TABLE_NAME else None
+    blackboard = Blackboard(table, events_table=events_table)
     logger = StructuredLogger(component="worker")
     config = ExecutionConfig.from_env()
 
@@ -158,7 +159,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 task_name,
                 completion.get("outcome", {}).get("error", "unknown"),
             )
-        blackboard.write_item(evt.to_item())
+        blackboard.write_event(evt.to_events_item(EVENT_TTL_DAYS))
 
         if status == CrowStatus.COMPLETED:
             processed += 1

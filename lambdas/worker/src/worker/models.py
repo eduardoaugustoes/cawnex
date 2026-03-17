@@ -143,6 +143,7 @@ class EventRecord:
         return f"EVT#{self.wave_id}#{self.timestamp}"
 
     def to_item(self) -> dict[str, Any]:
+        """Write to main table (legacy)."""
         item: dict[str, Any] = {
             "PK": self.pk,
             "SK": self.sk,
@@ -154,4 +155,24 @@ class EventRecord:
         }
         if self.extra:
             item.update(self.extra)
+        return item
+
+    def to_events_item(self, ttl_days: int = 90) -> dict[str, Any]:
+        """Write to dedicated events table with TTL."""
+        import time as _time
+
+        item: dict[str, Any] = {
+            "PK": f"T#{self.tenant}#P#{self.project}#W#{self.wave_id}",
+            "SK": f"{self.timestamp}#{self.event_type}",
+            "GSI1PK": f"T#{self.tenant}#P#{self.project}",
+            "GSI1SK": self.timestamp,
+            "event_type": self.event_type,
+            "message": self.message,
+            "color": self.color,
+            "timestamp": self.timestamp,
+            "expires_at": int(_time.time()) + (ttl_days * 86400),
+            "entityType": "Event",
+        }
+        if self.extra:
+            item["extra"] = self.extra
         return item
