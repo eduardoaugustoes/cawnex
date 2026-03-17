@@ -54,15 +54,28 @@ def call_claude(
     max_tokens: int = 8192,
 ) -> ClaudeResult:
     """Call Claude API. Measures duration internally."""
+    import logging
+
+    log = logging.getLogger(__name__)
+    log.info(
+        "call_claude: model=%s max_tokens=%d system_len=%d user_len=%d",
+        model, max_tokens, len(system_prompt), len(user_prompt),
+    )
     client = _get_client()
     start = time.monotonic()
 
-    response = client.messages.create(
-        model=model,
-        max_tokens=max_tokens,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
+    try:
+        response = client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+    except Exception as e:
+        log.error("Claude API error: %s", e)
+        log.error("system_prompt[:200]: %s", system_prompt[:200])
+        log.error("user_prompt[:200]: %s", user_prompt[:200])
+        raise
 
     duration_ms = int((time.monotonic() - start) * 1000)
     text = "\n".join(b.text for b in response.content if b.type == "text")
