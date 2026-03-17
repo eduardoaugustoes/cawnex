@@ -434,7 +434,7 @@ export class CawnexStack extends cdk.Stack {
     repoFs.grantReadWrite(workerTaskDef.taskRole);
 
     // Worker ECS service — outbound internet for LLM APIs + GitHub
-    const workerService = new ecs.FargateService(this, "WorkerService", {
+    const _workerService = new ecs.FargateService(this, "WorkerService", {
       serviceName: `cawnex-worker-${stage}`,
       cluster,
       taskDefinition: workerTaskDef,
