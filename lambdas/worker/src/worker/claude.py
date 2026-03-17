@@ -26,11 +26,20 @@ def _get_client() -> anthropic.Anthropic:
         os.environ.get("ANTHROPIC_AUTH_TOKEN")
         or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
         or ""
-    )
+    ).strip()
     if not token:
         raise RuntimeError(
             "No auth: set ANTHROPIC_AUTH_TOKEN or run 'claude setup-token'"
         )
+    import logging
+
+    logging.getLogger(__name__).info(
+        "Anthropic client: token_len=%d prefix=%s has_newline=%s sdk=%s",
+        len(token),
+        token[:12] + "...",
+        repr("\n" in token),
+        anthropic.__version__,
+    )
     return anthropic.Anthropic(
         api_key=None,
         auth_token=token,
