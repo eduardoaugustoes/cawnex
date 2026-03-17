@@ -14,6 +14,13 @@ POLL_INTERVAL_SECONDS = 10
 
 
 def main() -> None:
+    import os
+    import anthropic
+    token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
+    logger.info(
+        "Worker starting — token_len=%d prefix=%s has_newline=%s sdk=%s",
+        len(token), token[:15] + "...", "\n" in token, anthropic.__version__,
+    )
     logger.info("Worker starting continuous poll loop")
     while True:
         try:
