@@ -29,12 +29,26 @@ def build_planner_instructions(
         f"You are a planner. Break this work into implementable tasks.\n\n"
         f"Directive: {human_directive}\n\n"
         f"MVI description: {mvi_description}\n\n"
-        f"Return a JSON object with a 'tasks' array. Each task must have:\n"
+        f"Return a JSON object with a 'tasks' array.\n\n"
+        f"For AI-executable tasks (default), each task must have:\n"
         f"- name: short task name\n"
         f"- description: what to implement\n"
         f"- estimated_hours: estimated human-equivalent hours (must be \u2264 8)\n"
         f"- files_to_modify: list of file paths to change\n"
-        f"- context_files: list of file paths to read for context"
+        f"- context_files: list of file paths to read for context\n\n"
+        f"For tasks that REQUIRE a human (credentials, physical actions, "
+        f"external platform config, file uploads, third-party approvals), add:\n"
+        f'- task_type: "human"\n'
+        f"- id: unique ID like ht_descriptive_name\n"
+        f"- human_task_subtype: provide_secret|upload_asset|fill_content|"
+        f"configure_ext|physical_action|wait_external|confirm\n"
+        f"- ask: plain language description of what the human must do\n"
+        f"- instructions: detailed step-by-step for the human\n"
+        f"- input_schema: field definitions (type, label, required, pattern, etc.)\n"
+        f"- estimated_human_hours: how long the human action takes\n"
+        f"- blocks: list of crow task names that depend on this human input\n\n"
+        f"Use {{{{secret:name}}}} in crow task descriptions to reference secrets "
+        f"the human will provide via a provide_secret task."
     )
 
 
@@ -56,12 +70,9 @@ def build_planner_split_instructions(
         f"Original directive: {human_directive}\n\n"
         f"MVI description: {mvi_description}\n\n"
         f"Produce a new plan where ALL tasks are \u2264 8 hours.\n\n"
-        f"Return a JSON object with a 'tasks' array. Each task must have:\n"
-        f"- name: short task name\n"
-        f"- description: what to implement\n"
-        f"- estimated_hours: estimated hours (must be \u2264 8)\n"
-        f"- files_to_modify: list of file paths to change\n"
-        f"- context_files: list of file paths to read for context"
+        f"Return a JSON object with a 'tasks' array.\n"
+        f"Use the same format as the original plan — both crow tasks and "
+        f"human tasks (task_type: \"human\") are allowed."
     )
 
 
@@ -91,7 +102,7 @@ def _build_implementer_instructions(
     outcome: dict[str, Any],
     mvi_description: str,
 ) -> str:
-    tasks = outcome.get("tasks", [])
+    tasks = [t for t in outcome.get("tasks", []) if t.get("task_type") != "human"]
     all_context_files: list[str] = []
     all_files_to_modify: list[str] = []
     for task in tasks:

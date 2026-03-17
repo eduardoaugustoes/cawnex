@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from murder.config import MICROS_PER_DOLLAR
-from murder.enums import CrowType, EventColor, EventType
+from murder.enums import CrowType, EventColor, EventType, HumanTaskSubtype
 from murder.models import EventRecord
 
 
@@ -114,4 +114,100 @@ def build_budget_exceeded_event(
         message=f"Budget exceeded — ${_to_dollars(spent):.2f} of ${_to_dollars(limit):.2f}",
         color=EventColor.RED.value,
         extra={"spent": spent, "limit": limit},
+    )
+
+
+def build_human_task_created_event(
+    tenant: str,
+    project: str,
+    wave_id: str,
+    human_task_id: str,
+    subtype: HumanTaskSubtype,
+    ask: str,
+) -> EventRecord:
+    return EventRecord(
+        tenant=tenant,
+        project=project,
+        wave_id=wave_id,
+        event_type=EventType.HUMAN_TASK_CREATED.value,
+        message=f"Human task created ({subtype.value}) — {ask}",
+        color=EventColor.ORANGE.value,
+        extra={
+            "human_task_id": human_task_id,
+            "subtype": subtype.value,
+            "ask": ask,
+        },
+    )
+
+
+def build_human_task_completed_event(
+    tenant: str,
+    project: str,
+    wave_id: str,
+    human_task_id: str,
+    ask: str,
+) -> EventRecord:
+    return EventRecord(
+        tenant=tenant,
+        project=project,
+        wave_id=wave_id,
+        event_type=EventType.HUMAN_TASK_COMPLETED.value,
+        message=f"Human task completed — {ask}",
+        color=EventColor.GREEN.value,
+        extra={"human_task_id": human_task_id, "ask": ask},
+    )
+
+
+def build_task_blocked_event(
+    tenant: str,
+    project: str,
+    wave_id: str,
+    crow_id: str,
+    blocker_ref: str,
+    reason: str,
+) -> EventRecord:
+    return EventRecord(
+        tenant=tenant,
+        project=project,
+        wave_id=wave_id,
+        event_type=EventType.TASK_BLOCKED.value,
+        message=f"Task {crow_id} blocked — {reason}",
+        color=EventColor.YELLOW.value,
+        extra={"crow_id": crow_id, "blocker_ref": blocker_ref, "reason": reason},
+    )
+
+
+def build_task_unblocked_event(
+    tenant: str,
+    project: str,
+    wave_id: str,
+    crow_id: str,
+    unblocked_by: str,
+) -> EventRecord:
+    return EventRecord(
+        tenant=tenant,
+        project=project,
+        wave_id=wave_id,
+        event_type=EventType.TASK_UNBLOCKED.value,
+        message=f"Task {crow_id} unblocked by {unblocked_by}",
+        color=EventColor.GREEN.value,
+        extra={"crow_id": crow_id, "unblocked_by": unblocked_by},
+    )
+
+
+def build_verification_failed_event(
+    tenant: str,
+    project: str,
+    wave_id: str,
+    human_task_id: str,
+    reason: str,
+) -> EventRecord:
+    return EventRecord(
+        tenant=tenant,
+        project=project,
+        wave_id=wave_id,
+        event_type=EventType.VERIFICATION_FAILED.value,
+        message=f"Verification failed for {human_task_id} — {reason}",
+        color=EventColor.RED.value,
+        extra={"human_task_id": human_task_id, "reason": reason},
     )

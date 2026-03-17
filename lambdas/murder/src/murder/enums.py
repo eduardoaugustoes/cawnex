@@ -160,6 +160,85 @@ class AdvisorType(Enum):
         return self in (AdvisorType.SECURITY, AdvisorType.CLARITY)
 
 
+class HumanTaskSubtype(Enum):
+    PROVIDE_SECRET = "provide_secret"
+    UPLOAD_ASSET = "upload_asset"
+    FILL_CONTENT = "fill_content"
+    CONFIGURE_EXT = "configure_ext"
+    PHYSICAL_ACTION = "physical_action"
+    WAIT_EXTERNAL = "wait_external"
+    CONFIRM = "confirm"
+
+
+class HumanTaskStatus(Enum):
+    PENDING = "pending"
+    NOTIFIED = "notified"
+    IN_PROGRESS = "in_progress"
+    RESPONDED = "responded"
+    VERIFYING = "verifying"
+    COMPLETED = "completed"
+    VERIFICATION_FAILED = "verification_failed"
+    EXPIRED = "expired"
+
+    def is_terminal(self) -> bool:
+        return self in (HumanTaskStatus.COMPLETED, HumanTaskStatus.EXPIRED)
+
+    def can_transition_to(self, target: HumanTaskStatus) -> bool:
+        return target in _HUMAN_TASK_TRANSITIONS.get(self, set())
+
+
+_HUMAN_TASK_TRANSITIONS: dict[HumanTaskStatus, set[HumanTaskStatus]] = {
+    HumanTaskStatus.PENDING: {HumanTaskStatus.NOTIFIED, HumanTaskStatus.EXPIRED},
+    HumanTaskStatus.NOTIFIED: {
+        HumanTaskStatus.IN_PROGRESS,
+        HumanTaskStatus.RESPONDED,
+        HumanTaskStatus.COMPLETED,
+        HumanTaskStatus.EXPIRED,
+    },
+    HumanTaskStatus.IN_PROGRESS: {
+        HumanTaskStatus.RESPONDED,
+        HumanTaskStatus.COMPLETED,
+        HumanTaskStatus.EXPIRED,
+    },
+    HumanTaskStatus.RESPONDED: {
+        HumanTaskStatus.VERIFYING,
+        HumanTaskStatus.COMPLETED,
+    },
+    HumanTaskStatus.VERIFYING: {
+        HumanTaskStatus.COMPLETED,
+        HumanTaskStatus.VERIFICATION_FAILED,
+    },
+    HumanTaskStatus.VERIFICATION_FAILED: {
+        HumanTaskStatus.RESPONDED,
+    },
+}
+
+
+class InputFieldType(Enum):
+    STRING = "string"
+    TEXT = "text"
+    SECRET = "secret"
+    FILE = "file"
+    URL = "url"
+    EMAIL = "email"
+    COLOR = "color"
+    ENUM = "enum"
+    BOOLEAN = "boolean"
+    NUMBER = "number"
+
+
+class BlockerType(Enum):
+    HUMAN_TASK = "human_task"
+    SECRET = "secret"
+    EXTERNAL = "external"
+
+
+class PostProcessingType(Enum):
+    NONE = "none"
+    EXTRACT_TEXT = "extract_text"
+    EXTRACT_META = "extract_meta"
+
+
 class EventType(Enum):
     CROW_ASSIGNED = "crow_assigned"
     CROW_COMPLETED = "crow_completed"
@@ -170,6 +249,12 @@ class EventType(Enum):
     WAVE_DELIVERED = "wave_delivered"
     BUDGET_WARNING = "budget_warning"
     BUDGET_EXCEEDED = "budget_exceeded"
+    HUMAN_TASK_CREATED = "human_task_created"
+    HUMAN_TASK_COMPLETED = "human_task_completed"
+    TASK_BLOCKED = "task_blocked"
+    TASK_UNBLOCKED = "task_unblocked"
+    VERIFICATION_PASSED = "verification_passed"
+    VERIFICATION_FAILED = "verification_failed"
 
 
 class EventColor(Enum):
@@ -178,3 +263,4 @@ class EventColor(Enum):
     PURPLE = "purple"
     YELLOW = "yellow"
     BLUE = "blue"
+    ORANGE = "orange"

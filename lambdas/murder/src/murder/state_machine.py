@@ -41,7 +41,15 @@ class SplitRequired:
     reason: str
 
 
-NextAction = AssignCrow | MarkMVIReady | FailMVI | NoAction | SplitRequired
+@dataclass
+class CreateHumanTasks:
+    """Planner produced tasks containing human tasks — create them and dispatch crow tasks."""
+    human_tasks: list[dict]
+    crow_tasks: list[dict]
+    reason: str
+
+
+NextAction = AssignCrow | MarkMVIReady | FailMVI | NoAction | SplitRequired | CreateHumanTasks
 
 
 def determine_next(
@@ -78,6 +86,14 @@ def _on_completed(
                     reason=f"planner cannot decompose within {MAX_TASK_HOURS}h task limit after {split_count} attempts"
                 )
             return SplitRequired(oversized_tasks=oversized, reason="tasks exceed size limit")
+        human_tasks = [t for t in tasks if t.get("task_type") == "human"]
+        crow_tasks = [t for t in tasks if t.get("task_type") != "human"]
+        if human_tasks:
+            return CreateHumanTasks(
+                human_tasks=human_tasks,
+                crow_tasks=crow_tasks,
+                reason="planner identified human tasks",
+            )
         return AssignCrow(CrowType.IMPLEMENTER, reason="planner completed with tasks")
 
     if crow_type == CrowType.IMPLEMENTER:

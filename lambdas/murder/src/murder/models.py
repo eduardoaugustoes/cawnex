@@ -7,12 +7,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any
 
 from murder.config import MICROS_PER_DOLLAR, WAVE_BUDGET_LIMIT
 from murder.enums import (
+    BlockerType,
     CrowStatus,
     CrowType,
+    HumanTaskStatus,
+    HumanTaskSubtype,
     MVIStatus,
     SnapshotLevel,
     WaveStatus,
@@ -315,6 +319,254 @@ class CrowSnapshot:
 
 
 @dataclass
+class Blocker:
+    blocker_type: BlockerType
+    reference: str
+    resolved: bool = False
+    resolved_at: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "blocker_type": self.blocker_type.value,
+            "reference": self.reference,
+            "resolved": self.resolved,
+        }
+        if self.resolved_at:
+            d["resolved_at"] = self.resolved_at
+        return d
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> Blocker:
+        return cls(
+            blocker_type=BlockerType(d["blocker_type"]),
+            reference=d["reference"],
+            resolved=d.get("resolved", False),
+            resolved_at=d.get("resolved_at", ""),
+        )
+
+
+@dataclass
+class HumanTaskSnapshot:
+    tenant: str
+    project: str
+    wave_id: str
+    mvi_id: str
+    human_task_id: str
+    subtype: HumanTaskSubtype
+    status: HumanTaskStatus
+    ask: str
+    instructions: str
+    input_schema: dict[str, Any] = field(default_factory=dict)
+    verification: dict[str, Any] | None = None
+    post_processing: str = "none"
+    blocks: list[str] = field(default_factory=list)
+    blocker_history: list[dict[str, Any]] = field(default_factory=list)
+    response: dict[str, Any] | None = None
+    steer: str | None = None
+    assigned_to: str = "human"
+    estimated_human_hours: float = 0
+    deadline_hint: str = ""
+    notification_id: str = ""
+    completed_at: str = ""
+    created_at: str = field(default_factory=_now_iso)
+
+    @property
+    def pk(self) -> str:
+        return build_pk(self.tenant, self.project)
+
+    @property
+    def sk(self) -> str:
+        return f"S#{self.wave_id}#m{self.mvi_id}#{self.human_task_id}"
+
+    @property
+    def level(self) -> str:
+        return "crow"
+
+    @property
+    def task_type(self) -> str:
+        return "human"
+
+    def to_item(self) -> dict[str, Any]:
+        item: dict[str, Any] = {
+            "PK": self.pk,
+            "SK": self.sk,
+            "id": self.human_task_id,
+            "level": self.level,
+            "task_type": self.task_type,
+            "human_task_subtype": self.subtype.value,
+            "status": self.status.value,
+            "ask": self.ask,
+            "instructions": self.instructions,
+            "assigned_to": self.assigned_to,
+            "created_at": self.created_at,
+            "entityType": "Snapshot",
+        }
+        if self.input_schema:
+            item["input_schema"] = self.input_schema
+        if self.verification is not None:
+            item["verification"] = self.verification
+        if self.post_processing != "none":
+            item["post_processing"] = self.post_processing
+        if self.blocks:
+            item["blocks"] = self.blocks
+        if self.blocker_history:
+            item["blocker_history"] = self.blocker_history
+        if self.response is not None:
+            item["response"] = self.response
+        if self.steer is not None:
+            item["steer"] = self.steer
+        if self.estimated_human_hours:
+            item["estimated_human_hours"] = Decimal(str(self.estimated_human_hours))
+        if self.deadline_hint:
+            item["deadline_hint"] = self.deadline_hint
+        if self.notification_id:
+            item["notification_id"] = self.notification_id
+        if self.completed_at:
+            item["completed_at"] = self.completed_at
+        return item
+
+    @classmethod
+    def from_item(cls, item: dict[str, Any]) -> HumanTaskSnapshot:
+        pk = item["PK"]
+        parts = pk.split("#")
+        tenant = parts[1]
+        project = parts[3]
+        sk = item["SK"]
+        sk_parts = sk.split("#")
+        wave_id = sk_parts[1]
+        mvi_id = sk_parts[2][1:]  # strip leading 'm'
+        human_task_id = item.get("id", sk_parts[3])
+        return cls(
+            tenant=tenant,
+            project=project,
+            wave_id=wave_id,
+            mvi_id=mvi_id,
+            human_task_id=human_task_id,
+            subtype=HumanTaskSubtype(item["human_task_subtype"]),
+            status=HumanTaskStatus(item["status"]),
+            ask=item.get("ask", ""),
+            instructions=item.get("instructions", ""),
+            input_schema=item.get("input_schema", {}),
+            verification=item.get("verification"),
+            post_processing=item.get("post_processing", "none"),
+            blocks=item.get("blocks", []),
+            blocker_history=item.get("blocker_history", []),
+            response=item.get("response"),
+            steer=item.get("steer"),
+            assigned_to=item.get("assigned_to", "human"),
+            estimated_human_hours=float(item.get("estimated_human_hours", 0)),
+            deadline_hint=item.get("deadline_hint", ""),
+            notification_id=item.get("notification_id", ""),
+            completed_at=item.get("completed_at", ""),
+            created_at=item.get("created_at", ""),
+        )
+
+
+@dataclass
+class SecretMetadata:
+    tenant: str
+    project: str
+    name: str
+    description: str = ""
+    created_at: str = field(default_factory=_now_iso)
+    rotated_at: str = ""
+
+    @property
+    def pk(self) -> str:
+        return f"T#{self.tenant}#VAULT"
+
+    @property
+    def sk(self) -> str:
+        return f"P#{self.project}#S#{self.name}"
+
+    def to_item(self) -> dict[str, Any]:
+        item: dict[str, Any] = {
+            "PK": self.pk,
+            "SK": self.sk,
+            "name": self.name,
+            "project": self.project,
+            "description": self.description,
+            "created_at": self.created_at,
+            "entityType": "Secret",
+        }
+        if self.rotated_at:
+            item["rotated_at"] = self.rotated_at
+        return item
+
+    @classmethod
+    def from_item(cls, item: dict[str, Any]) -> SecretMetadata:
+        pk = item["PK"]
+        tenant = pk.split("#")[1]
+        return cls(
+            tenant=tenant,
+            project=item["project"],
+            name=item["name"],
+            description=item.get("description", ""),
+            created_at=item.get("created_at", ""),
+            rotated_at=item.get("rotated_at", ""),
+        )
+
+
+@dataclass
+class CheckRecord:
+    tenant: str
+    project: str
+    human_task_id: str
+    check_type: str
+    instructions: str
+    ttl: str
+    max_retries: int = 3
+    retry_count: int = 0
+    retry_delay_hours: float = 1
+    required_secrets: list[str] = field(default_factory=list)
+    created_at: str = field(default_factory=_now_iso)
+
+    @property
+    def pk(self) -> str:
+        return build_pk(self.tenant, self.project)
+
+    @property
+    def sk(self) -> str:
+        return f"CHECK#{self.human_task_id}"
+
+    def to_item(self) -> dict[str, Any]:
+        return {
+            "PK": self.pk,
+            "SK": self.sk,
+            "human_task_id": self.human_task_id,
+            "check_type": self.check_type,
+            "instructions": self.instructions,
+            "ttl": self.ttl,
+            "max_retries": self.max_retries,
+            "retry_count": self.retry_count,
+            "retry_delay_hours": self.retry_delay_hours,
+            "required_secrets": self.required_secrets,
+            "created_at": self.created_at,
+            "entityType": "Check",
+        }
+
+    @classmethod
+    def from_item(cls, item: dict[str, Any]) -> CheckRecord:
+        pk = item["PK"]
+        parts = pk.split("#")
+        tenant = parts[1]
+        project = parts[3]
+        return cls(
+            tenant=tenant,
+            project=project,
+            human_task_id=item["human_task_id"],
+            check_type=item["check_type"],
+            instructions=item["instructions"],
+            ttl=item["ttl"],
+            max_retries=int(item.get("max_retries", 3)),
+            retry_count=int(item.get("retry_count", 0)),
+            retry_delay_hours=float(item.get("retry_delay_hours", 1)),
+            required_secrets=item.get("required_secrets", []),
+            created_at=item.get("created_at", ""),
+        )
+
+
+@dataclass
 class EventRecord:
     tenant: str
     project: str
@@ -333,7 +585,18 @@ class EventRecord:
     def sk(self) -> str:
         return f"EVT#{self.wave_id}#{self.timestamp}"
 
+    @property
+    def events_pk(self) -> str:
+        """PK for the dedicated events table."""
+        return f"T#{self.tenant}#P#{self.project}#W#{self.wave_id}"
+
+    @property
+    def events_sk(self) -> str:
+        """SK for the dedicated events table."""
+        return f"{self.timestamp}#{self.event_type}"
+
     def to_item(self) -> dict[str, Any]:
+        """Write to main table (legacy, kept for backward compat in tests)."""
         item: dict[str, Any] = {
             "PK": self.pk,
             "SK": self.sk,
@@ -345,4 +608,24 @@ class EventRecord:
         }
         if self.extra:
             item.update(self.extra)
+        return item
+
+    def to_events_item(self, ttl_days: int = 90) -> dict[str, Any]:
+        """Write to dedicated events table with TTL."""
+        import time as _time
+
+        item: dict[str, Any] = {
+            "PK": self.events_pk,
+            "SK": self.events_sk,
+            "GSI1PK": f"T#{self.tenant}#P#{self.project}",
+            "GSI1SK": self.timestamp,
+            "event_type": self.event_type,
+            "message": self.message,
+            "color": self.color,
+            "timestamp": self.timestamp,
+            "expires_at": int(_time.time()) + (ttl_days * 86400),
+            "entityType": "Event",
+        }
+        if self.extra:
+            item["extra"] = self.extra
         return item

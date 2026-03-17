@@ -198,6 +198,12 @@ class TestEventType:
             "wave_delivered",
             "budget_warning",
             "budget_exceeded",
+            "human_task_created",
+            "human_task_completed",
+            "task_blocked",
+            "task_unblocked",
+            "verification_passed",
+            "verification_failed",
         }
         actual = {e.value for e in EventType}
         assert actual == expected
@@ -205,6 +211,53 @@ class TestEventType:
 
 class TestEventColor:
     def test_all_event_colors_exist(self) -> None:
-        expected = {"green", "red", "purple", "yellow", "blue"}
+        expected = {"green", "red", "purple", "yellow", "blue", "orange"}
         actual = {c.value for c in EventColor}
+        assert actual == expected
+
+
+class TestHumanTaskStatus:
+    def test_all_statuses_exist(self) -> None:
+        from murder.enums import HumanTaskStatus
+        expected = {
+            "pending", "notified", "in_progress", "responded",
+            "verifying", "completed", "verification_failed", "expired",
+        }
+        actual = {s.value for s in HumanTaskStatus}
+        assert actual == expected
+
+    def test_terminal_states(self) -> None:
+        from murder.enums import HumanTaskStatus
+        assert HumanTaskStatus.COMPLETED.is_terminal()
+        assert HumanTaskStatus.EXPIRED.is_terminal()
+        assert not HumanTaskStatus.PENDING.is_terminal()
+
+    def test_valid_transitions(self) -> None:
+        from murder.enums import HumanTaskStatus
+        assert HumanTaskStatus.PENDING.can_transition_to(HumanTaskStatus.NOTIFIED)
+        assert HumanTaskStatus.NOTIFIED.can_transition_to(HumanTaskStatus.IN_PROGRESS)
+        assert HumanTaskStatus.NOTIFIED.can_transition_to(HumanTaskStatus.RESPONDED)
+        assert HumanTaskStatus.NOTIFIED.can_transition_to(HumanTaskStatus.COMPLETED)
+        assert HumanTaskStatus.IN_PROGRESS.can_transition_to(HumanTaskStatus.RESPONDED)
+        assert HumanTaskStatus.RESPONDED.can_transition_to(HumanTaskStatus.VERIFYING)
+        assert HumanTaskStatus.RESPONDED.can_transition_to(HumanTaskStatus.COMPLETED)
+        assert HumanTaskStatus.VERIFYING.can_transition_to(HumanTaskStatus.COMPLETED)
+        assert HumanTaskStatus.VERIFYING.can_transition_to(HumanTaskStatus.VERIFICATION_FAILED)
+        assert HumanTaskStatus.VERIFICATION_FAILED.can_transition_to(HumanTaskStatus.RESPONDED)
+
+    def test_invalid_transitions(self) -> None:
+        from murder.enums import HumanTaskStatus
+        assert not HumanTaskStatus.COMPLETED.can_transition_to(HumanTaskStatus.PENDING)
+        assert not HumanTaskStatus.EXPIRED.can_transition_to(HumanTaskStatus.PENDING)
+        assert not HumanTaskStatus.PENDING.can_transition_to(HumanTaskStatus.COMPLETED)
+
+
+class TestHumanTaskSubtype:
+    def test_all_subtypes_exist(self) -> None:
+        from murder.enums import HumanTaskSubtype
+        expected = {
+            "provide_secret", "upload_asset", "fill_content",
+            "configure_ext", "physical_action", "wait_external", "confirm",
+        }
+        actual = {s.value for s in HumanTaskSubtype}
         assert actual == expected

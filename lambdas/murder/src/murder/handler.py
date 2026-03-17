@@ -11,16 +11,22 @@ from typing import Any
 import boto3
 
 from murder.blackboard import Blackboard
-from murder.config import TABLE_NAME
+from murder.config import EVENTS_TABLE_NAME, TABLE_NAME
 from murder.logging import StructuredLogger
-from murder.reactor import react_to_crow_completion, react_to_mvi_queued
+from murder.reactor import (
+    react_to_crow_completion,
+    react_to_human_task_completed,
+    react_to_mvi_queued,
+)
 from murder.stream import deserialize_stream_record
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
     """Process DynamoDB Stream events."""
-    table = boto3.resource("dynamodb").Table(TABLE_NAME)
-    blackboard = Blackboard(table)
+    dynamodb = boto3.resource("dynamodb")
+    table = dynamodb.Table(TABLE_NAME)
+    events_table = dynamodb.Table(EVENTS_TABLE_NAME) if EVENTS_TABLE_NAME else None
+    blackboard = Blackboard(table, events_table=events_table)
     logger = StructuredLogger("murder-handler")
 
     processed = 0
@@ -49,8 +55,13 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
         level = item.get("level", "")
         status = item.get("status", "")
 
+        task_type = item.get("task_type", "")
+
         try:
-            if level == "crow" and status in ("completed", "failed"):
+            if level == "crow" and task_type == "human" and status == "completed":
+                react_to_human_task_completed(blackboard, item, logger)
+                processed += 1
+            elif level == "crow" and status in ("completed", "failed"):
                 react_to_crow_completion(blackboard, item, logger)
                 processed += 1
             elif level == "murder" and status == "queued":

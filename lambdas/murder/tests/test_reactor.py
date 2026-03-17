@@ -3,6 +3,8 @@
 All money values are integer microdollars (1 USD = 1_000_000).
 """
 
+from typing import Any
+
 import pytest
 
 from murder.blackboard import Blackboard
@@ -91,8 +93,8 @@ def _seed_crow(
 
 
 @pytest.fixture
-def blackboard(dynamodb_table):  # type: ignore[no-untyped-def]
-    return Blackboard(dynamodb_table)
+def blackboard(dynamodb_table, events_table):  # type: ignore[no-untyped-def]
+    return Blackboard(dynamodb_table, events_table=events_table)
 
 
 @pytest.fixture
@@ -150,7 +152,7 @@ class TestReactToMVIQueued:
         assert updated["status"] == "failed"
 
     def test_writes_crow_assigned_event(
-        self, blackboard: Blackboard, logger: StructuredLogger
+        self, blackboard: Blackboard, events_table: Any, logger: StructuredLogger,
     ) -> None:
         _seed_wave(blackboard)
         mvi = _seed_mvi(blackboard)
@@ -159,10 +161,15 @@ class TestReactToMVIQueued:
 
         react_to_mvi_queued(blackboard, mvi_item, logger)
 
-        pk = build_pk("t1", "p1")
-        events = blackboard.query(pk, "EVT#w01")
+        # Events now written to events table with PK=T#t#P#p#W#w
+        from boto3.dynamodb.conditions import Key
+        events_pk = "T#t1#P#p1#W#w01"
+        response = events_table.query(
+            KeyConditionExpression=Key("PK").eq(events_pk),
+        )
+        events = response.get("Items", [])
         assert len(events) >= 1
-        assert events[0]["type"] == "crow_assigned"
+        assert events[0]["event_type"] == "crow_assigned"
 
 
 class TestReactToCrowCompletion:
