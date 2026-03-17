@@ -6,6 +6,8 @@ struct ProjectHubScreen: View {
     var onBack: () -> Void = {}
     var onDocumentTap: (DocumentType) -> Void = { _ in }
     var onBacklogTap: () -> Void = {}
+    var onHumanTasksTap: () -> Void = {}
+    var onWavesTap: () -> Void = {}
 
     var body: some View {
         ZStack {
@@ -84,6 +86,8 @@ struct ProjectHubScreen: View {
                 ProjectHubStatsRow(stats: detail.stats)
                 ProjectHubDocumentsSection(documents: detail.documents, onDocumentTap: onDocumentTap)
                 ProjectHubBacklogCard(backlog: detail.backlog, onTap: onBacklogTap)
+                humanTasksCard
+                wavesCard
                 ProjectHubAgentsCard(murders: detail.murders)
                 ProjectHubCostRow(project: detail.project, roi: detail.stats.roi)
             }
@@ -91,6 +95,70 @@ struct ProjectHubScreen: View {
             .padding(.horizontal, CawnexSpacing.xl)
             .padding(.bottom, CawnexSpacing.xl)
         }
+    }
+
+    private var wavesCard: some View {
+        Button(action: onWavesTap) {
+            HStack(spacing: CawnexSpacing.md) {
+                Image(systemName: "waveform.path")
+                    .font(.system(size: 20))
+                    .foregroundColor(CawnexColors.primary)
+                    .frame(width: 36, height: 36)
+                    .background(CawnexColors.primary.opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Waves")
+                        .font(CawnexTypography.bodyBold)
+                        .foregroundColor(CawnexColors.cardForeground)
+                    Text("Execution runs and progress")
+                        .font(CawnexTypography.caption)
+                        .foregroundColor(CawnexColors.mutedForeground)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(CawnexColors.mutedForeground)
+            }
+            .padding(CawnexSpacing.lg)
+            .background(CawnexColors.card)
+            .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var humanTasksCard: some View {
+        Button(action: onHumanTasksTap) {
+            HStack(spacing: CawnexSpacing.md) {
+                Image(systemName: "hand.raised.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(CawnexColors.primary)
+                    .frame(width: 36, height: 36)
+                    .background(CawnexColors.primary.opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Needs Your Input")
+                        .font(CawnexTypography.bodyBold)
+                        .foregroundColor(CawnexColors.cardForeground)
+                    Text("Tasks waiting for human action")
+                        .font(CawnexTypography.caption)
+                        .foregroundColor(CawnexColors.mutedForeground)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(CawnexColors.mutedForeground)
+            }
+            .padding(CawnexSpacing.lg)
+            .background(CawnexColors.card)
+            .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
+        }
+        .buttonStyle(.plain)
     }
 
     private func projectHeader(_ project: Project) -> some View {

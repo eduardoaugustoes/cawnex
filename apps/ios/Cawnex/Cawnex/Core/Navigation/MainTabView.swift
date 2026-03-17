@@ -163,7 +163,13 @@ struct MainTabView: View {
                 ),
                 onBack: { tabRouter.popToRoot(tab: .projects) },
                 onDocumentTap: { type in tabRouter.pushDocument(projectId, type: type) },
-                onBacklogTap: { tabRouter.pushBacklog(projectId) }
+                onBacklogTap: { tabRouter.pushBacklog(projectId) },
+                onHumanTasksTap: {
+                    tabRouter.projectPath.append(ProjectRoute.humanTasks(projectId: projectId))
+                },
+                onWavesTap: {
+                    tabRouter.projectPath.append(ProjectRoute.waves(projectId: projectId))
+                }
             )
         case .document(let projectId, let type):
             documentDestination(projectId: projectId, type: type)
@@ -227,6 +233,55 @@ struct MainTabView: View {
                     prService: services.makePRService()
                 ),
                 onBack: { tabRouter.projectPath.removeLast() }
+            )
+        case .humanTasks(let projectId):
+            HumanTasksScreen(
+                viewModel: HumanTaskViewModel(
+                    humanTaskService: services.makeHumanTaskService(),
+                    projectId: projectId
+                ),
+                onBack: { tabRouter.projectPath.removeLast() },
+                onTaskTap: { taskId in
+                    tabRouter.projectPath.append(
+                        ProjectRoute.humanTaskDetail(projectId: projectId, humanTaskId: taskId)
+                    )
+                }
+            )
+        case .humanTaskDetail(let projectId, let humanTaskId):
+            HumanTaskDetailScreen(
+                viewModel: HumanTaskViewModel(
+                    humanTaskService: services.makeHumanTaskService(),
+                    projectId: projectId
+                ),
+                humanTaskId: humanTaskId,
+                onBack: { tabRouter.projectPath.removeLast() }
+            )
+        case .waves(let projectId):
+            WaveListScreen(
+                viewModel: WaveListViewModel(
+                    waveService: services.makeWaveService(),
+                    projectId: projectId
+                ),
+                onBack: { tabRouter.projectPath.removeLast() },
+                onWaveTap: { waveId in
+                    tabRouter.projectPath.append(
+                        ProjectRoute.waveExecution(projectId: projectId, waveId: waveId)
+                    )
+                }
+            )
+        case .waveExecution(let projectId, let waveId):
+            WaveExecutionScreen(
+                viewModel: WaveExecutionViewModel(
+                    waveService: services.makeWaveService(),
+                    projectId: projectId,
+                    waveId: waveId
+                ),
+                onBack: { tabRouter.projectPath.removeLast() },
+                onHumanTaskTap: { taskId in
+                    tabRouter.projectPath.append(
+                        ProjectRoute.humanTaskDetail(projectId: projectId, humanTaskId: taskId)
+                    )
+                }
             )
         }
     }

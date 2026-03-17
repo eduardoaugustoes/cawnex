@@ -24,4 +24,12 @@ enum ProjectRoute: Hashable {
 
     // S34 — PR Review
     case pr(projectId: String, prId: String)
+
+    // Human Tasks
+    case humanTasks(projectId: String)
+    case humanTaskDetail(projectId: String, humanTaskId: String)
+
+    // Waves
+    case waves(projectId: String)
+    case waveExecution(projectId: String, waveId: String)
 }

@@ -75,4 +75,18 @@ struct ServiceFactory {
     func makeNotificationService() -> any NotificationService {
         InMemoryNotificationService()
     }
+
+    func makeHumanTaskService() -> any HumanTaskService {
+        if let apiClient {
+            return APIHumanTaskService(client: apiClient)
+        }
+        return InMemoryHumanTaskService(store: store)
+    }
+
+    func makeWaveService() -> any WaveService {
+        if let apiClient {
+            return APIWaveService(client: apiClient)
+        }
+        return InMemoryWaveService(store: store)
+    }
 }
