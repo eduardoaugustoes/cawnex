@@ -64,6 +64,26 @@ class TestPlannerCompleted:
         assert isinstance(action, FailMVI)
         assert "task limit" in action.reason
 
+    def test_string_estimated_hours_handles_comparison(self) -> None:
+        """Claude may return estimated_hours as string — must not crash."""
+        action = determine_next(
+            CrowType.PLANNER, CrowStatus.COMPLETED,
+            {"tasks": [
+                {"name": "Build UI", "estimated_hours": "4"},
+                {"name": "Add tests", "estimated_hours": "2"},
+            ]}, 0,
+        )
+        assert isinstance(action, AssignCrow)
+        assert action.crow_type == CrowType.IMPLEMENTER
+
+    def test_string_oversized_hours_triggers_split(self) -> None:
+        """String estimated_hours exceeding limit must still trigger split."""
+        action = determine_next(
+            CrowType.PLANNER, CrowStatus.COMPLETED,
+            {"tasks": [{"name": "Big task", "estimated_hours": "16"}]}, 0,
+        )
+        assert isinstance(action, SplitRequired)
+
     def test_tasks_without_estimated_hours_proceeds_normally(self) -> None:
         action = determine_next(
             CrowType.PLANNER, CrowStatus.COMPLETED,

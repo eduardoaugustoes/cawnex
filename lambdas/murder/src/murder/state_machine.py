@@ -79,7 +79,7 @@ def _on_completed(
         tasks = (outcome or {}).get("tasks", [])
         if not tasks:
             return FailMVI(reason="planner produced no tasks")
-        oversized = [t for t in tasks if t.get("estimated_hours", 0) > MAX_TASK_HOURS]
+        oversized = [t for t in tasks if float(t.get("estimated_hours", 0)) > MAX_TASK_HOURS]
         if oversized:
             if split_count >= MAX_PLANNER_SPLITS:
                 return FailMVI(
