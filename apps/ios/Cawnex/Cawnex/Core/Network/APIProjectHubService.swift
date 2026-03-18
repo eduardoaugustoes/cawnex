@@ -13,16 +13,6 @@ final class APIProjectHubService: ProjectHubService {
     func getProjectHub(_ projectId: String) async throws -> ProjectHubDetail? {
         let response: HubResponseDTO = try await client.get("/projects/\(projectId)/hub")
 
-        let project = store.projects.first { $0.id == projectId } ?? Project(
-            id: response.project.id,
-            name: response.project.name,
-            description: response.project.one_liner,
-            status: ProjectStatus(rawValue: response.project.status.capitalized) ?? .draft,
-            tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
-            creditsSpent: 0,
-            humanEquivSaved: 0
-        )
-
         let documents = response.documents.map { doc in
             ProjectDocument(
                 id: doc.type,
@@ -36,14 +26,29 @@ final class APIProjectHubService: ProjectHubService {
         }
 
         let waves = response.waves
+        let budgetSpentMicros = Decimal(waves?.budget_spent ?? 0)
+        let creditsSpent = budgetSpentMicros / 1_000_000
+        let humanEquivSaved = Decimal(response.stats.tasks_done * 4 * 50)
+        let roi = humanEquivSaved > 0 && creditsSpent > 0
+            ? Int(truncating: (humanEquivSaved / creditsSpent) as NSDecimalNumber)
+            : 0
+
         return ProjectHubDetail(
-            project: project,
+            project: Project(
+                id: response.project.id,
+                name: response.project.name,
+                description: response.project.one_liner,
+                status: ProjectStatus(rawValue: response.project.status.capitalized) ?? .draft,
+                tasks: TaskCounts(done: response.stats.tasks_done, active: waves?.active_count ?? 0, refined: 0, draft: 0),
+                creditsSpent: creditsSpent,
+                humanEquivSaved: humanEquivSaved
+            ),
             stats: ProjectStats(
                 progress: response.stats.progress,
                 tasksDone: response.stats.tasks_done,
                 tasksTotal: response.stats.tasks_total,
                 pendingApprovals: response.stats.pending_approvals,
-                roi: 0
+                roi: roi
             ),
             documents: documents,
             backlog: BacklogSummary(
