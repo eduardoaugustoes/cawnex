@@ -35,6 +35,7 @@ final class APIProjectHubService: ProjectHubService {
             MurderSummary(id: murder, name: "\(murder.capitalized) Murder", crowCount: 0, isActive: false)
         }
 
+        let waves = response.waves
         return ProjectHubDetail(
             project: project,
             stats: ProjectStats(
@@ -46,10 +47,10 @@ final class APIProjectHubService: ProjectHubService {
             ),
             documents: documents,
             backlog: BacklogSummary(
-                pipeline: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
-                activeMilestones: 0,
-                mvisShipped: 0,
-                mvisTotal: 0
+                pipeline: TaskCounts(done: response.stats.tasks_done, active: waves?.active_count ?? 0, refined: 0, draft: 0),
+                activeMilestones: waves?.active_count ?? 0,
+                mvisShipped: waves?.mvis_shipped ?? 0,
+                mvisTotal: waves?.mvis_total ?? 0
             ),
             murders: murders
         )
@@ -89,8 +90,19 @@ private struct HubStatsDTO: Decodable {
     let ai_call_count: Int
 }
 
+private struct HubWavesDTO: Decodable {
+    let active_count: Int?
+    let pending_ship: Int?
+    let pending_human_tasks: Int?
+    let budget_spent: Int?
+    let budget_limit: Int?
+    let mvis_total: Int?
+    let mvis_shipped: Int?
+}
+
 private struct HubResponseDTO: Decodable {
     let project: HubProjectDTO
     let documents: [HubDocumentDTO]
     let stats: HubStatsDTO
+    let waves: HubWavesDTO?
 }

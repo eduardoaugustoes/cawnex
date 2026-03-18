@@ -57,6 +57,10 @@ async def get_project_hub(  # noqa: C901
     pending_human_tasks = 0
     total_budget_spent = 0
     total_budget_limit = 0
+    total_mvis = 0
+    mvis_shipped = 0
+    tasks_done = 0
+    tasks_total = 0
 
     for item in wave_items:
         level = item.get("level", "")
@@ -67,6 +71,11 @@ async def get_project_hub(  # noqa: C901
             budget = item.get("budget", {})
             total_budget_spent += int(budget.get("spent", 0))
             total_budget_limit += int(budget.get("limit", 0))
+            progress = item.get("progress", {})
+            tasks_done += int(progress.get("tasks_done", 0))
+            tasks_total += int(progress.get("tasks_total", 0))
+            total_mvis += int(progress.get("mvis_total", 0))
+            mvis_shipped += int(progress.get("mvis_shipped", 0))
         elif level == "murder":
             if item.get("status") == "ready_to_ship":
                 pending_ship += 1
@@ -80,6 +89,8 @@ async def get_project_hub(  # noqa: C901
             ):
                 pending_human_tasks += 1
 
+    progress_pct = int(mvis_shipped * 100 / total_mvis) if total_mvis > 0 else 0
+
     return {
         "project": {
             "id": project_id,
@@ -90,10 +101,10 @@ async def get_project_hub(  # noqa: C901
         },
         "documents": documents,
         "stats": {
-            "progress": 0,
-            "tasks_done": 0,
-            "tasks_total": 0,
-            "pending_approvals": 0,
+            "progress": progress_pct,
+            "tasks_done": tasks_done,
+            "tasks_total": tasks_total,
+            "pending_approvals": pending_ship,
             "ai_cost_usd": ai_cost,
             "ai_call_count": ai_calls,
         },
@@ -103,5 +114,7 @@ async def get_project_hub(  # noqa: C901
             "pending_human_tasks": pending_human_tasks,
             "budget_spent": total_budget_spent,
             "budget_limit": total_budget_limit,
+            "mvis_total": total_mvis,
+            "mvis_shipped": mvis_shipped,
         },
     }

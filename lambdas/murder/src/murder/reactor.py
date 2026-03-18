@@ -370,6 +370,9 @@ def _handle_mvi_ready(
 
     logger.event("mvi_ready_to_ship", mvi_id=mvi_id, cost=total_cost.credits)
 
+    # Check if all MVIs in the wave are terminal — transition wave to review
+    _maybe_transition_wave(blackboard, pk, wave_id, logger)
+
 
 def _handle_fail_mvi(
     blackboard: Blackboard,
@@ -382,6 +385,8 @@ def _handle_fail_mvi(
     mvi_sk = build_sk(wave_id=wave_id, mvi_id=mvi_id)
     blackboard.update(pk, mvi_sk, {"status": MVIStatus.FAILED.value})
     logger.event("mvi_failed", mvi_id=mvi_id, reason=reason)
+
+    _maybe_transition_wave(blackboard, pk, wave_id, logger)
 
 
 def _handle_split_required(
@@ -706,6 +711,45 @@ def _check_and_unblock(
             crow_id=crow_id,
             unblocked_by=resolved_ref,
         )
+
+
+# --- Wave lifecycle ---
+
+def _maybe_transition_wave(
+    blackboard: Blackboard,
+    pk: str,
+    wave_id: str,
+    logger: StructuredLogger,
+) -> None:
+    """If all MVIs in the wave are terminal, transition wave to review."""
+    mvi_prefix = f"S#{wave_id}#m"
+    mvi_items = blackboard.query(pk, mvi_prefix)
+
+    # Only look at MVI-level items (not crows or human tasks)
+    mvis = [m for m in mvi_items if m.get("level") == "murder"]
+    if not mvis:
+        return
+
+    terminal_statuses = {"ready_to_ship", "shipped", "failed"}
+    all_terminal = all(m.get("status") in terminal_statuses for m in mvis)
+    if not all_terminal:
+        return
+
+    wave_sk = build_sk(wave_id=wave_id)
+    wave_item = blackboard.read(pk, wave_sk)
+    if not wave_item or wave_item.get("status") != WaveStatus.EXECUTING.value:
+        return
+
+    any_ready = any(m.get("status") == "ready_to_ship" for m in mvis)
+    new_status = WaveStatus.REVIEW.value if any_ready else WaveStatus.CANCELLED.value
+
+    blackboard.update(pk, wave_sk, {"status": new_status})
+    logger.event(
+        "wave_transitioned",
+        wave_id=wave_id,
+        new_status=new_status,
+        mvi_count=len(mvis),
+    )
 
 
 # --- Budget tracking ---
