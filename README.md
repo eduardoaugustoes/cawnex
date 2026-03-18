@@ -1,376 +1,383 @@
 <div align="center">
 
-# 🐦‍⬛ Cawnex
+# Cawnex
 
 ### Coordinated Intelligence
 
-**Agent orchestration platform that turns a single issue into shipped, tested, documented code — without human intervention.**
+**AI orchestration platform that turns a voice command into a shipped, tested, documented codebase — with human approval at every step.**
 
-_One caw. Seven agents. Zero bottlenecks._
+_One caw. Three Lambdas. Zero bottlenecks._
 
 ---
 
-[Getting Started](#-getting-started) · [Architecture](#-architecture) · [Agents](#-the-7-agents) · [How It Works](#-how-it-works) · [CLI](#-cli) · [Why Cawnex](#-why-cawnex)
+[System Architecture](#system-architecture) · [Integration Endpoints](#integration-endpoints) · [How It Works](#how-it-works) · [DynamoDB Schema](#dynamodb-schema) · [Glossary](#glossary)
 
 </div>
 
 ---
 
-## 🧠 What is Cawnex?
+## System Architecture
 
-In nature, crows don't work alone. They call to each other — **caw** — sharing what they've found, coordinating the hunt, solving problems no single bird could crack.
-
-**Cawnex** does the same thing with AI agents.
-
-You create an issue, and a coordinated murder of specialized agents — backend, frontend, QA, docs, security — ships it to production.
-
-**~$1 per PR. No humans in the loop.**
+Cawnex is a fully serverless multi-agent platform on AWS. A user speaks a project idea into their phone, an AI planner (Monarch) asks clarifying questions, then autonomously generates project documents, plans milestones, breaks work into MVIs, and launches AI agents (Crows) that write, review, and fix code in real GitHub repos.
 
 ```
-Issue created → Agents coordinate → Code shipped → Team notified
+iOS App
+  │
+  ▼
+CloudFront → API Gateway v2 (HTTP) → API Lambda (FastAPI + Mangum)
+  │                                         │
+  │  JWT auth via Cognito                   ├─→ DynamoDB (main table)
+  │                                         ├─→ DynamoDB (events table)
+  │                                         ├─→ S3 (assets + artifacts)
+  │                                         ├─→ KMS (vault encryption)
+  │                                         └─→ Claude API (via Secrets Manager)
+  │
+  ▼
+DynamoDB Streams ──┬──→ Murder Lambda (crow orchestration)
+                   └──→ Monarch Lambda (async project setup)
+  │
+  ▼
+ECS Fargate Worker (continuous poll)
+  ├─→ Claims pending crows from GSI1
+  ├─→ Clones repo into EFS worktree
+  ├─→ Calls Claude API (plan/implement/review/fix)
+  ├─→ Commits code + pushes to GitHub
+  └─→ Writes completion snapshot → triggers Murder Lambda
+  │
+  ▼
+Murder Lambda (DynamoDB Stream)
+  ├─→ Planner done → assign Implementer
+  ├─→ Implementer done → assign Reviewer
+  ├─→ Reviewer rejects → assign Fixer
+  ├─→ Reviewer approves → MVI ready to ship
+  └─→ All MVIs terminal → wave transitions to review
 ```
 
-## ✨ Features
+### AWS Resources
 
-- 🐦 **7 Specialized Agents** — Each agent has one mission. Specialization over generalization.
-- 🔑 **BYOL (Bring Your Own LLM)** — Use your own API key or Claude Max subscription. No token limits. No artificial constraints.
-- 🔄 **End-to-End Autonomous** — From issue to merge, zero human intervention required.
-- 🌐 **Cross-Repo Coordinated** — Changes across multiple services stay consistent. Synchronized PRs.
-- 📡 **Real-Time Streaming** — Watch every agent action live via SSE. No waiting for results.
-- 🏢 **Multi-Tenant** — Complete isolation between organizations. Auto-routing webhooks.
-- 🔁 **Smart Retry** — Failures are isolated. A frontend error doesn't block the backend.
-- 🛡️ **Hallucination Detection** — Orchestrator monitors agent output and cancels if it drifts.
-- 📊 **Cost Tracking** — Tokens, duration, cost per execution — all monitored automatically.
-- 🤖 **Multi-LLM Support** — Anthropic, OpenAI, Google. Use different models per agent type.
+| Resource            | Name Pattern                   | Purpose                                  |
+| ------------------- | ------------------------------ | ---------------------------------------- |
+| **API Gateway v2**  | `cawnex-api-{stage}`           | HTTP routing to API Lambda               |
+| **Lambda: API**     | `cawnex-api-{stage}`           | FastAPI app (29s timeout, 512MB)         |
+| **Lambda: Murder**  | `cawnex-murder-{stage}`        | Crow orchestration reactor (60s timeout) |
+| **Lambda: Monarch** | `cawnex-monarch-{stage}`       | Async project setup agent (5min timeout) |
+| **Lambda: Checker** | `cawnex-checker-{stage}`       | Hourly verification scan                 |
+| **Lambda: Scaler**  | `cawnex-worker-scaler-{stage}` | 15-min auto scale-down                   |
+| **Lambda: SSE**     | `cawnex-sse-{stage}`           | Server-Sent Events streaming             |
+| **ECS Fargate**     | `cawnex-worker-{stage}`        | Crow execution (1 vCPU, 2GB, SPOT)       |
+| **DynamoDB**        | `cawnex-{stage}`               | Main table (single-table design)         |
+| **DynamoDB**        | `cawnex-events-{stage}`        | Wave event log                           |
+| **S3**              | `cawnex-artifacts-{stage}`     | Repo snapshots, context files            |
+| **S3**              | `cawnex-assets-{stage}`        | Human task file uploads                  |
+| **EFS**             | `cawnex-repos-{stage}`         | Git worktrees (tenant-isolated)          |
+| **SQS**             | `cawnex-tasks-{stage}`         | Task queue (reserved)                    |
+| **KMS**             | `alias/cawnex-vault-{stage}`   | Secret encryption                        |
+| **Cognito**         | Imported from AuthStack        | JWT authentication                       |
 
-## 🐦 The 7 Agents
+---
 
-| Agent             | Role     | What it does                                                                              |
-| ----------------- | -------- | ----------------------------------------------------------------------------------------- |
-| 🔍 **Refinement** | Analyst  | Analyzes issues → generates full user stories with acceptance criteria and affected repos |
-| ⚙️ **Backend**    | Engineer | Writes server code, APIs, database migrations, business logic                             |
-| 🖥️ **Frontend**   | Engineer | Builds interfaces, components, and user experiences                                       |
-| 📱 **Mobile**     | Engineer | Implements features in iOS/Android applications                                           |
-| ✅ **QA**         | Reviewer | Validates code against acceptance criteria, approves or rejects PRs                       |
-| 📄 **Docs**       | Writer   | Auto-updates documentation after every code change                                        |
-| 🔒 **Security**   | Auditor  | Scans for vulnerabilities, ensures conformity with best practices (SAST/DAST)             |
+## Integration Endpoints
 
-## 🏗️ Architecture
+### Public (no auth)
+
+| Method | Path      | Purpose                                                 |
+| ------ | --------- | ------------------------------------------------------- |
+| GET    | `/health` | Liveness check — returns `{status, stage}`              |
+| GET    | `/config` | Client config — returns Cognito pool IDs, region, stage |
+
+### Projects
+
+| Method | Path                 | Purpose                                                 |
+| ------ | -------------------- | ------------------------------------------------------- |
+| POST   | `/projects`          | Create project (writes list entry + root snapshot)      |
+| GET    | `/projects`          | List all projects for tenant                            |
+| GET    | `/projects/{id}/hub` | Aggregated hub — project + docs + stats + waves + tasks |
+
+### Documents (AI-guided)
+
+| Method | Path                              | Purpose                                             |
+| ------ | --------------------------------- | --------------------------------------------------- |
+| PUT    | `/projects/{id}/documents/{type}` | Save document (vision/architecture/glossary/design) |
+| GET    | `/projects/{id}/documents/{type}` | Get document (null if not saved)                    |
+
+### Backlog (Milestones → Goals → MVIs)
+
+| Method | Path                                 | Purpose                                    |
+| ------ | ------------------------------------ | ------------------------------------------ |
+| POST   | `/projects/{id}/milestones`          | Add milestone with goals                   |
+| PUT    | `/projects/{id}/milestones`          | Replace all milestones                     |
+| GET    | `/projects/{id}/milestones`          | Get milestones with MVI counts per goal    |
+| GET    | `/projects/{id}/milestones/context`  | Get all 4 docs as planning context         |
+| GET    | `/projects/{id}/goals/{gid}/context` | Get goal + siblings + docs + existing MVIs |
+| POST   | `/projects/{id}/goals/{gid}/mvis`    | Save MVIs for goal (max 8h per MVI)        |
+| GET    | `/projects/{id}/goals/{gid}/mvis`    | Get MVIs for goal                          |
+
+### Waves (Execution)
+
+| Method | Path                                         | Purpose                                        |
+| ------ | -------------------------------------------- | ---------------------------------------------- |
+| POST   | `/projects/{id}/waves`                       | Create wave from goal MVIs or ad-hoc directive |
+| GET    | `/projects/{id}/waves`                       | List waves (sorted by created_at desc)         |
+| GET    | `/projects/{id}/waves/{wid}`                 | Wave detail — MVIs + crows + human tasks       |
+| POST   | `/projects/{id}/waves/{wid}/activate`        | Activate → queues MVIs → scales ECS worker     |
+| POST   | `/projects/{id}/waves/{wid}/pause`           | Pause execution                                |
+| POST   | `/projects/{id}/waves/{wid}/cancel`          | Cancel wave + non-terminal MVIs                |
+| GET    | `/projects/{id}/waves/{wid}/events`          | Paginated event feed (limit, cursor)           |
+| POST   | `/projects/{id}/waves/{wid}/mvis/{mid}/ship` | Ship MVI (must be ready_to_ship + can_ship)    |
+
+### AI Chat
+
+| Method | Path       | Purpose                                            |
+| ------ | ---------- | -------------------------------------------------- |
+| POST   | `/ai/chat` | Claude API proxy — tracks cost on project snapshot |
+
+### Autopilot (Voice-driven project creation)
+
+| Method | Path                       | Purpose                                                             |
+| ------ | -------------------------- | ------------------------------------------------------------------- |
+| POST   | `/projects/autopilot/chat` | Stateful Monarch chat — gathering → proposed → executing → complete |
+
+### Human Tasks
+
+| Method | Path                                           | Purpose                                   |
+| ------ | ---------------------------------------------- | ----------------------------------------- |
+| GET    | `/projects/{id}/human-tasks`                   | List tasks grouped by status              |
+| GET    | `/projects/{id}/human-tasks/{htid}`            | Task detail with input schema             |
+| POST   | `/projects/{id}/human-tasks/{htid}/respond`    | Submit response + optional steering       |
+| POST   | `/projects/{id}/human-tasks/{htid}/upload-url` | Get presigned S3 upload URL (5min expiry) |
+
+### Vault (Secrets)
+
+| Method | Path                                         | Purpose                      |
+| ------ | -------------------------------------------- | ---------------------------- |
+| POST   | `/projects/{id}/vault/secrets`               | Store KMS-encrypted secret   |
+| GET    | `/projects/{id}/vault/secrets`               | List metadata (never values) |
+| DELETE | `/projects/{id}/vault/secrets/{name}`        | Remove secret                |
+| PUT    | `/projects/{id}/vault/secrets/{name}/rotate` | Re-encrypt with new value    |
+
+---
+
+## How It Works
+
+### 1. Autopilot Flow (Voice → Shipped Code)
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                      LINEAR                          │
-│            Issue created with label                  │
-│                  → webhook fires                     │
-└────────────────────┬─────────────────────────────────┘
-                     │ webhook
-                     ▼
-┌──────────────────────────────────────────────────────┐
-│          🐦‍⬛ THE MURDER (Orchestrator)                │
-│                                                      │
-│  • Receives events via Redis Streams                  │
-│  • Analyzes issue type & affected repos              │
-│  • Routes to correct agent(s)                        │
-│  • Monitors streaming for hallucination              │
-│  • Cancels if agent goes off-track                   │
-│  • Coordinates synchronized PRs                      │
-└──┬────┬────┬────┬────┬────┬────┬─────────────────────┘
-   │    │    │    │    │    │    │
-   ▼    ▼    ▼    ▼    ▼    ▼    ▼
-┌──────────────────────────────────────────────────────┐
-│              🐦 CROWS (Agents)                       │
-│                                                      │
-│  Each agent works in an isolated worktree (nest)     │
-│  Agents communicate via NCP (caws)                   │
-│  Parallel execution, shared context                  │
-│                                                      │
-│  Refinement → Backend ↔ Frontend ↔ Mobile            │
-│                    ↓                                  │
-│              QA → Docs → Security                    │
-└────────────────────┬─────────────────────────────────┘
-                     │
-                     ▼
-┌──────────────────────────────────────────────────────┐
-│              GIT WORKFLOW                             │
-│                                                      │
-│  • Worktrees (nests) per agent — full isolation      │
-│  • PRs synchronized across repos                     │
-│  • Auto-merge after QA approval                      │
-│  • Coordinated rollback on failure                   │
-└────────────────────┬─────────────────────────────────┘
-                     │
-                     ▼
-              Slack notification 🔔
+User holds FAB → speaks "Build a URL shortener on AWS"
+  │
+  ▼ (SFSpeechRecognizer transcribes)
+POST /projects/autopilot/chat { message: "Build a URL shortener on AWS" }
+  │
+  ▼ (Monarch asks 2-3 questions via Claude)
+POST /projects/autopilot/chat { message: "Python, create new repo, with analytics" }
+  │
+  ▼ (Monarch proposes structured plan)
+Response: { phase: "proposed", plan: { milestones, goals, mvis } }
+  │
+  ▼ (User taps "Launch")
+POST /projects/autopilot/chat { action: "launch" }
+  │
+  ├─ Creates project (instant) → returns project_id
+  └─ Writes MONARCH#task to DynamoDB
+       │
+       ▼ (DynamoDB Stream triggers Monarch Lambda)
+  Monarch Lambda (async, ~60s):
+    ├─ Generates vision document via Claude → emits event
+    ├─ Generates architecture document → emits event
+    ├─ Generates glossary document → emits event
+    ├─ Generates design document → emits event
+    ├─ Saves milestones + goals + MVIs → emits event
+    ├─ Creates wave + activates → emits event
+    └─ Scales ECS worker to 1
+         │
+         ▼ (Worker picks up planner crow)
+  Worker ECS (continuous poll):
+    ├─ Planner: breaks MVI into tasks → writes completion
+    │    ▼ (Murder Lambda reacts)
+    ├─ Implementer: writes code, commits, pushes → writes completion
+    │    ▼ (Murder Lambda reacts)
+    ├─ Reviewer: reviews code → approves or rejects
+    │    ▼ (if rejected → Fixer → re-review loop)
+    └─ MVI ready to ship → wave transitions to review
 ```
 
-### BYOL — Bring Your Own LLM
+### 2. Crow Lifecycle (State Machine)
 
 ```
-┌─────────────────────────────────────────┐
-│  🔑 Connect your AI                     │
-│                                          │
-│  [Anthropic API Key]  ← recommended     │
-│  [OpenAI API Key]                        │
-│  [Google AI API Key]                     │
-│                                          │
-│  ── or ──                                │
-│                                          │
-│  [Claude Max Subscription]               │
-│  Unlimited executions via Claude Code    │
-└─────────────────────────────────────────┘
+Planner (completed)
+  ├─ has tasks → Implementer
+  ├─ has human tasks → create HumanTask + Implementer (for non-blocked tasks)
+  ├─ oversized tasks → SplitRequired (re-plan with split instructions)
+  └─ no tasks → FailMVI
+
+Implementer (completed) → Reviewer
+
+Reviewer (completed)
+  ├─ approved (no blocking issues) → MarkMVIReady
+  ├─ rejected → Fixer
+  └─ max fix cycles exceeded → FailMVI
+
+Fixer (completed) → Reviewer (re-review)
+
+Any crow (failed)
+  ├─ retries < max → retry same crow type
+  └─ retries exhausted → FailMVI
 ```
 
-Your key. Your budget. Your rules. We handle the orchestration.
+### 3. Wave Lifecycle
 
-| BYOL Mode        | How it works                             | Best for                  |
-| ---------------- | ---------------------------------------- | ------------------------- |
-| **API Key**      | Direct SDK calls, precise token tracking | Low-medium volume         |
-| **Subscription** | Claude Code subprocess, unlimited        | High volume / power users |
+```
+planning → approved → executing → review → delivered
+                        │
+                        ├─→ paused → executing (resume)
+                        ├─→ steered → proposed/executing
+                        └─→ cancelled
 
-### Tech Stack
+All MVIs terminal (ready_to_ship/shipped/failed) → wave auto-transitions to review
+```
 
-| Layer               | Technology                                              |
-| ------------------- | ------------------------------------------------------- |
-| **AI Engine**       | BYOL — Claude SDK (primary), GPT-4, Gemini (user's key) |
-| **Backend**         | Python 3.12 + FastAPI + SQLAlchemy (async)              |
-| **Database**        | PostgreSQL (multi-tenant)                               |
-| **Cache / Streams** | Redis (Streams for event bus, cache for state)          |
-| **Web App**         | React + Vite + TypeScript + shadcn/ui                   |
-| **iOS**             | Swift + SwiftUI (full native)                           |
-| **Android**         | Kotlin + Jetpack Compose (full native)                  |
-| **Issue Tracker**   | GitHub Issues (webhook), Linear planned                 |
-| **Git**             | GitHub (worktrees per agent)                            |
-| **API Contracts**   | OpenAPI spec → generated clients (TS, Swift, Kotlin)    |
-| **Package Mgmt**    | uv (Python), pnpm (Node)                                |
-| **Infrastructure**  | Docker Compose (MVP) → Kubernetes (scale)               |
-| **Notifications**   | Slack, GitHub, Email                                    |
+### 4. Murder Lambda Reactions
 
-## 📁 Project Structure
+The Murder Lambda is triggered by DynamoDB Streams on every INSERT/MODIFY:
+
+| Trigger                   | Action                                                 |
+| ------------------------- | ------------------------------------------------------ |
+| MVI status → `queued`     | Assign planner crow with instructions                  |
+| Crow status → `completed` | Run state machine → assign next crow or mark MVI ready |
+| Crow status → `failed`    | Retry or fail MVI                                      |
+| Human task → `completed`  | Unblock dependent crows, resume execution              |
+| All MVIs terminal         | Transition wave to `review`                            |
+
+### 5. Worker Execution Loop
+
+```python
+while True:
+    # Query GSI1 for DISPATCH#pending crows
+    pending = query(GSI1PK="DISPATCH#pending")
+    for crow in pending:
+        # Claim: pending → running (conditional update)
+        claim(crow)
+        # Clone repo + checkout branch
+        worktree = create_worktree(crow.repo, crow.branch)
+        # Call Claude with instructions + repo context
+        result = call_claude(crow.instructions, worktree_context)
+        # Commit + push changes
+        git_commit_and_push(worktree, result)
+        # Write completion snapshot (triggers Murder Lambda)
+        write_completion(crow, result)
+    sleep(10)
+```
+
+---
+
+## DynamoDB Schema
+
+### Main Table — Single-Table Design
+
+| PK                       | SK                              | Entity       | Purpose                     |
+| ------------------------ | ------------------------------- | ------------ | --------------------------- |
+| `T#{tenant}`             | `P#{project}`                   | ProjectEntry | Project list                |
+| `T#{tenant}`             | `AUTOPILOT#{session}`           | Session      | Autopilot chat state        |
+| `T#{tenant}#VAULT`       | `P#{project}#S#{name}`          | Secret       | Encrypted secrets           |
+| `T#{tenant}#P#{project}` | `S#`                            | Snapshot     | Project root                |
+| `T#{tenant}#P#{project}` | `DOC#{type}`                    | Document     | Vision/arch/glossary/design |
+| `T#{tenant}#P#{project}` | `BACKLOG#milestones`            | Backlog      | Milestones + goals          |
+| `T#{tenant}#P#{project}` | `BACKLOG#goal#{gid}#mvis`       | GoalMVIs     | MVIs per goal               |
+| `T#{tenant}#P#{project}` | `MONARCH#task`                  | MonarchTask  | Async setup trigger         |
+| `T#{tenant}#P#{project}` | `S#{wave}`                      | Snapshot     | Wave root                   |
+| `T#{tenant}#P#{project}` | `S#{wave}#m{mvi}`               | Snapshot     | MVI under wave              |
+| `T#{tenant}#P#{project}` | `S#{wave}#m{mvi}#cr_{type}_{n}` | Snapshot     | Crow under MVI              |
+| `T#{tenant}#P#{project}` | `S#{wave}#m{mvi}#ht_{id}`       | Snapshot     | Human task                  |
+
+**GSI1** (worker dispatch): `GSI1PK=DISPATCH#pending` → crows waiting for execution
+
+### Events Table
+
+| PK                                | SK                   | Purpose                 |
+| --------------------------------- | -------------------- | ----------------------- |
+| `T#{tenant}#P#{project}#W#{wave}` | `{timestamp}#{type}` | Wave events (live feed) |
+
+**GSI1**: `T#{tenant}#P#{project}` → project-level event queries
+
+**TTL**: `expires_at` (90 days dev, 365 days prod)
+
+---
+
+## Glossary
+
+| Term           | Meaning                                                                          |
+| -------------- | -------------------------------------------------------------------------------- |
+| **Crow**       | Specialized AI agent with a defined role (planner, implementer, reviewer, fixer) |
+| **Murder**     | Orchestrator Lambda that coordinates crow lifecycle via DynamoDB Streams         |
+| **Monarch**    | Project setup agent — generates docs, plans milestones, launches first wave      |
+| **Wave**       | Execution batch — a set of MVIs dispatched together with a budget                |
+| **MVI**        | Minimum Valuable Increment — a 2-8 hour deliverable (the merge unit)             |
+| **Nest**       | Git worktree where a crow works (isolated per execution)                         |
+| **Blackboard** | Shared DynamoDB state that crows read/write                                      |
+| **Human Task** | Work item requiring human input (secrets, approvals, design decisions)           |
+| **Autopilot**  | Voice-driven project creation flow (speak → refine → launch)                     |
+
+---
+
+## Tech Stack
+
+| Layer        | Technology                                                  |
+| ------------ | ----------------------------------------------------------- |
+| **iOS**      | Swift + SwiftUI (native)                                    |
+| **API**      | Python 3.12 + FastAPI + Mangum (Lambda)                     |
+| **AI**       | Claude (Haiku 4.5 for crows, via Anthropic OAuth)           |
+| **Database** | DynamoDB (single-table + events table)                      |
+| **Storage**  | S3 (assets + artifacts) + EFS (git repos)                   |
+| **Compute**  | Lambda (API, Murder, Monarch, SSE) + ECS Fargate (Worker)   |
+| **Auth**     | Cognito (JWT) + API Gateway authorizer                      |
+| **Secrets**  | KMS (vault) + Secrets Manager (API keys)                    |
+| **Infra**    | AWS CDK (TypeScript)                                        |
+| **CI/CD**    | GitHub Actions (smart change detection + tag-based deploys) |
+
+---
+
+## Project Structure
 
 ```
 cawnex/
-├── packages/
-│   ├── core/           # SQLAlchemy models, Pydantic schemas, enums, DB session
-│   ├── providers/      # BYOL abstraction (Anthropic, OpenAI, Google)
-│   └── git_ops/        # Worktree, branch, PR management (GitPython + GitHub API)
 ├── apps/
-│   ├── api/            # FastAPI — webhooks, REST, SSE streaming
-│   ├── worker/         # The Murder (orchestrator) + Crows (agents)
-│   ├── web/            # React + Vite + shadcn/ui
-│   ├── ios/            # Swift + SwiftUI (full native)
-│   └── android/        # Kotlin + Jetpack Compose (full native)
-├── prompts/            # Agent system prompts (version-controlled)
-├── specs/              # OpenAPI spec (single source of truth for all clients)
-├── scripts/            # Dev tooling, migrations, seed data
-├── tests/              # Integration + E2E tests
+│   ├── api/              # FastAPI Lambda — all REST endpoints
+│   │   ├── src/routes/   # autopilot, projects, waves, documents, goals, etc.
+│   │   ├── src/claude/   # Claude API client (OAuth)
+│   │   ├── src/db/       # TenantDB (DynamoDB client)
+│   │   └── tests/        # 80+ unit tests, 75%+ coverage
+│   ├── worker/           # ECS Fargate — crow execution engine
+│   │   ├── main.py       # Continuous poll loop
+│   │   └── Dockerfile    # Python 3.12 slim + git
+│   └── ios/              # SwiftUI native app
+│       └── Cawnex/
+│           ├── Features/ # Autopilot, Waves, MVI, Backlog, HumanTasks, etc.
+│           ├── Core/     # Network, Auth, Navigation, Theme, Speech
+│           └── Components/ # Reusable UI (FAB, cards, buttons, bars)
+├── lambdas/
+│   ├── murder/           # Crow orchestration (DynamoDB Stream)
+│   │   └── src/murder/   # handler, reactor, state_machine, events, etc.
+│   ├── monarch/          # Project setup agent (DynamoDB Stream)
+│   │   └── src/monarch/  # handler, agent, documents, planner, wave_launcher
+│   ├── worker/           # Shared worker library (crow execution)
+│   ├── orchestration/    # Checker + Worker Scaler
+│   └── sse/              # Server-Sent Events streaming
+├── infra/
+│   └── lib/cawnex-stack.ts  # CDK — all AWS resources
+├── design/
+│   └── cawnex.pen        # Pencil design file (all screens)
 ├── docs/
-│   ├── research/       # Competitive analysis, transcript insights
-│   ├── design/         # Architecture, agents, orchestration, BYOL, platform
-│   └── roadmap/        # Phases, MVP scope, Milestone 0
-├── docker-compose.yml  # PostgreSQL + Redis (dev)
-├── pyproject.toml      # uv workspace root
-└── CAWNEX.md           # Agent instructions (dogfooding)
+│   ├── design/           # Screen specs, architecture decisions
+│   └── VISION.md         # Product vision
+├── scripts/              # iOS config sync, deployment helpers
+└── .github/workflows/    # CI/CD pipelines
 ```
-
-## 🔄 How It Works
-
-### The Loop
-
-Every agent follows the same cognitive loop:
-
-```
-    ┌→ Perceive ──→ Reason ──→ Act ──→ Observe ─┐
-    └────────────────────────────────────────────┘
-```
-
-1. **Perceive** — Read the environment: issue, code, context
-2. **Reason** — Analyze and plan the best action
-3. **Act** — Execute: write code, open PR, run tests
-4. **Observe** — Verify the result, adjust if necessary
-
-The cycle repeats until the objective is fully achieved — with optional human supervision at critical points.
-
-### Flow: Issue → Production
-
-```
-1. 📋 Issue created in Linear (with agent label)
-        │
-2. ⚡ Webhook → Redis Stream → Orchestrator (The Murder)
-        │
-3. 🔍 Refinement Agent generates:
-        • Full user story
-        • Acceptance criteria
-        • Technical notes
-        • Affected repositories
-        │
-4. 🧑 HUMAN APPROVES (only intervention point)
-        │
-5. 🐦 Dev Agents work in PARALLEL:
-        • Create worktrees (nests)
-        • Read environment + context
-        • Implement solution
-        • Communicate via caws (agent-to-agent protocol)
-        • Share API contracts between repos
-        │
-6. ✅ QA Agent reviews:
-        • Diffs against acceptance criteria
-        • Type checks
-        • Approves or rejects
-        │
-7. 📄 Docs Agent updates documentation
-        │
-8. 🔒 Security Agent scans for vulnerabilities
-        │
-9. 🔀 Synchronized PRs merge together
-        │
-10. 🔔 Slack notification → Done
-```
-
-### Flow: PR → Merge
-
-```
-PR Opened → QA Reviews (acceptance criteria) → Auto-Merge → Slack Notification
-```
-
-The complete cycle — from issue to merge — happens without any engineer needing to intervene. The team is notified only at the end.
-
-## 💻 CLI
-
-```bash
-$ cawnex init --repo github.com/myorg/api
-✅ Repository connected
-
-$ cawnex agents list
-
-  🐦 refinement   ready
-  🐦 backend      ready
-  🐦 frontend     ready
-  🐦 mobile       idle
-  🐦 qa           ready
-  🐦 docs         ready
-  🐦 security     ready
-
-$ cawnex issue LUI-19 --run
-
-  ⚡ The Murder picked up LUI-19
-  → Refinement: generating user story...
-  → Backend: creating nest crow/LUI-19-api
-  → Frontend: creating nest crow/LUI-19-web
-  → QA: watching for PRs...
-
-$ cawnex watch
-
-  🐦 LUI-19 ████████████░░░░ 74%
-     backend  ✅ completed (2m31s)
-     frontend ⏳ implementing...
-     qa       🔄 waiting for PRs
-     docs     🔄 queued
-
-$ cawnex roost
-
-  📊 The Roost — Dashboard
-  ┌─────────────┬──────────┬──────────┬──────────┐
-  │ Executions  │ Success  │ PRs      │ Cost     │
-  │ 174         │ 58.05%   │ 33       │ $57.29   │
-  └─────────────┴──────────┴──────────┴──────────┘
-```
-
-### Cawnex Vocabulary
-
-| Term               | Meaning                                   |
-| ------------------ | ----------------------------------------- |
-| **Crows**          | Agents — your AI workers                  |
-| **The Murder**     | Orchestrator — coordinates everything     |
-| **Nests**          | Worktrees — isolated workspaces per agent |
-| **Caws**           | Agent-to-agent messages                   |
-| **The Roost**      | Dashboard — monitor everything            |
-| **Fallen Crow** 💀 | Failed execution                          |
-
-## 💰 Real Numbers
-
-| Metric                 | Value           |
-| ---------------------- | --------------- |
-| Cost per execution     | ~$0.15 - $0.96  |
-| Cost per PR            | ~$1.73          |
-| QA review duration     | ~2m 48s         |
-| Parallel vs sequential | 15 min vs 1h+   |
-| Equivalent team size   | 20-30 engineers |
-
-## 🤔 Why Cawnex?
-
-### Agents vs Skills
-
-|             | Skill                                      | Agent                                      |
-| ----------- | ------------------------------------------ | ------------------------------------------ |
-| **Changes** | What you **know**                          | **Who** does the work                      |
-| **Nature**  | Packaged knowledge, passive                | Autonomous entity with mission             |
-| **Analogy** | Excel — powerful, needs someone to open it | Analyst — uses Excel, decides when and how |
-
-> _Skills amplify capabilities. Agents replace the need for a human to execute a task._
-
-### Key Lessons
-
-- **Start simple** — A subprocess with regex worked in production for months before migrating to SDK
-- **Feature flags for safe migration** — Never do big bang. Rollback per organization instantly.
-- **Specialization > Generalization** — 7 specialized agents deliver far superior results to 1 generic agent
-
-### Why the crow?
-
-Crows are one of nature's most intelligent animals:
-
-- 🧰 Use **tools** to solve problems
-- 🗣️ **Communicate** complex information to each other
-- 🤝 Work in **coordinated groups**
-- 🧠 **Remember** and share knowledge across the group
-- 🧩 Solve **multi-step puzzles** autonomously
-
-That's literally what AI agents do.
-
-## 📈 Evolution
-
-```
-Phase 1 — CLI          Phase 2 — SDK          Phase 3 — Migration     Phase 4 — Feature Flags
-Claude CLI as           Agent SDK with          Strangler Fig:          Control per org
-subprocess with         structured output,      new executions          with instant
-regex parsing.          native metrics,         use SDK while           rollback.
-Simple, functional,     and sub-agent           old ones stay           Safe migration,
-but fragile at scale.   support.                on CLI.                 no big bang.
-```
-
-> _The most important lesson: start simple. The subprocess with regex worked in production for months before the migration to SDK._
-
-## 💰 Pricing
-
-| Tier           | Price  | Includes                                            |
-| -------------- | ------ | --------------------------------------------------- |
-| **Free**       | $0/mo  | 20 executions, 1 repo, 2 agents                     |
-| **Pro**        | $29/mo | Unlimited executions, 10 repos, 4 agents            |
-| **Team**       | $99/mo | Unlimited repos, 7 agents, multi-repo sync, 5 seats |
-| **Enterprise** | Custom | SSO, audit logs, SLA, on-prem                       |
-
-_All tiers require BYOL. We charge for orchestration, not tokens._
-
-## 🚀 Roadmap
-
-- [x] **Milestone 0 — "The Egg"** — Monorepo scaffold, DB models, Docker infra, first agent _(in progress)_
-- [ ] **Phase 1 — "First Flight"** — Single agent, single repo, CLI proof (5 real issues → 3 merged PRs)
-- [ ] **Phase 2 — "The Murder"** — Full pipeline (Refine → Dev → QA → Docs), dashboard, BYOL multi-provider
-- [ ] **Phase 3 — "Migration"** — Multi-repo coordination, synchronized merges, GitHub App
-- [ ] **Phase 4 — "The Roost"** — Multi-tenant SaaS, billing, native mobile apps, subscription relay
-- [ ] **Phase 5 — "Evolved"** — Planning Agent, Skills Marketplace, ROI Dashboard
-
-## 📄 License
-
-MIT
 
 ---
 
 <div align="center">
 
-**🐦‍⬛ Cawnex** — _Coordinated Intelligence_
+**Cawnex** — _Coordinated Intelligence_
 
 Built with obsession by humans and crows.
 
 </div>
-# Test smart pipeline
-# Final pipeline test - deployment tagging system
