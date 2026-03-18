@@ -1164,6 +1164,219 @@ Shows the AI conversation thread (user question + crow answer with risk badge), 
 
 ---
 
+## S70a — Autopilot: FAB + Voice Capture
+
+**Purpose:** Entry point for voice-driven project creation. Monarch FAB on Projects list — hold to speak, release to transcribe.
+
+**Layout:**
+
+- Overlays on S10 Dashboard (Projects list)
+- **Monarch FAB:**
+  - Position: bottom-right (16px from edges), 56×56pt circle
+  - Background: `$--primary` (crow purple)
+  - Icon: `bird` (lucide), 24pt, `$--primary-foreground`
+  - Label below: "Hold to speak" (muted, 11px)
+  - Tap: opens S71 with keyboard focused
+  - Long press: activates voice recording overlay
+
+- **Voice Recording Overlay** (appears on long press):
+  - Bottom sheet gradient: transparent → 90% black, 302pt height
+  - Centered content:
+    - Pulsing ellipse (80pt, primary color, 0.3 opacity) — breathing animation
+    - Mic icon (32pt, primary color)
+    - "Listening..." text (16px, semibold, white)
+    - Live transcription preview (13px, italic, muted) — updates in real-time
+  - Release: stops recording, transcribes text, navigates to S71 with transcription as first message
+
+**Data:** None (input only).
+
+**Speech Service:**
+- `SFSpeechRecognizer` for on-device transcription
+- Requires: microphone permission, speech recognition permission
+- Real-time partial results shown during recording
+- Final transcription sent as first message to S71
+
+**Actions:**
+| Action | Target |
+|--------|--------|
+| Tap FAB | S71 Autopilot Chat (keyboard mode) |
+| Hold FAB | Activate voice recording overlay |
+| Release hold | Transcribe → S71 Autopilot Chat (with message) |
+| Tap outside overlay | Cancel recording, dismiss |
+
+**Navigation:** S10 (with FAB) → S71
+
+---
+
+## S71 — Autopilot: Chat Refine
+
+**Purpose:** Conversational interface where Monarch asks clarifying questions to refine the project plan before execution. Replaces the manual 5-screen setup flow (create project → documents → milestones → goals → MVIs → wave).
+
+**Layout:**
+
+- StatusBar
+- **NavBarModal:** "Cancel" (left) | "Autopilot" (center) | empty (right)
+- **Chat Messages** (scrollable, fill remaining space):
+  - **AI Message Bubble:**
+    - Avatar row: bird icon (16pt, primary) + "Monarch" label (12px, semibold, primary)
+    - Bubble: `$--card` background, 12px radius, 1px `$--border` stroke, 310pt max width
+    - Content: 14px Inter, card-foreground, 1.5 line height
+    - Questions: 13px, muted-foreground, numbered list
+  - **User Message Bubble:**
+    - Right-aligned, `$--primary` background, 12px radius, 280pt max width
+    - Content: 14px Inter, `$--primary-foreground`, 1.5 line height
+  - **Plan Proposal** (AI's final message):
+    - Standard AI bubble with "Got it. Here's my plan:" header
+    - Hint text: "Tap 'Review Plan' to see the full breakdown." (12px, muted)
+    - **Review Plan CTA:** full-width button inside bubble, `$--primary`, rocket icon + "Review Plan" label
+- **ChatInputBar** (component, bottom-pinned):
+  - Sparkles icon (left) | text field "Ask anything..." | mic button (tap for voice) | send button (right)
+
+**Data:**
+
+| Field | Type | Source |
+|-------|------|--------|
+| session_id | string | Created on first message, persisted across round-trips |
+| messages | array | `[{role: "user"|"assistant", content: string}]` |
+| phase | enum | `gathering` → `proposed` → `executing` → `complete` |
+| plan | object? | Present when phase=`proposed` (milestones, goals, MVIs) |
+
+**AI System Prompt Behavior:**
+- Phase `gathering`: Ask 2-4 targeted questions based on what's missing: repo (create new or existing?), tech stack, key features, complexity hints. Never ask more than needed.
+- Phase `proposed`: Output a structured JSON plan with human-readable summary. Include: project name, description, repo, milestones with goals, MVIs per goal with estimated hours.
+- Phase `executing`: Show progress messages as each step completes.
+- Phase `complete`: Return project_id + wave_id for navigation.
+
+**Actions:**
+| Action | Target |
+|--------|--------|
+| Type + send message | Send to `POST /projects/autopilot/chat` |
+| Tap mic button | Toggle voice input (SFSpeechRecognizer) |
+| Tap "Review Plan" | S72 Plan Review |
+| Tap "Cancel" | Dismiss → back to S10 |
+
+**API:**
+```
+POST /projects/autopilot/chat
+Request:  { session_id?, message, action: "message"|"launch" }
+Response: { session_id, phase, reply, plan?, result? }
+```
+
+**Navigation:** S71 → S72, S10
+
+---
+
+## S72 — Autopilot: Plan Review
+
+**Purpose:** Structured view of the AI-generated project plan. User reviews milestones, goals, MVIs, and estimated costs before launching the first wave.
+
+**Layout:**
+
+- StatusBar
+- **NavBarBack:** "← Review Plan"
+- **Scroll Content** (20px sides, 16px top, 24px bottom, 20px gap):
+  - **Project Header:**
+    - Project name (20px, bold, white)
+    - Description (13px, muted, multi-line)
+  - **Repo Row:**
+    - `git-branch` icon (16pt, primary) + repo path (13px, muted)
+  - **Milestone Card** (repeated per milestone):
+    - `$--card` background, 12px radius, `$--border` stroke
+    - "MILESTONE N" label (11px, semibold, muted, 2px letter-spacing)
+    - Milestone name (16px, semibold, white)
+    - **Goals list** (12px gap):
+      - Goal row: colored dot (8pt, primary for first, muted for rest) + goal name (14px, medium, white)
+      - MVI count + human equiv (12px, muted, indented)
+  - **Summary Stats Card:**
+    - `$--card` background, 12px radius, `$--border` stroke
+    - 3 stats side-by-side (space-around):
+      - MVIs count (22px, bold, primary)
+      - Human equiv hours (22px, bold, white)
+      - Estimated cost (22px, bold, green #4ADE80)
+    - Labels below each (11px, muted)
+  - **First Wave Card:**
+    - `$--card` background, 10px radius, `$--primary` stroke (highlighted)
+    - "FIRST WAVE" label (11px, semibold, primary, 2px letter-spacing)
+    - Wave description (14px, medium, white, multi-line)
+    - Meta: MVI count + human equiv + estimated cost (12px, muted)
+  - **Launch Button:**
+    - Full-width, `$--primary`, 12px radius, 14px vertical padding
+    - Rocket icon (20pt) + "Launch Wave" (16px, bold, primary-foreground)
+
+**Data:**
+
+| Field | Type | Example |
+|-------|------|---------|
+| project.name | string | "URL Shortener" |
+| project.description | string | "Serverless URL shortener on AWS..." |
+| project.repo | string | "eduardoaugustoes/url-shortener" |
+| milestones | array | `[{name, goals: [{name, mvi_count, human_hours}]}]` |
+| summary.totalMVIs | number | 4 |
+| summary.totalHumanHours | string | "~19h" |
+| summary.estimatedCost | string | "~$0.80" |
+| firstWave.description | string | "CDK stack + Create and Redirect endpoints" |
+| firstWave.mviCount | number | 1 |
+| firstWave.humanHours | string | "~6h" |
+| firstWave.estimatedCost | string | "~$0.25" |
+
+**Actions:**
+| Action | Target |
+|--------|--------|
+| Tap ← back | S71 Autopilot Chat |
+| Tap "Launch Wave" | Execute autopilot → create all resources → navigate to S36 Wave Execution |
+| Scroll | Review full plan |
+
+**Launch Execution Sequence** (triggered by "Launch Wave"):
+1. Create GitHub repo (if new)
+2. `POST /projects` — create project
+3. `PUT /documents/{type}` × 4 — AI generates vision, architecture, glossary, design
+4. `POST /milestones` — save all milestones with goals
+5. `POST /goals/{id}/mvis` × N — save MVIs per goal
+6. `POST /waves` — create first wave
+7. `POST /waves/{id}/activate` — start execution
+8. Navigate to S36 Wave Execution with wave_id
+
+**Loading States:**
+- During execution: button text changes to "Creating project..." → "Generating documents..." → "Planning milestones..." → "Launching wave..." with spinner
+- Each step updates a progress indicator (7 steps total)
+- On error: show error in red below button, allow retry
+
+**API:**
+```
+POST /projects/autopilot/chat
+Request:  { session_id, message: "", action: "launch" }
+Response: { session_id, phase: "complete", result: { project_id, wave_id } }
+```
+
+**Navigation:** S72 → S36 Wave Execution, S71
+
+---
+
+## Autopilot Flow Summary
+
+```
+S10 Dashboard (with Monarch FAB)
+  │
+  ├─ Tap FAB → S71 Autopilot Chat (keyboard)
+  ├─ Hold FAB → Voice capture → S71 Autopilot Chat (with transcription)
+  │
+  └── S71 Autopilot Chat
+       │  AI asks questions, user refines
+       │
+       └── S72 Plan Review
+            │  User reviews structured plan
+            │
+            └── "Launch Wave" → Execute chain → S36 Wave Execution
+```
+
+**Key Design Principles:**
+- **One sentence to launch:** The entire multi-screen setup flow collapses into a single voice command + 2-3 chat refinements
+- **AI asks, human approves:** Monarch never executes without explicit "Launch" confirmation
+- **Progressive disclosure:** Voice → chat → structured plan → execution. Each step adds detail
+- **Transparent cost:** Estimated cost shown before launch, actual cost tracked during execution
+
+---
+
 ## Pending Screens (Post-MVP)
 
 | ID  | Screen           | Purpose                                          |
