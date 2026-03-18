@@ -14,24 +14,28 @@ final class APIBacklogService: BacklogService {
         }
 
         return response.milestones.enumerated().map { index, m in
-            Milestone(
+            let goals = m.goals.map { g in
+                Goal(
+                    id: g.id,
+                    name: g.name,
+                    status: mapGoalStatus(g.status),
+                    mviCount: g.mvi_count ?? 0,
+                    mvisComplete: g.mvis_complete ?? 0
+                )
+            }
+            let totalMvis = goals.reduce(0) { $0 + $1.mviCount }
+            let completeMvis = goals.reduce(0) { $0 + $1.mvisComplete }
+            let activeMvis = totalMvis - completeMvis
+            return Milestone(
                 id: m.id,
                 name: m.name,
                 description: m.description,
                 status: mapStatus(m.status),
-                tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
+                tasks: TaskCounts(done: completeMvis, active: activeMvis, refined: 0, draft: 0),
                 creditsSpent: 0,
                 humanEquivSaved: 0,
                 roi: 0,
-                goals: m.goals.map { g in
-                    Goal(
-                        id: g.id,
-                        name: g.name,
-                        status: mapGoalStatus(g.status),
-                        mviCount: g.mvi_count ?? 0,
-                        mvisComplete: g.mvis_complete ?? 0
-                    )
-                }
+                goals: goals
             )
         }
     }
