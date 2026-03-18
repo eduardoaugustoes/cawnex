@@ -204,9 +204,10 @@ struct MainTabView: View {
                 onBack: { tabRouter.projectPath.removeLast() },
                 onMVITap: { mviId in tabRouter.pushMVI(projectId, mviId: mviId) }
             )
-        case .mvi(let projectId, let mviId):
+        case .mvi(let projectId, let mviId, let waveId):
             MVIDetailScreen(
                 projectId: projectId,
+                waveId: waveId,
                 mviId: mviId,
                 viewModel: MVIDetailViewModel(
                     mviService: services.makeMVIService()
@@ -280,6 +281,11 @@ struct MainTabView: View {
                 onHumanTaskTap: { taskId in
                     tabRouter.projectPath.append(
                         ProjectRoute.humanTaskDetail(projectId: projectId, humanTaskId: taskId)
+                    )
+                },
+                onMVITap: { mviId in
+                    tabRouter.projectPath.append(
+                        ProjectRoute.mvi(projectId: projectId, mviId: mviId, waveId: waveId)
                     )
                 }
             )

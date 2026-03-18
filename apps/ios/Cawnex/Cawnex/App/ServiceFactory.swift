@@ -49,7 +49,10 @@ struct ServiceFactory {
     }
 
     func makeMVIService() -> any MVIService {
-        InMemoryMVIService(store: store)
+        if let apiClient {
+            return APIMVIService(client: apiClient)
+        }
+        return InMemoryMVIService(store: store)
     }
 
     func makeTaskService() -> any TaskService {

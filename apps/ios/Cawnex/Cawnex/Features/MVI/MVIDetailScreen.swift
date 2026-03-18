@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MVIDetailScreen: View {
     let projectId: String
+    let waveId: String?
     let mviId: String
     @State var viewModel: MVIDetailViewModel
     var onBack: () -> Void = {}
@@ -41,7 +42,7 @@ struct MVIDetailScreen: View {
         }
         .background(CawnexColors.background)
         .navigationBarHidden(true)
-        .task { await viewModel.load(projectId: projectId, mviId: mviId) }
+        .task { await viewModel.load(projectId: projectId, waveId: waveId, mviId: mviId) }
     }
 
     // MARK: - Loading
@@ -376,6 +377,7 @@ struct MVIDetailScreen: View {
     return NavigationStack {
         MVIDetailScreen(
             projectId: "1",
+            waveId: nil,
             mviId: "mvi2",
             viewModel: MVIDetailViewModel(
                 mviService: InMemoryMVIService(store: store)

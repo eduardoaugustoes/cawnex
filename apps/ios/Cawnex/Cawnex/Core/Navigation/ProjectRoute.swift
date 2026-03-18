@@ -16,8 +16,8 @@ enum ProjectRoute: Hashable {
     // S31 — Goal Detail
     case goal(projectId: String, goalId: String)
 
-    // S32 — MVI Detail
-    case mvi(projectId: String, mviId: String)
+    // S32 — MVI Detail (waveId is present when navigating from wave execution context)
+    case mvi(projectId: String, mviId: String, waveId: String? = nil)
 
     // S33 — Task Detail
     case task(projectId: String, taskId: String)

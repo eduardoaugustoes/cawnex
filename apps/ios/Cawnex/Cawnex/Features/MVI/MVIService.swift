@@ -1,7 +1,7 @@
 import Foundation
 
 protocol MVIService {
-    func getBlackboardDetail(projectId: String, mviId: String) async throws -> MVIBlackboardDetail
+    func getBlackboardDetail(projectId: String, waveId: String?, mviId: String) async throws -> MVIBlackboardDetail
 }
 
 final class InMemoryMVIService: MVIService {
@@ -11,7 +11,7 @@ final class InMemoryMVIService: MVIService {
         self.store = store
     }
 
-    func getBlackboardDetail(projectId: String, mviId: String) async throws -> MVIBlackboardDetail {
+    func getBlackboardDetail(projectId: String, waveId: String?, mviId: String) async throws -> MVIBlackboardDetail {
         MVIBlackboardDetail(
             mvi: MVI(
                 id: mviId,

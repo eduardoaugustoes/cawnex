@@ -14,10 +14,10 @@ final class MVIDetailViewModel {
         self.mviService = mviService
     }
 
-    func load(projectId: String, mviId: String) async {
+    func load(projectId: String, waveId: String?, mviId: String) async {
         state = .loading
         do {
-            let loaded = try await mviService.getBlackboardDetail(projectId: projectId, mviId: mviId)
+            let loaded = try await mviService.getBlackboardDetail(projectId: projectId, waveId: waveId, mviId: mviId)
             state = .loaded(loaded)
         } catch {
             state = .error(error.localizedDescription)

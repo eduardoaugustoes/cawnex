@@ -4,6 +4,7 @@ struct WaveExecutionScreen: View {
     @State var viewModel: WaveExecutionViewModel
     var onBack: () -> Void = {}
     var onHumanTaskTap: (String) -> Void = { _ in }
+    var onMVITap: (String) -> Void = { _ in }
 
     var body: some View {
         ScrollView {
@@ -220,50 +221,56 @@ struct WaveExecutionScreen: View {
     }
 
     private func mviCard(_ mvi: WaveMVI) -> some View {
-        VStack(alignment: .leading, spacing: CawnexSpacing.sm) {
-            HStack {
-                Text(mvi.name)
-                    .font(CawnexTypography.bodyBold)
-                    .foregroundColor(CawnexColors.cardForeground)
-                Spacer()
-                mviStatusChip(mvi.status)
-            }
-
-            if mvi.tasksTotal > 0 {
-                HStack(spacing: CawnexSpacing.sm) {
-                    ProgressView(value: Double(mvi.tasksDone), total: Double(mvi.tasksTotal))
-                        .tint(CawnexColors.primary)
-                    Text("\(mvi.tasksDone)/\(mvi.tasksTotal)")
-                        .font(CawnexTypography.tiny)
+        Button { onMVITap(mvi.id) } label: {
+            VStack(alignment: .leading, spacing: CawnexSpacing.sm) {
+                HStack {
+                    Text(mvi.name)
+                        .font(CawnexTypography.bodyBold)
+                        .foregroundColor(CawnexColors.cardForeground)
+                    Spacer()
+                    mviStatusChip(mvi.status)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundColor(CawnexColors.mutedForeground)
                 }
-            }
 
-            if mvi.canShip {
-                Button {
-                    Task { await viewModel.shipMVI(mvi.id) }
-                } label: {
-                    HStack {
-                        if viewModel.isShipping.contains(mvi.id) {
-                            ProgressView().tint(.white)
-                        } else {
-                            Image(systemName: "shippingbox.fill")
-                            Text("Ship")
-                        }
+                if mvi.tasksTotal > 0 {
+                    HStack(spacing: CawnexSpacing.sm) {
+                        ProgressView(value: Double(mvi.tasksDone), total: Double(mvi.tasksTotal))
+                            .tint(CawnexColors.primary)
+                        Text("\(mvi.tasksDone)/\(mvi.tasksTotal)")
+                            .font(CawnexTypography.tiny)
+                            .foregroundColor(CawnexColors.mutedForeground)
                     }
-                    .font(CawnexTypography.captionBold)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, CawnexSpacing.sm)
-                    .background(CawnexColors.success)
-                    .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
                 }
-                .disabled(viewModel.isShipping.contains(mvi.id))
+
+                if mvi.canShip {
+                    Button {
+                        Task { await viewModel.shipMVI(mvi.id) }
+                    } label: {
+                        HStack {
+                            if viewModel.isShipping.contains(mvi.id) {
+                                ProgressView().tint(.white)
+                            } else {
+                                Image(systemName: "shippingbox.fill")
+                                Text("Ship")
+                            }
+                        }
+                        .font(CawnexTypography.captionBold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, CawnexSpacing.sm)
+                        .background(CawnexColors.success)
+                        .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
+                    }
+                    .disabled(viewModel.isShipping.contains(mvi.id))
+                }
             }
+            .padding(CawnexSpacing.md)
+            .background(CawnexColors.card)
+            .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
         }
-        .padding(CawnexSpacing.md)
-        .background(CawnexColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
+        .buttonStyle(.plain)
     }
 
     private func mviStatusChip(_ status: String) -> some View {
