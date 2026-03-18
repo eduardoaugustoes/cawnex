@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.routes import (
     ai,
+    autopilot,
     config,
     documents,
     goals,
@@ -40,6 +41,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(config.router)
 app.include_router(ai.router)
+app.include_router(autopilot.router)
 app.include_router(projects.router)
 app.include_router(waves.router)
 app.include_router(mvi.router)
