@@ -8,18 +8,21 @@ final class APIMVIService: MVIService {
     }
 
     func getBlackboardDetail(projectId: String, waveId: String?, mviId: String) async throws -> MVIBlackboardDetail {
-        guard let waveId else {
-            throw APIMVIError.missingWaveId
+        let resolvedWaveId: String
+        if let waveId {
+            resolvedWaveId = waveId
+        } else {
+            resolvedWaveId = try await findWaveForMVI(projectId: projectId, mviId: mviId)
         }
 
-        async let waveDetailDTO: MVIWaveDetailDTO = client.get("/projects/\(projectId)/waves/\(waveId)")
-        async let eventsDTO: MVIEventsDTO = client.get("/projects/\(projectId)/waves/\(waveId)/events?limit=50")
+        async let waveDetailDTO: MVIWaveDetailDTO = client.get("/projects/\(projectId)/waves/\(resolvedWaveId)")
+        async let eventsDTO: MVIEventsDTO = client.get("/projects/\(projectId)/waves/\(resolvedWaveId)/events?limit=50")
 
         let (detail, events) = try await (waveDetailDTO, eventsDTO)
 
         return try mapToBlackboardDetail(
             projectId: projectId,
-            waveId: waveId,
+            waveId: resolvedWaveId,
             mviId: mviId,
             detail: detail,
             events: events
@@ -215,21 +218,45 @@ final class APIMVIService: MVIService {
             ),
         ]
     }
+
+    // MARK: - Wave lookup
+
+    private func findWaveForMVI(projectId: String, mviId: String) async throws -> String {
+        let dto: MVIWaveListDTO = try await client.get("/projects/\(projectId)/waves")
+        // Find the most recent wave containing this MVI
+        // Wave IDs are timestamps, so the list is already sorted by created_at desc
+        for wave in dto.waves ?? [] {
+            let waveDetail: MVIWaveDetailDTO = try await client.get("/projects/\(projectId)/waves/\(wave.wave_id)")
+            let hasMVI = waveDetail.mvis?.contains { ($0.SK ?? "").contains(mviId) } ?? false
+            if hasMVI {
+                return wave.wave_id
+            }
+        }
+        throw APIMVIError.mviNotFound
+    }
 }
 
 // MARK: - Error
 
 private enum APIMVIError: LocalizedError {
-    case missingWaveId
+    case mviNotFound
 
     var errorDescription: String? {
         switch self {
-        case .missingWaveId: "Wave ID required to load MVI blackboard"
+        case .mviNotFound: "Could not find a wave containing this MVI"
         }
     }
 }
 
 // MARK: - DTOs
+
+private struct MVIWaveListDTO: Decodable {
+    let waves: [MVIWaveSummaryDTO]?
+}
+
+private struct MVIWaveSummaryDTO: Decodable {
+    let wave_id: String
+}
 
 private struct MVIWaveDetailDTO: Decodable {
     let wave: MVIWaveItemDTO?
