@@ -1191,6 +1191,7 @@ Shows the AI conversation thread (user question + crow answer with risk badge), 
 **Data:** None (input only).
 
 **Speech Service:**
+
 - `SFSpeechRecognizer` for on-device transcription
 - Requires: microphone permission, speech recognition permission
 - Real-time partial results shown during recording
@@ -1234,14 +1235,15 @@ Shows the AI conversation thread (user question + crow answer with risk badge), 
 
 **Data:**
 
-| Field | Type | Source |
-|-------|------|--------|
-| session_id | string | Created on first message, persisted across round-trips |
-| messages | array | `[{role: "user"|"assistant", content: string}]` |
-| phase | enum | `gathering` → `proposed` → `executing` → `complete` |
-| plan | object? | Present when phase=`proposed` (milestones, goals, MVIs) |
+| Field      | Type    | Source                                                  |
+| ---------- | ------- | ------------------------------------------------------- | ------------------------------- |
+| session_id | string  | Created on first message, persisted across round-trips  |
+| messages   | array   | `[{role: "user"                                         | "assistant", content: string}]` |
+| phase      | enum    | `gathering` → `proposed` → `executing` → `complete`     |
+| plan       | object? | Present when phase=`proposed` (milestones, goals, MVIs) |
 
 **AI System Prompt Behavior:**
+
 - Phase `gathering`: Ask 2-4 targeted questions based on what's missing: repo (create new or existing?), tech stack, key features, complexity hints. Never ask more than needed.
 - Phase `proposed`: Output a structured JSON plan with human-readable summary. Include: project name, description, repo, milestones with goals, MVIs per goal with estimated hours.
 - Phase `executing`: Show progress messages as each step completes.
@@ -1256,6 +1258,7 @@ Shows the AI conversation thread (user question + crow answer with risk badge), 
 | Tap "Cancel" | Dismiss → back to S10 |
 
 **API:**
+
 ```
 POST /projects/autopilot/chat
 Request:  { session_id?, message, action: "message"|"launch" }
@@ -1305,19 +1308,19 @@ Response: { session_id, phase, reply, plan?, result? }
 
 **Data:**
 
-| Field | Type | Example |
-|-------|------|---------|
-| project.name | string | "URL Shortener" |
-| project.description | string | "Serverless URL shortener on AWS..." |
-| project.repo | string | "eduardoaugustoes/url-shortener" |
-| milestones | array | `[{name, goals: [{name, mvi_count, human_hours}]}]` |
-| summary.totalMVIs | number | 4 |
-| summary.totalHumanHours | string | "~19h" |
-| summary.estimatedCost | string | "~$0.80" |
-| firstWave.description | string | "CDK stack + Create and Redirect endpoints" |
-| firstWave.mviCount | number | 1 |
-| firstWave.humanHours | string | "~6h" |
-| firstWave.estimatedCost | string | "~$0.25" |
+| Field                   | Type   | Example                                             |
+| ----------------------- | ------ | --------------------------------------------------- |
+| project.name            | string | "URL Shortener"                                     |
+| project.description     | string | "Serverless URL shortener on AWS..."                |
+| project.repo            | string | "eduardoaugustoes/url-shortener"                    |
+| milestones              | array  | `[{name, goals: [{name, mvi_count, human_hours}]}]` |
+| summary.totalMVIs       | number | 4                                                   |
+| summary.totalHumanHours | string | "~19h"                                              |
+| summary.estimatedCost   | string | "~$0.80"                                            |
+| firstWave.description   | string | "CDK stack + Create and Redirect endpoints"         |
+| firstWave.mviCount      | number | 1                                                   |
+| firstWave.humanHours    | string | "~6h"                                               |
+| firstWave.estimatedCost | string | "~$0.25"                                            |
 
 **Actions:**
 | Action | Target |
@@ -1327,6 +1330,7 @@ Response: { session_id, phase, reply, plan?, result? }
 | Scroll | Review full plan |
 
 **Launch Execution Sequence** (triggered by "Launch Wave"):
+
 1. Create GitHub repo (if new)
 2. `POST /projects` — create project
 3. `PUT /documents/{type}` × 4 — AI generates vision, architecture, glossary, design
@@ -1337,11 +1341,13 @@ Response: { session_id, phase, reply, plan?, result? }
 8. Navigate to S36 Wave Execution with wave_id
 
 **Loading States:**
+
 - During execution: button text changes to "Creating project..." → "Generating documents..." → "Planning milestones..." → "Launching wave..." with spinner
 - Each step updates a progress indicator (7 steps total)
 - On error: show error in red below button, allow retry
 
 **API:**
+
 ```
 POST /projects/autopilot/chat
 Request:  { session_id, message: "", action: "launch" }
@@ -1370,6 +1376,7 @@ S10 Dashboard (with Monarch FAB)
 ```
 
 **Key Design Principles:**
+
 - **One sentence to launch:** The entire multi-screen setup flow collapses into a single voice command + 2-3 chat refinements
 - **AI asks, human approves:** Monarch never executes without explicit "Launch" confirmation
 - **Progressive disclosure:** Voice → chat → structured plan → execution. Each step adds detail
