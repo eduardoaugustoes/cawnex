@@ -28,8 +28,8 @@ final class APIBacklogService: BacklogService {
                         id: g.id,
                         name: g.name,
                         status: mapGoalStatus(g.status),
-                        mviCount: 0,
-                        mvisComplete: 0
+                        mviCount: g.mvi_count ?? 0,
+                        mvisComplete: g.mvis_complete ?? 0
                     )
                 }
             )
@@ -91,6 +91,8 @@ private struct GoalResponseDTO: Decodable {
     let name: String
     let description: String
     let status: String
+    let mvi_count: Int?
+    let mvis_complete: Int?
 }
 
 private struct MilestoneResponseDTO: Decodable {

@@ -153,8 +153,19 @@ async def get_milestones(
     if item is None:
         return None
 
+    milestones = item.get("milestones", [])
+    for milestone in milestones:
+        for goal in milestone.get("goals", []):
+            mvi_item = db.get_project_item(
+                project_id=project_id,
+                sk=f"BACKLOG#goal#{goal['id']}#mvis",
+            )
+            mvis = mvi_item.get("mvis", []) if mvi_item else []
+            goal["mvi_count"] = len(mvis)
+            goal["mvis_complete"] = sum(1 for m in mvis if m.get("status") == "shipped")
+
     return {
-        "milestones": item.get("milestones", []),
+        "milestones": milestones,
         "count": item.get("count", 0),
         "created_at": item.get("created_at", ""),
         "updated_at": item.get("updated_at", ""),
