@@ -264,9 +264,28 @@ struct MainTabView: View {
                     projectId: projectId
                 ),
                 onBack: { tabRouter.projectPath.removeLast() },
+                onLaunchWave: {
+                    tabRouter.projectPath.append(ProjectRoute.waveLaunch(projectId: projectId))
+                },
                 onWaveTap: { waveId in
                     tabRouter.projectPath.append(
                         ProjectRoute.waveExecution(projectId: projectId, waveId: waveId)
+                    )
+                }
+            )
+        case .waveLaunch(let projectId):
+            WaveLaunchScreen(
+                viewModel: WaveLaunchViewModel(
+                    backlogService: services.makeBacklogService(),
+                    goalService: services.makeGoalService(),
+                    waveService: services.makeWaveService(),
+                    projectId: projectId
+                ),
+                onCancel: { tabRouter.projectPath.removeLast() },
+                onLaunch: { wave in
+                    tabRouter.projectPath.removeLast()
+                    tabRouter.projectPath.append(
+                        ProjectRoute.waveExecution(projectId: projectId, waveId: wave.id)
                     )
                 }
             )

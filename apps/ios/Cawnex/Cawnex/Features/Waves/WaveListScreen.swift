@@ -3,6 +3,7 @@ import SwiftUI
 struct WaveListScreen: View {
     @State var viewModel: WaveListViewModel
     var onBack: () -> Void = {}
+    var onLaunchWave: () -> Void = {}
     var onWaveTap: (String) -> Void = { _ in }
 
     var body: some View {
@@ -39,6 +40,7 @@ struct WaveListScreen: View {
                 .font(CawnexTypography.heading2)
                 .foregroundColor(CawnexColors.cardForeground)
             Spacer()
+            NavBarActionButton(icon: "bolt.fill", label: "Launch Wave", action: onLaunchWave)
         }
         .padding(.top, CawnexSpacing.md)
     }
