@@ -19,16 +19,17 @@ final class APIGoalService: GoalService {
         let projectName = store.projects.first { $0.id == projectId }?.name ?? "Project"
 
         let mvis = context.existing_mvis.map { m in
-            MVI(
+            let hours = m.estimated_hours?.value ?? 0
+            return MVI(
                 id: m.id,
                 name: m.name,
                 status: .draft,
                 tasksDone: 0,
                 tasksTotal: 0,
                 aiMinutes: 0,
-                humanDays: "~\(Int(m.estimated_hours))h",
+                humanDays: "~\(Int(hours))h",
                 aiCost: 0,
-                humanEquiv: Decimal(m.estimated_hours * 50), // Mid-level rate $50/hr
+                humanEquiv: Decimal(hours * 50), // Mid-level rate $50/hr
                 roi: 0,
                 description: m.description
             )
@@ -74,8 +75,8 @@ private struct ExistingMVIRefDTO: Decodable {
     let id: String
     let name: String
     let description: String
-    let acceptance_criteria: String
-    let estimated_hours: Double
+    let acceptance_criteria: String?
+    let estimated_hours: FlexibleDouble?
 }
 
 private struct GoalContextResp: Decodable {

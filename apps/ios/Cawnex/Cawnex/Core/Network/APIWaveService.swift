@@ -121,27 +121,27 @@ private struct WaveSummaryDTO: Decodable {
 }
 
 private struct ProgressDTO: Decodable {
-    let mvis_total: Int?
-    let mvis_shipped: Int?
-    let tasks_done: Int?
-    let tasks_total: Int?
+    let mvis_total: FlexibleInt?
+    let mvis_shipped: FlexibleInt?
+    let tasks_done: FlexibleInt?
+    let tasks_total: FlexibleInt?
 
     func toDomain() -> WaveProgress {
         WaveProgress(
-            mvisTotal: mvis_total ?? 0,
-            mvisShipped: mvis_shipped ?? 0,
-            tasksDone: tasks_done ?? 0,
-            tasksTotal: tasks_total ?? 0
+            mvisTotal: mvis_total?.value ?? 0,
+            mvisShipped: mvis_shipped?.value ?? 0,
+            tasksDone: tasks_done?.value ?? 0,
+            tasksTotal: tasks_total?.value ?? 0
         )
     }
 }
 
 private struct BudgetDTO: Decodable {
-    let spent: Int?
-    let limit: Int?
+    let spent: FlexibleInt?
+    let limit: FlexibleInt?
 
     func toDomain() -> WaveBudget {
-        WaveBudget(spent: spent ?? 0, limit: limit ?? 0)
+        WaveBudget(spent: spent?.value ?? 0, limit: limit?.value ?? 0)
     }
 }
 
@@ -191,8 +191,8 @@ private struct MVIItemDTO: Decodable {
     let name: String?
     let status: String?
     let description: String?
-    let tasks_done: Int?
-    let tasks_total: Int?
+    let tasks_done: FlexibleInt?
+    let tasks_total: FlexibleInt?
     let can_ship: Bool?
     let cost: CostDTO?
 
@@ -205,16 +205,16 @@ private struct MVIItemDTO: Decodable {
             name: name ?? "",
             status: status ?? "draft",
             description: description ?? "",
-            tasksDone: tasks_done ?? 0,
-            tasksTotal: tasks_total ?? 0,
+            tasksDone: tasks_done?.value ?? 0,
+            tasksTotal: tasks_total?.value ?? 0,
             canShip: can_ship ?? false,
-            cost: cost?.credits ?? 0
+            cost: cost?.credits?.value ?? 0
         )
     }
 }
 
 private struct CostDTO: Decodable {
-    let credits: Int?
+    let credits: FlexibleInt?
 }
 
 private struct HumanTaskItemDTO: Decodable {
