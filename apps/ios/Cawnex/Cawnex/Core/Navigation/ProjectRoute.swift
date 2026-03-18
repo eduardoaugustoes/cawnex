@@ -33,4 +33,7 @@ enum ProjectRoute: Hashable {
     case waves(projectId: String)
     case waveLaunch(projectId: String)
     case waveExecution(projectId: String, waveId: String)
+
+    // Autopilot
+    case autopilotPlanReview(plan: AutopilotPlan, sessionId: String)
 }

@@ -92,4 +92,15 @@ struct ServiceFactory {
         }
         return InMemoryWaveService(store: store)
     }
+
+    func makeAutopilotService() -> any AutopilotService {
+        if let apiClient {
+            return APIAutopilotService(client: apiClient)
+        }
+        return InMemoryAutopilotService()
+    }
+
+    func makeSpeechService() -> SpeechService {
+        SpeechService()
+    }
 }

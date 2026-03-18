@@ -11,6 +11,8 @@ struct MainTabView: View {
     @State private var isCreatingSkill: Bool = false
     @State private var isShowingNotifications: Bool = false
     @State private var isShowingCredits: Bool = false
+    @State private var isShowingAutopilot: Bool = false
+    @State private var autopilotInitialMessage: String? = nil
 
     private var services: ServiceFactory {
         ServiceFactory(store: store, apiClient: apiClient)
@@ -62,6 +64,14 @@ struct MainTabView: View {
                 onAddTap: { isCreatingProject = true },
                 onProjectTap: { project in
                     tabRouter.pushProject(project.id)
+                },
+                onAutopilotTap: {
+                    autopilotInitialMessage = nil
+                    isShowingAutopilot = true
+                },
+                onAutopilotVoice: { transcription in
+                    autopilotInitialMessage = transcription
+                    isShowingAutopilot = true
                 }
             )
             .navigationDestination(for: ProjectRoute.self) { route in
@@ -89,6 +99,32 @@ struct MainTabView: View {
                     onBack: { isShowingNotifications = false }
                 )
             }
+        }
+        .sheet(isPresented: $isShowingAutopilot) {
+            autopilotSheet
+        }
+    }
+
+    // MARK: - Autopilot Sheet
+
+    private var autopilotSheet: some View {
+        let autopilotViewModel = AutopilotChatViewModel(
+            autopilotService: services.makeAutopilotService()
+        )
+        let speechService = services.makeSpeechService()
+        return NavigationStack {
+            AutopilotChatScreen(
+                viewModel: autopilotViewModel,
+                speechService: speechService,
+                initialMessage: autopilotInitialMessage,
+                onCancel: { isShowingAutopilot = false },
+                onPlanReview: { plan, sessionId in
+                    tabRouter.projectPath.append(
+                        ProjectRoute.autopilotPlanReview(plan: plan, sessionId: sessionId)
+                    )
+                    isShowingAutopilot = false
+                }
+            )
         }
     }
 
@@ -305,6 +341,22 @@ struct MainTabView: View {
                 onMVITap: { mviId in
                     tabRouter.projectPath.append(
                         ProjectRoute.mvi(projectId: projectId, mviId: mviId, waveId: waveId)
+                    )
+                }
+            )
+        case .autopilotPlanReview(let plan, let sessionId):
+            AutopilotPlanReviewScreen(
+                plan: plan,
+                sessionId: sessionId,
+                viewModel: AutopilotChatViewModel(
+                    autopilotService: services.makeAutopilotService()
+                ),
+                onBack: { tabRouter.projectPath.removeLast() },
+                onLaunchComplete: { projectId, waveId in
+                    tabRouter.popToRoot(tab: .projects)
+                    tabRouter.projectPath.append(ProjectRoute.projectHub(projectId: projectId))
+                    tabRouter.projectPath.append(
+                        ProjectRoute.waveExecution(projectId: projectId, waveId: waveId)
                     )
                 }
             )

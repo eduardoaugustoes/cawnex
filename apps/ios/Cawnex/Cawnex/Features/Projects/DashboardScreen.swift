@@ -6,21 +6,32 @@ struct DashboardScreen: View {
     var onBellTap: () -> Void = {}
     var onAddTap: () -> Void = {}
     var onProjectTap: (Project) -> Void = { _ in }
+    var onAutopilotTap: () -> Void = {}
+    var onAutopilotVoice: (String) -> Void = { _ in }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: CawnexSpacing.xxl) {
-                header
-                projectsSection
+        ZStack(alignment: .bottomTrailing) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: CawnexSpacing.xxl) {
+                    header
+                    projectsSection
+                }
+                .padding(.top, CawnexSpacing.lg)
+                .padding(.horizontal, CawnexSpacing.xl)
+                .padding(.bottom, 100)
             }
-            .padding(.top, CawnexSpacing.lg)
-            .padding(.horizontal, CawnexSpacing.xl)
-            .padding(.bottom, 100)
+            .task { await viewModel.load() }
+            .background(CawnexColors.background)
+            .toolbarBackground(CawnexColors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+
+            MonarchFAB(
+                onTap: onAutopilotTap,
+                onVoiceResult: onAutopilotVoice
+            )
+            .padding(.trailing, CawnexSpacing.lg)
+            .padding(.bottom, 80)
         }
-        .task { await viewModel.load() }
-        .background(CawnexColors.background)
-        .toolbarBackground(CawnexColors.background, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     // MARK: - Header
