@@ -5,16 +5,14 @@ struct AutopilotPlanReviewScreen: View {
     let sessionId: String
     @State var viewModel: AutopilotChatViewModel
     var onBack: () -> Void = {}
-    var onLaunchComplete: (String, String) -> Void = { _, _ in }
+    var onLaunchComplete: (String) -> Void = { _ in }
 
     @State private var launchStep: String? = nil
     @State private var launchError: String? = nil
 
     private let loadingSteps = [
         "Creating project...",
-        "Generating documents...",
-        "Planning milestones...",
-        "Launching wave..."
+        "Setting up Monarch..."
     ]
 
     var body: some View {
@@ -271,9 +269,9 @@ struct AutopilotPlanReviewScreen: View {
 
         let result = await viewModel.launch()
 
-        if let result, let projectId = result.project_id, let waveId = result.wave_id {
+        if let result, let projectId = result.project_id {
             launchStep = nil
-            onLaunchComplete(projectId, waveId)
+            onLaunchComplete(projectId)
         } else {
             launchStep = nil
             launchError = viewModel.error ?? "Launch failed. Please try again."

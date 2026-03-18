@@ -352,12 +352,9 @@ struct MainTabView: View {
                     autopilotService: services.makeAutopilotService()
                 ),
                 onBack: { tabRouter.projectPath.removeLast() },
-                onLaunchComplete: { projectId, waveId in
+                onLaunchComplete: { projectId in
                     tabRouter.popToRoot(tab: .projects)
                     tabRouter.projectPath.append(ProjectRoute.projectHub(projectId: projectId))
-                    tabRouter.projectPath.append(
-                        ProjectRoute.waveExecution(projectId: projectId, waveId: waveId)
-                    )
                 }
             )
         }

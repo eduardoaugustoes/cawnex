@@ -662,7 +662,7 @@ def _handle_launch(  # pragma: no cover
     phase: str,
     plan: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    """Execute full project creation chain and return complete response."""
+    """Create project and queue async Monarch task. Returns immediately."""
     if phase not in ("proposed", "gathering"):
         raise HTTPException(
             status_code=409,
@@ -675,25 +675,32 @@ def _handle_launch(  # pragma: no cover
         )
 
     project_id = _create_project(db, plan)
-    _generate_and_save_documents(db, project_id, plan)
-    milestones_data = _save_milestones_and_mvis(db, project_id, plan)
-    wave_id = _create_and_activate_first_wave(
-        db, tenant, project_id, plan, milestones_data
+    now = _now_iso()
+    db.put_project_item(
+        project_id=project_id,
+        sk="MONARCH#task",
+        entityType="MonarchTask",
+        status="pending",
+        plan=plan,
+        tenant_id=tenant.tenant_id,
+        created_at=now,
+        updated_at=now,
     )
 
-    session["phase"] = "complete"
-    session["updated_at"] = _now_iso()
+    session["phase"] = "executing"
+    session["updated_at"] = now
     _save_session(db, session)
 
     return {
         "session_id": session_id,
-        "phase": "complete",
+        "phase": "executing",
         "reply": (
-            f"Your project **{plan.get('project_name', 'project')}** is live! "
-            "The first wave is executing. Track progress in the app."
+            f"Your project **{plan.get('project_name', 'project')}** is being set up. "
+            "Monarch is generating documents, planning your backlog, "
+            "and launching the first wave."
         ),
         "plan": plan,
-        "result": {"project_id": project_id, "wave_id": wave_id},
+        "result": {"project_id": project_id},
     }
 
 

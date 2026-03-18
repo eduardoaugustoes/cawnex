@@ -302,6 +302,65 @@ export class CawnexStack extends cdk.Stack {
     );
 
     // ─────────────────────────────────────────────
+    // Lambda — Monarch (async project setup chain)
+    // ─────────────────────────────────────────────
+    const monarchFn = new lambda.Function(this, "MonarchFunction", {
+      functionName: `cawnex-monarch-${stage}`,
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: "monarch.handler.lambda_handler",
+      code: lambda.Code.fromAsset("../lambdas/monarch/src"),
+      memorySize: 512,
+      timeout: cdk.Duration.minutes(5),
+      architecture: lambda.Architecture.ARM_64,
+      environment: {
+        TABLE_NAME: tableName,
+        EVENTS_TABLE_NAME: eventsTable.tableName,
+        STAGE: stage,
+        ECS_CLUSTER_NAME: `cawnex-${stage}`,
+        ECS_SERVICE_NAME: `cawnex-worker-${stage}`,
+      },
+      logRetention: logs.RetentionDays.ONE_MONTH,
+    });
+
+    const anthropicAuthForMonarch = secretsmanager.Secret.fromSecretNameV2(
+      this, "AnthropicAuthForMonarch", `cawnex/${stage}/anthropic-auth-token`
+    );
+    anthropicAuthForMonarch.grantRead(monarchFn);
+    monarchFn.addEnvironment(
+      "ANTHROPIC_AUTH_SECRET_ARN", anthropicAuthForMonarch.secretArn
+    );
+
+    table.grantReadWriteData(monarchFn);
+    table.grantStreamRead(monarchFn);
+    eventsTable.grantReadWriteData(monarchFn);
+
+    monarchFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["ecs:UpdateService", "ecs:DescribeServices"],
+        resources: [`arn:aws:ecs:${this.region}:${this.account}:service/cawnex-${stage}/cawnex-worker-${stage}`],
+      })
+    );
+
+    monarchFn.addEventSource(
+      new lambdaEventSources.DynamoEventSource(table, {
+        startingPosition: lambda.StartingPosition.TRIM_HORIZON,
+        batchSize: 5,
+        bisectBatchOnError: true,
+        retryAttempts: 2,
+        filters: [
+          lambda.FilterCriteria.filter({
+            eventName: lambda.FilterRule.isEqual("INSERT"),
+            dynamodb: {
+              NewImage: {
+                SK: { S: lambda.FilterRule.beginsWith("MONARCH#") },
+              },
+            },
+          }),
+        ],
+      })
+    );
+
+    // ─────────────────────────────────────────────
     // ECS Fargate — Worker (Murder orchestrator)
     // ─────────────────────────────────────────────
     const vpc = new ec2.Vpc(this, "Vpc", {

@@ -51,10 +51,10 @@ final class InMemoryAutopilotService: AutopilotService {
         if action == "launch" {
             return AutopilotResponse(
                 session_id: sessionId ?? UUID().uuidString,
-                phase: "complete",
-                reply: "Your project is being set up. Navigating to wave execution...",
+                phase: "executing",
+                reply: "Your project is being set up. Monarch is generating documents and launching the first wave.",
                 plan: nil,
-                result: AutopilotResult(project_id: "preview-project", wave_id: "preview-wave")
+                result: AutopilotResult(project_id: "preview-project", wave_id: nil)
             )
         }
 
