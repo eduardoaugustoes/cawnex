@@ -9,8 +9,10 @@ struct ProjectCard: View {
             VStack(alignment: .leading, spacing: CawnexSpacing.md) {
                 topRow
                 description
-                pipelineBar
-                summary
+                if project.tasks.total > 0 {
+                    pipelineBar
+                    summary
+                }
                 budgetBar
             }
             .padding(CawnexSpacing.lg)
