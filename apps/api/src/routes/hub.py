@@ -64,7 +64,8 @@ async def get_project_hub(  # noqa: C901
 
     # Collect data in first pass, compute derived stats after
     completed_mvi_sks: set[str] = set()
-    planner_tasks: List[tuple[str, int]] = []
+    # Keep only the last planner per MVI (highest crow sequence number)
+    planner_by_mvi: Dict[str, int] = {}
 
     for item in wave_items:
         level = item.get("level", "")
@@ -76,13 +77,13 @@ async def get_project_hub(  # noqa: C901
             total_budget_spent += int(budget.get("spent", 0))
             total_budget_limit += int(budget.get("limit", 0))
             total_mvis += int(item.get("progress", {}).get("mvis_total", 0))
-            mvis_shipped += int(item.get("progress", {}).get("mvis_shipped", 0))
         elif level == "murder":
             mvi_status = item.get("status", "")
             if mvi_status == "ready_to_ship":
                 pending_ship += 1
             if mvi_status in ("ready_to_ship", "shipped"):
                 completed_mvi_sks.add(item.get("SK", ""))
+                mvis_shipped += 1
         elif level == "crow":
             if item.get("task_type") == "human":
                 ht_status = item.get("status", "")
@@ -100,10 +101,11 @@ async def get_project_hub(  # noqa: C901
                     if isinstance(plan_tasks, list) and plan_tasks:
                         sk = item.get("SK", "")
                         mvi_sk = "#".join(sk.split("#")[:3])
-                        planner_tasks.append((mvi_sk, len(plan_tasks)))
+                        # Keep latest planner per MVI (last one wins)
+                        planner_by_mvi[mvi_sk] = len(plan_tasks)
 
-    # Derive task counts from planner outcomes (second pass)
-    for mvi_sk, count in planner_tasks:
+    # Derive task counts — one entry per MVI, not per planner
+    for mvi_sk, count in planner_by_mvi.items():
         tasks_total += count
         if mvi_sk in completed_mvi_sks:
             tasks_done += count
