@@ -108,7 +108,7 @@ private struct HumanTaskDetailDTO: Decodable {
     let response: [String: String]?
     let steer: String?
     let deadline_hint: String?
-    let estimated_human_hours: Double?
+    let estimated_human_hours: FlexibleDouble?
     let created_at: String?
     let completed_at: String?
 
@@ -129,7 +129,7 @@ private struct HumanTaskDetailDTO: Decodable {
             response: response,
             steer: steer,
             deadlineHint: deadline_hint ?? "",
-            estimatedHumanHours: estimated_human_hours ?? 0,
+            estimatedHumanHours: estimated_human_hours?.value ?? 0,
             createdAt: created_at ?? "",
             completedAt: completed_at ?? ""
         )
