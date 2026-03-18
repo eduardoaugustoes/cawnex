@@ -246,7 +246,23 @@ jobs:
             make build-lambda || echo "Build completed"
             cd ../../infra
             npm ci
-            npx cdk deploy --all --context stage=dev --require-approval never
+            # CDK deploy can fail when ECR immutable tags already exist (e.g. if
+            # Infrastructure Only workflow already deployed the same commit).
+            # Detect this specific error and skip — the infra is already deployed.
+            set +e
+            CDK_OUTPUT=$(npx cdk deploy --all --context stage=dev --require-approval never 2>&1)
+            CDK_EXIT=$?
+            set -e
+            echo "$CDK_OUTPUT"
+
+            if [ $CDK_EXIT -ne 0 ]; then
+              if echo "$CDK_OUTPUT" | grep -q "tag invalid.*already exists.*immutable"; then
+                echo "⚠️ ECR immutable tag conflict — Docker image already published by another workflow. Infrastructure is up to date." >> $GITHUB_STEP_SUMMARY
+              else
+                echo "❌ CDK deploy failed" >> $GITHUB_STEP_SUMMARY
+                exit 1
+              fi
+            fi
             echo "✅ Infrastructure deployment completed" >> $GITHUB_STEP_SUMMARY
 
           elif [[ "${{ needs.detect-changes.outputs.api }}" == "true" ]]; then
