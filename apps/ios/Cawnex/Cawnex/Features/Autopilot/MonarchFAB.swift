@@ -26,7 +26,7 @@ struct MonarchFAB: View {
                     .onChanged { _ in
                         if !isHolding {
                             isHolding = true
-                            speechService.startRecording()
+                            Task { await speechService.startRecording() }
                         }
                     }
                     .simultaneously(with:
@@ -102,9 +102,9 @@ struct VoiceRecordingOverlay: View {
             }
             .padding(.bottom, 80)
         }
-        .onAppear {
+        .task {
             pulseScale = 1.2
-            speechService.startRecording()
+            await speechService.startRecording()
         }
     }
 }

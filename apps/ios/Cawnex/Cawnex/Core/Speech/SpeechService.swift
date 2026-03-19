@@ -13,14 +13,18 @@ final class SpeechService {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
 
+    private var permissionsRequested = false
+
     init() {
         recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
-        Task { await requestPermissions() }
     }
 
     // MARK: - Permissions
 
-    private func requestPermissions() async {
+    func ensurePermissions() async {
+        guard !permissionsRequested else { return }
+        permissionsRequested = true
+
         let speechStatus = await withCheckedContinuation { continuation in
             SFSpeechRecognizer.requestAuthorization { status in
                 continuation.resume(returning: status)
@@ -38,7 +42,8 @@ final class SpeechService {
 
     // MARK: - Recording
 
-    func startRecording() {
+    func startRecording() async {
+        await ensurePermissions()
         guard isAvailable, !isRecording else { return }
         transcription = ""
 

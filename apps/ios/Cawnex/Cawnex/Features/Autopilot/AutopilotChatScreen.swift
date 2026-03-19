@@ -308,7 +308,7 @@ struct AutopilotChatScreen: View {
         .onChange(of: speechService.transcription) { _, new in
             inputText = new
         }
-        .onAppear { speechService.startRecording() }
+        .task { await speechService.startRecording() }
     }
 
     // MARK: - Actions

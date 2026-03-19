@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Cawnex uses the microphone to capture voice commands for the Autopilot feature.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Cawnex uses speech recognition to transcribe your voice into project instructions.</string>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
