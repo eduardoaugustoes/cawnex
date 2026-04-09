@@ -11,7 +11,9 @@ import boto3
 from council._blackboard import Blackboard
 from council.actions import execute_decision, execute_planning_decision
 from council.config import EVENTS_TABLE_NAME, TABLE_NAME
+from council.memory_store import CouncilMemoryStore
 from council.orchestrator import run_council_session
+from council.reflection import extract_learnings
 
 logger = logging.getLogger("council")
 logger.setLevel(logging.INFO)
@@ -74,6 +76,12 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
     return {"processed": processed, "skipped": skipped}
 
 
+def _extract_tenant_project(pk: str) -> tuple[str, str]:
+    """Extract tenant and project from PK format T#{tenant}#P#{project}."""
+    parts = pk.split("#")
+    return parts[1], parts[3]
+
+
 def _process_council_task(item: dict[str, Any]) -> None:
     """Run the full council session and execute the decision."""
     dynamodb = boto3.resource("dynamodb")
@@ -88,12 +96,20 @@ def _process_council_task(item: dict[str, Any]) -> None:
     auto_mode = item.get("auto_mode", "auto")
     context = item.get("context", {})
     session_type = item.get("type", "wave_review")
+    tenant, project = _extract_tenant_project(pk)
 
     # Mark as voting
     blackboard.update(pk, sk, {"status": "voting"})
 
-    # Run the council session
-    result = run_council_session(decision_context=context)
+    # Load advisor memories for this project
+    memory_store = CouncilMemoryStore(blackboard)
+    advisor_memories = memory_store.read_all_advisor_memories(tenant, project)
+
+    # Run the council session with advisor memories
+    result = run_council_session(
+        decision_context=context,
+        advisor_memories=advisor_memories,
+    )
 
     # Save full council session
     blackboard.update(
@@ -106,6 +122,14 @@ def _process_council_task(item: dict[str, Any]) -> None:
             "completed_at": datetime.now(timezone.utc).isoformat(),
         },
     )
+
+    # Post-session reflection: extract learnings and update advisor memories
+    learnings = extract_learnings(result)
+    for advisor_type, advisor_learnings in learnings.items():
+        for learning in advisor_learnings:
+            memory_store.append_advisor_learning(
+                tenant, project, advisor_type, learning
+            )
 
     # Execute the decision based on session type
     if session_type == "wave_planning":

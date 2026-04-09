@@ -21,6 +21,24 @@ class TestBuildAdvisorPrompt:
         )
         assert "mvi_01" in prompt["user"]
 
+    def test_includes_advisor_memory_in_system(self) -> None:
+        prompt = build_advisor_prompt(
+            AdvisorType.SECURITY,
+            decision_context={"ask": "Review wave"},
+            advisor_memory="- Auth endpoints need rate limiting\n- CORS must be explicit",
+        )
+        assert "Your Memory" in prompt["system"]
+        assert "rate limiting" in prompt["system"]
+        assert "CORS" in prompt["system"]
+
+    def test_no_memory_section_when_empty(self) -> None:
+        prompt = build_advisor_prompt(
+            AdvisorType.SECURITY,
+            decision_context={"ask": "Review wave"},
+            advisor_memory="",
+        )
+        assert "Your Memory" not in prompt["system"]
+
 
 class TestParseAdvisorResponse:
     def test_valid_json_response(self) -> None:

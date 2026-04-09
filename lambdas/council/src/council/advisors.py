@@ -17,14 +17,29 @@ _PROMPTS_DIR = Path(__file__).parent.parent.parent / "prompts" / "advisors"
 def build_advisor_prompt(
     advisor: AdvisorType,
     decision_context: dict[str, Any],
+    advisor_memory: str = "",
 ) -> dict[str, str]:
-    """Build system + user prompt for an advisor."""
+    """Build system + user prompt for an advisor.
+
+    Layers:
+    1. Advisor identity (from prompts/advisors/{type}.md)
+    4. Advisor memory (evolving learnings from past sessions)
+    5. Decision context (unique per session)
+    """
     prompt_path = _PROMPTS_DIR / f"{advisor.value}.md"
     system = (
         prompt_path.read_text()
         if prompt_path.exists()
         else f"You are the {advisor.value} advisor."
     )
+
+    # Layer 4: Inject advisor's evolving memory
+    if advisor_memory:
+        system = (
+            f"{system}\n\n"
+            f"## Your Memory (learnings from previous sessions)\n"
+            f"{advisor_memory}"
+        )
 
     user = json.dumps(decision_context, indent=2, default=str)
 
@@ -71,11 +86,12 @@ def parse_advisor_response(advisor: AdvisorType, raw: str) -> AdvisorVote:
 def _call_advisor(
     advisor: AdvisorType,
     decision_context: dict[str, Any],
+    advisor_memory: str = "",
 ) -> AdvisorVote:
     """Call a single advisor via the Anthropic API."""
     from council._claude_client import call_claude
 
-    prompt = build_advisor_prompt(advisor, decision_context)
+    prompt = build_advisor_prompt(advisor, decision_context, advisor_memory)
     result = call_claude(
         system=prompt["system"],
         user=prompt["user"],
@@ -88,15 +104,26 @@ def _call_advisor(
 def run_all_advisors(
     decision_context: dict[str, Any],
     advisors: list[AdvisorType] | None = None,
+    advisor_memories: dict[str, str] | None = None,
 ) -> list[AdvisorVote]:
-    """Run all advisors in parallel and return their votes."""
+    """Run all advisors in parallel and return their votes.
+
+    advisor_memories: optional dict mapping advisor type name to memory content.
+    """
     if advisors is None:
         advisors = list(AdvisorType)
+    if advisor_memories is None:
+        advisor_memories = {}
 
     votes: list[AdvisorVote] = []
     with ThreadPoolExecutor(max_workers=len(advisors)) as executor:
         futures = {
-            executor.submit(_call_advisor, advisor, decision_context): advisor
+            executor.submit(
+                _call_advisor,
+                advisor,
+                decision_context,
+                advisor_memories.get(advisor.value, ""),
+            ): advisor
             for advisor in advisors
         }
         for future in as_completed(futures):
