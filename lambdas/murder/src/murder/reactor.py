@@ -7,9 +7,12 @@ Two entry points:
 
 from __future__ import annotations
 
+import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from murder.blackboard import Blackboard
+from murder.checks import run_deterministic_checks
 from murder.config import EVENT_TTL_DAYS
 from murder.context_builder import (
     build_instructions,
@@ -346,14 +349,29 @@ def _handle_mvi_ready(
         {"check": "cost_tracked", "passed": total_cost.credits >= 0},
     ]
 
+    # Run deterministic checks against the implementer's outcome
+    impl_crows = [c for c in crow_items if c.get("crow_type") == "implementer"]
+    impl_outcome = impl_crows[-1].get("outcome", {}) if impl_crows else {}
     mvi_item = blackboard.read(pk, mvi_sk)
     mvi_name = (mvi_item or {}).get("name", mvi_id)
+    check_results = run_deterministic_checks(impl_outcome or {}, mvi_item or {})
+
+    checks_summary = {
+        "passed": [r.name for r in check_results if r.passed],
+        "failed": [r.name for r in check_results if not r.passed and r.is_hard_block],
+        "warnings": [
+            r.name for r in check_results if not r.passed and not r.is_hard_block
+        ],
+        "details": [r.to_dict() for r in check_results],
+        "run_at": datetime.now(timezone.utc).isoformat(),
+    }
 
     updates: dict[str, Any] = {
         "status": MVIStatus.READY_TO_SHIP.value,
         "can_ship": True,
         "merge_checklist": merge_checklist,
         "cost": total_cost.to_dict(),
+        "deterministic_checks": checks_summary,
     }
 
     ready_item = {
@@ -749,6 +767,68 @@ def _maybe_transition_wave(
         wave_id=wave_id,
         new_status=new_status,
         mvi_count=len(mvis),
+    )
+
+    # Auto mode: trigger council review if enabled
+    if new_status == WaveStatus.REVIEW.value:
+        _trigger_council_review(blackboard, pk, wave_id, mvis, wave_item, logger)
+
+
+def _trigger_council_review(
+    blackboard: Blackboard,
+    pk: str,
+    wave_id: str,
+    mvis: list[dict[str, Any]],
+    wave_item: dict[str, Any],
+    logger: StructuredLogger,
+) -> None:
+    """Write COUNCIL# task if auto_mode is enabled."""
+    root = blackboard.read(pk, "S#")
+    auto_mode = root.get("auto_mode", "off") if root else "off"
+    if auto_mode == "off":
+        return
+
+    session_id = f"wr_{wave_id}_{uuid.uuid4().hex[:8]}"
+
+    mvi_check_results = []
+    for mvi in mvis:
+        mvi_id = mvi.get("mvi_id", mvi["SK"].split("#m")[-1].split("#")[0])
+        mvi_check_results.append(
+            {
+                "mvi_id": mvi_id,
+                "status": mvi.get("status"),
+                "name": mvi.get("name", ""),
+                "deterministic_checks": mvi.get("deterministic_checks", {}),
+            }
+        )
+
+    council_item: dict[str, Any] = {
+        "PK": pk,
+        "SK": f"COUNCIL#{session_id}",
+        "level": "council",
+        "status": "pending",
+        "type": "wave_review",
+        "wave_id": wave_id,
+        "auto_mode": auto_mode,
+        "context": {
+            "wave_summary": {
+                "wave_id": wave_id,
+                "human_directive": wave_item.get("human_directive", ""),
+                "budget": wave_item.get("budget", {}),
+                "progress": wave_item.get("progress", {}),
+            },
+            "mvi_check_results": mvi_check_results,
+            "project_maturity": root.get("maturity_stage", "mvp"),
+        },
+        "entityType": "Snapshot",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    blackboard.write_item(council_item)
+    logger.event(
+        "council_review_triggered",
+        wave_id=wave_id,
+        session_id=session_id,
+        auto_mode=auto_mode,
     )
 
 
