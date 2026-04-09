@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any
 
 import boto3
@@ -13,10 +15,16 @@ from council.actions import execute_decision, execute_planning_decision
 from council.config import EVENTS_TABLE_NAME, TABLE_NAME
 from council.memory_store import CouncilMemoryStore
 from council.orchestrator import run_council_session
+from council.overrides import HumanOverride, apply_override
 from council.reflection import extract_learnings
 
 logger = logging.getLogger("council")
 logger.setLevel(logging.INFO)
+
+
+def _dynamo_safe(obj: Any) -> Any:
+    """Convert floats to Decimal for DynamoDB compatibility."""
+    return json.loads(json.dumps(obj), parse_float=Decimal)
 
 
 def _deserialize(item: dict[str, Any]) -> dict[str, Any]:
@@ -83,6 +91,16 @@ def _extract_tenant_project(pk: str) -> tuple[str, str]:
 
 
 def _process_council_task(item: dict[str, Any]) -> None:
+    """Route council tasks: voting sessions or human overrides."""
+    session_type = item.get("type", "wave_review")
+
+    if session_type == "override":
+        _process_override(item)
+    else:
+        _process_voting_session(item)
+
+
+def _process_voting_session(item: dict[str, Any]) -> None:
     """Run the full council session and execute the decision."""
     dynamodb = boto3.resource("dynamodb")
     table = dynamodb.Table(TABLE_NAME)
@@ -123,7 +141,7 @@ def _process_council_task(item: dict[str, Any]) -> None:
         {
             "status": result.status.value,
             "rounds": [r.to_dict() for r in result.rounds],
-            "decision": result.decision.to_dict(),
+            "decision": _dynamo_safe(result.decision.to_dict()),
             "cost": session_cost.to_dict(),
             "completed_at": datetime.now(timezone.utc).isoformat(),
         },
@@ -153,5 +171,103 @@ def _process_council_task(item: dict[str, Any]) -> None:
             wave_id=wave_id,
             session_id=session_id,
             decision=result.decision,
+            auto_mode=auto_mode,
+        )
+
+
+def _process_override(item: dict[str, Any]) -> None:
+    """Apply a human override and execute the resulting decision."""
+    dynamodb = boto3.resource("dynamodb")
+    table = dynamodb.Table(TABLE_NAME)
+    events_table = dynamodb.Table(EVENTS_TABLE_NAME) if EVENTS_TABLE_NAME else table
+    blackboard = Blackboard(table, events_table=events_table)
+
+    pk = item["PK"]
+    sk = item["SK"]
+    wave_id = item.get("wave_id", "")
+    auto_mode = item.get("auto_mode", "supervised")
+    context = item.get("context", {})
+    override_data = item.get("override", {})
+    original_session_id = item.get("original_session_id", "")
+
+    # Mark override task as processing
+    blackboard.update(pk, sk, {"status": "processing"})
+
+    # Build the override object
+    override = HumanOverride(
+        action=override_data.get("action", ""),
+        reason=override_data.get("reason", ""),
+        advisor_overridden=override_data.get("advisor_overridden", ""),
+        constraint=override_data.get("constraint", ""),
+        question=override_data.get("question", ""),
+        wave_plan=override_data.get("wave_plan"),
+        timestamp=override_data.get("timestamp", ""),
+    )
+
+    # Apply override to the original session
+    original_sk = f"COUNCIL#{original_session_id}"
+    original_session = blackboard.read(pk, original_sk)
+    session_type = original_session.get("type", "wave_review") if original_session else "wave_review"
+
+    decision = apply_override(
+        blackboard=blackboard,
+        pk=pk,
+        session_sk=original_sk,
+        wave_id=wave_id,
+        override=override,
+        session_type=session_type,
+        context=context,
+    )
+
+    # Mark override task as completed
+    blackboard.update(
+        pk,
+        sk,
+        {
+            "status": "completed",
+            "decision": _dynamo_safe(decision.to_dict()),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+
+    # Execute the decision (unless it's a request_round — that needs a new session)
+    if override.action == "request_round":
+        # Write a new council task with the human's question
+        import uuid
+
+        new_session_id = f"hr_{uuid.uuid4().hex[:8]}"
+        blackboard.write_item(
+            {
+                "PK": pk,
+                "SK": f"COUNCIL#{new_session_id}",
+                "level": "council",
+                "status": "pending",
+                "type": session_type,
+                "wave_id": wave_id,
+                "auto_mode": auto_mode,
+                "context": {
+                    **context,
+                    "human_question": override.question,
+                    "previous_session": original_session_id,
+                },
+                "entityType": "Snapshot",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+    elif session_type == "wave_planning":
+        execute_planning_decision(
+            blackboard=blackboard,
+            pk=pk,
+            session_id=original_session_id,
+            decision=decision,
+            context=context,
+        )
+    else:
+        execute_decision(
+            blackboard=blackboard,
+            pk=pk,
+            wave_id=wave_id,
+            session_id=original_session_id,
+            decision=decision,
             auto_mode=auto_mode,
         )

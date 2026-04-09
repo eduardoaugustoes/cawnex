@@ -13,6 +13,7 @@ from src.routes import (
     ai,
     autopilot,
     config,
+    council,
     documents,
     goals,
     health,
@@ -51,3 +52,4 @@ app.include_router(goals.router)
 app.include_router(documents.router)
 app.include_router(human_tasks.router)
 app.include_router(vault.router)
+app.include_router(council.router)
