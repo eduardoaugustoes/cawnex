@@ -11,6 +11,7 @@ import boto3
 from monarch.config import EVENTS_TABLE_NAME, TABLE_NAME
 from monarch.events import emit_event
 from monarch.maturity import assess_maturity, gather_project_signals
+from monarch.reflection import reflect_on_wave, save_wave_reflection
 from monarch.wave_launcher import create_and_activate_wave
 
 
@@ -100,6 +101,22 @@ def run_monarch_continuation(task_item: dict[str, Any]) -> None:
             f"Project maturity: {current_stage} -> {new_stage}",
             "blue",
         )
+
+    # Reflection — analyze delivered wave and extract project learnings
+    delivered_wave_id = task_item.get("delivered_wave_id", "")
+    council_decision = task_item.get("council_decision", {})
+    if delivered_wave_id:
+        learnings = reflect_on_wave(table, pk, delivered_wave_id, council_decision)
+        if learnings:
+            save_wave_reflection(table, pk, learnings)
+            emit_event(
+                events_table,
+                tenant_id,
+                project_id,
+                "wave_reflection",
+                f"Extracted {len(learnings)} learnings from wave {delivered_wave_id}",
+                "purple",
+            )
 
     # Write COUNCIL#wave_planning task
     session_id = f"wp_{_short_id()}"
