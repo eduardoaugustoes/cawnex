@@ -10,6 +10,7 @@ import boto3
 
 from monarch.config import EVENTS_TABLE_NAME, TABLE_NAME
 from monarch.events import emit_event
+from monarch.maturity import assess_maturity, gather_project_signals
 from monarch.wave_launcher import create_and_activate_wave
 
 
@@ -73,6 +74,32 @@ def run_monarch_continuation(task_item: dict[str, Any]) -> None:
 
     # Read project root for settings
     root = table.get_item(Key={"PK": pk, "SK": "S#"}).get("Item", {})
+
+    # Maturity assessment — update stage if warranted
+    current_stage = root.get("maturity_stage", "mvp")
+    signals = gather_project_signals(table, pk)
+    new_stage = assess_maturity(
+        current_stage=current_stage,
+        waves_delivered=signals["waves_delivered"],
+        mvis_shipped=signals["mvis_shipped"],
+        avg_coverage=signals.get("avg_coverage"),
+        council_rejection_rate=signals.get("council_rejection_rate"),
+    )
+    if new_stage != current_stage:
+        table.update_item(
+            Key={"PK": pk, "SK": "S#"},
+            UpdateExpression="SET #ms = :ms",
+            ExpressionAttributeNames={"#ms": "maturity_stage"},
+            ExpressionAttributeValues={":ms": new_stage},
+        )
+        emit_event(
+            events_table,
+            tenant_id,
+            project_id,
+            "maturity_stage_updated",
+            f"Project maturity: {current_stage} -> {new_stage}",
+            "blue",
+        )
 
     # Write COUNCIL#wave_planning task
     session_id = f"wp_{_short_id()}"
