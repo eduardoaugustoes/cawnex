@@ -37,6 +37,7 @@ Inferred by Monarch (not user-set), stored on the project root snapshot:
 ```
 
 Monarch updates this during continuation planning based on signals:
+
 - Waves completed count
 - Total MVIs shipped
 - Test coverage trend (from deterministic check history)
@@ -55,14 +56,14 @@ When an MVI reaches `ready_to_ship` (reviewer crow approves), Murder runs a dete
 
 ### Check Suite
 
-| Check | Source | Hard/Soft |
-|-------|--------|-----------|
-| Tests pass | Crow outcome `test_results` (exit code) | Hard |
-| No secrets in diff | Regex + entropy scan on changed files (`detect-secrets`) | Hard |
-| Integration check | Git merge all in-flight MVI branches + build | Hard |
-| Lint passes | Crow outcome `lint_results` (exit code) | Soft |
-| Coverage doesn't drop | Crow outcome `coverage_delta` (before/after comparison) | Soft |
-| Acceptance criteria addressed | Structured check against MVI `acceptance_criteria` | Soft |
+| Check                         | Source                                                   | Hard/Soft |
+| ----------------------------- | -------------------------------------------------------- | --------- |
+| Tests pass                    | Crow outcome `test_results` (exit code)                  | Hard      |
+| No secrets in diff            | Regex + entropy scan on changed files (`detect-secrets`) | Hard      |
+| Integration check             | Git merge all in-flight MVI branches + build             | Hard      |
+| Lint passes                   | Crow outcome `lint_results` (exit code)                  | Soft      |
+| Coverage doesn't drop         | Crow outcome `coverage_delta` (before/after comparison)  | Soft      |
+| Acceptance criteria addressed | Structured check against MVI `acceptance_criteria`       | Soft      |
 
 ### Failure Flow
 
@@ -130,21 +131,21 @@ Implements the full council protocol from `docs/design/council-protocol.md`:
 
 ### Vote Types
 
-| Vote | Meaning | Effect |
-|------|---------|--------|
-| `APPROVE` | No concerns | Counts toward consensus |
-| `APPROVE_WITH_CONDITION` | Proceed if condition met | Condition recorded, Monarch decides |
-| `ABSTAIN` | Not enough context | Ignored in tally |
-| `BLOCK` | Hard stop (Security/Clarity only) | Forces debate or escalation |
+| Vote                     | Meaning                           | Effect                              |
+| ------------------------ | --------------------------------- | ----------------------------------- |
+| `APPROVE`                | No concerns                       | Counts toward consensus             |
+| `APPROVE_WITH_CONDITION` | Proceed if condition met          | Condition recorded, Monarch decides |
+| `ABSTAIN`                | Not enough context                | Ignored in tally                    |
+| `BLOCK`                  | Hard stop (Security/Clarity only) | Forces debate or escalation         |
 
 ### Post-Decision Actions
 
-| Decision | Action |
-|----------|--------|
-| `approve` | Transition wave to `delivered`, write `MONARCH#continuation` task |
-| `approve_with_conditions` | Same as approve, conditions attached to continuation context |
-| `reject` | Transition wave to `steered`, write rejection reasons with flagged MVIs and advisor concerns |
-| `escalate` | `supervised` mode: notify human. `auto` mode: Monarch makes final call based on advisor scores |
+| Decision                  | Action                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------- |
+| `approve`                 | Transition wave to `delivered`, write `MONARCH#continuation` task                              |
+| `approve_with_conditions` | Same as approve, conditions attached to continuation context                                   |
+| `reject`                  | Transition wave to `steered`, write rejection reasons with flagged MVIs and advisor concerns   |
+| `escalate`                | `supervised` mode: notify human. `auto` mode: Monarch makes final call based on advisor scores |
 
 ### Reject Flow
 
@@ -268,11 +269,11 @@ def lambda_handler(event, context):
 
 ### Three Monarch Modes
 
-| Mode | Trigger SK | Purpose | LLM needed |
-|------|-----------|---------|------------|
-| Initial | `MONARCH#setup_*` | Generate docs, milestones, first wave | Yes |
-| Continuation | `MONARCH#continuation_*` | Reflection, maturity check, budget check, request council wave planning | Yes |
-| Wave launch | `MONARCH#wave_launch_*` | Create wave from council-approved plan | No |
+| Mode         | Trigger SK               | Purpose                                                                 | LLM needed |
+| ------------ | ------------------------ | ----------------------------------------------------------------------- | ---------- |
+| Initial      | `MONARCH#setup_*`        | Generate docs, milestones, first wave                                   | Yes        |
+| Continuation | `MONARCH#continuation_*` | Reflection, maturity check, budget check, request council wave planning | Yes        |
+| Wave launch  | `MONARCH#wave_launch_*`  | Create wave from council-approved plan                                  | No         |
 
 ---
 
@@ -316,11 +317,11 @@ lambdas/council/
 
 ### DynamoDB Stream Filters
 
-| Lambda | Filter |
-|--------|--------|
-| Murder | SK begins_with `S#` (snapshots) |
-| Monarch | SK begins_with `MONARCH#` |
-| Council | SK begins_with `COUNCIL#` |
+| Lambda  | Filter                          |
+| ------- | ------------------------------- |
+| Murder  | SK begins_with `S#` (snapshots) |
+| Monarch | SK begins_with `MONARCH#`       |
+| Council | SK begins_with `COUNCIL#`       |
 
 No overlap — each Lambda receives only its events.
 
@@ -402,6 +403,7 @@ WAVE EXECUTING (next wave — cycle repeats)
 ### Termination Conditions
 
 The chain stops when:
+
 - `auto_mode` is `off`
 - Backlog is empty (all goals/MVIs shipped) — project complete
 - Budget exhausted (insufficient credits for estimated next wave)
