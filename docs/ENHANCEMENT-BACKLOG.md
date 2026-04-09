@@ -418,6 +418,79 @@ No-code interface for building custom agent workflows and automation chains.
 
 ---
 
+## 🔄 **Auto Mode — Wave-to-Wave Continuity**
+
+### **AUTO-001: Murder Lambda — Wave Completion Trigger**
+
+- **Priority:** ⭐ P1 - High
+- **Category:** 🏗️ Infrastructure + 🤖 AI
+- **Effort:** Medium (1-2 weeks)
+- **Status:** 📋 Backlog
+
+**Description:**
+Add `react_to_wave_complete` logic to Murder Lambda. When all MVIs in a wave reach `shipped` status and the project has `auto_mode=true`, write a new `MONARCH#task` record to DynamoDB with `mode=continuation` and context about remaining backlog (unstarted goals/MVIs). This closes the loop from execution back to planning without polling — the existing DynamoDB Streams architecture triggers the next step.
+
+**Acceptance Criteria:**
+
+- [ ] Murder Lambda detects all MVIs in a wave are `shipped`
+- [ ] Checks project-level `auto_mode` flag before proceeding
+- [ ] Writes `MONARCH#task` with `mode=continuation`, completed wave reference, and remaining backlog summary
+- [ ] Does nothing if `auto_mode=false` (waits for human to launch next wave)
+- [ ] Budget check before triggering continuation (hard-stop if credits exhausted)
+
+**Business Value:**
+Enables hands-free project execution — the core autopilot promise. Without this, every wave requires manual re-engagement.
+
+---
+
+### **AUTO-002: Monarch Lambda — Continuation Mode**
+
+- **Priority:** ⭐ P1 - High
+- **Category:** 🏗️ Infrastructure + 🤖 AI
+- **Effort:** Medium (2-3 weeks)
+- **Status:** 📋 Backlog
+
+**Description:**
+Extend Monarch Lambda to handle `mode=continuation` tasks. When triggered by a completed wave, Monarch receives the wave reference and remaining backlog, selects the next set of goals/MVIs to include in the next wave, generates the wave plan, and activates it — all without user intervention. Must respect wave ordering constraints and budget limits.
+
+**Acceptance Criteria:**
+
+- [ ] Monarch handles `mode=continuation` alongside existing `mode=initial`
+- [ ] Reads completed wave context (what shipped, what's left)
+- [ ] Selects next goals/MVIs respecting ordering constraints from wave lifecycle
+- [ ] Generates wave plan with cost estimates
+- [ ] Creates and activates the new wave in DynamoDB
+- [ ] Respects budget limits — stops if insufficient credits for planned wave
+- [ ] Logs decision reasoning for auditability
+
+**Business Value:**
+Makes Monarch the strategic brain that keeps projects moving. Combined with AUTO-001, this creates the full autonomous pipeline: wave completes → Monarch plans next → Murder executes → repeat.
+
+---
+
+### **AUTO-003: Auto Mode Toggle — API & iOS**
+
+- **Priority:** ⭐ P1 - High
+- **Category:** 📱 Mobile + 🏗️ Infrastructure
+- **Effort:** Small (< 1 week)
+- **Status:** 📋 Backlog
+
+**Description:**
+Add a project-level `auto_mode` boolean (default `false`) to the project data model. Expose via API (`PATCH /projects/{id}`) and add a toggle in the iOS Project Hub (S12). When enabled, waves auto-chain after completion. When disabled, the system pauses after each wave for human review before launching the next.
+
+**Acceptance Criteria:**
+
+- [ ] `auto_mode` field added to project DynamoDB record (default `false`)
+- [ ] `PATCH /projects/{id}` supports updating `auto_mode`
+- [ ] iOS Project Hub shows auto mode toggle with clear explanation
+- [ ] Toggle state persists and reflects in real-time
+- [ ] Disabling mid-wave does not interrupt current wave — takes effect after completion
+
+**Business Value:**
+Gives users control over the autonomy level. Conservative users review each wave; power users let it run. This is the user-facing switch for the entire auto mode feature.
+
+---
+
 ## 📝 **Backlog Management Process**
 
 ### **Adding New Items:**
@@ -445,5 +518,5 @@ No-code interface for building custom agent workflows and automation chains.
 
 ---
 
-_Last Updated: March 14, 2026_
-_Next Review: March 21, 2026_
+_Last Updated: April 9, 2026_
+_Next Review: April 16, 2026_
