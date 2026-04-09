@@ -11,6 +11,7 @@ import logging
 from typing import Any
 
 from monarch.agent import run_monarch
+from monarch.continuation import run_monarch_continuation, run_monarch_wave_launch
 from monarch.stream import deserialize_stream_record
 
 log = logging.getLogger(__name__)
@@ -43,7 +44,13 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
             continue
 
         try:
-            run_monarch(item)
+            mode = item.get("mode", "")
+            if mode == "continuation":
+                run_monarch_continuation(item)
+            elif mode == "wave_launch":
+                run_monarch_wave_launch(item)
+            else:
+                run_monarch(item)
             processed += 1
         except Exception as exc:
             log.error(
