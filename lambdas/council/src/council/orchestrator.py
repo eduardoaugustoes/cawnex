@@ -8,7 +8,7 @@ from typing import Any
 from council.advisors import run_all_advisors
 from council.config import MAX_ROUNDS
 from council.enums import AdvisorType, CouncilStatus, DecisionAction, VoteType
-from council.models import CouncilDecision, VotingRound
+from council.models import AdvisorCost, CouncilDecision, VotingRound
 from council.synthesis import synthesize_round
 
 
@@ -18,12 +18,23 @@ class CouncilSessionResult:
     decision: CouncilDecision
     status: CouncilStatus
 
+    @property
+    def total_cost(self) -> AdvisorCost:
+        result = AdvisorCost.zero()
+        for rnd in self.rounds:
+            result = result + rnd.total_cost
+        return result
+
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "rounds": [r.to_dict() for r in self.rounds],
             "decision": self.decision.to_dict(),
             "status": self.status.value,
         }
+        cost = self.total_cost
+        if cost.total_tokens > 0:
+            d["cost"] = cost.to_dict()
+        return d
 
 
 def run_council_session(

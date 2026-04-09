@@ -14,6 +14,35 @@ from council.enums import (
 
 
 @dataclass
+class AdvisorCost:
+    tokens_in: int = 0
+    tokens_out: int = 0
+    duration_ms: int = 0
+
+    @property
+    def total_tokens(self) -> int:
+        return self.tokens_in + self.tokens_out
+
+    def __add__(self, other: AdvisorCost) -> AdvisorCost:
+        return AdvisorCost(
+            tokens_in=self.tokens_in + other.tokens_in,
+            tokens_out=self.tokens_out + other.tokens_out,
+            duration_ms=self.duration_ms + other.duration_ms,
+        )
+
+    def to_dict(self) -> dict[str, int]:
+        return {
+            "tokens_in": self.tokens_in,
+            "tokens_out": self.tokens_out,
+            "duration_ms": self.duration_ms,
+        }
+
+    @classmethod
+    def zero(cls) -> AdvisorCost:
+        return cls()
+
+
+@dataclass
 class AdvisorVote:
     advisor: AdvisorType
     vote: VoteType
@@ -24,6 +53,7 @@ class AdvisorVote:
     condition: str = ""
     suggested_crows: list[str] = field(default_factory=list)
     changed_from: str = ""
+    cost: AdvisorCost = field(default_factory=AdvisorCost.zero)
 
     @property
     def is_veto(self) -> bool:
@@ -45,6 +75,8 @@ class AdvisorVote:
             d["suggested_crows"] = self.suggested_crows
         if self.changed_from:
             d["changed_from"] = self.changed_from
+        if self.cost.total_tokens > 0:
+            d["cost"] = self.cost.to_dict()
         return d
 
 
@@ -72,6 +104,13 @@ class VotingRound:
             for v in non_abstain
         )
 
+    @property
+    def total_cost(self) -> AdvisorCost:
+        result = AdvisorCost.zero()
+        for v in self.votes:
+            result = result + v.cost
+        return result
+
     def to_dict(self) -> dict[str, Any]:
         d: dict[str, Any] = {
             "round": self.round_number,
@@ -82,6 +121,9 @@ class VotingRound:
             d["question"] = self.question
         if self.has_veto:
             d["blocker"] = ",".join(a.value for a in self.veto_advisors)
+        cost = self.total_cost
+        if cost.total_tokens > 0:
+            d["cost"] = cost.to_dict()
         return d
 
 

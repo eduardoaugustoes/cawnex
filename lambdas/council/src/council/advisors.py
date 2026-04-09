@@ -9,7 +9,7 @@ from typing import Any
 
 from council.config import ANTHROPIC_MODEL
 from council.enums import AdvisorType, VoteType
-from council.models import AdvisorVote
+from council.models import AdvisorCost, AdvisorVote
 
 _PROMPTS_DIR = Path(__file__).parent.parent.parent / "prompts" / "advisors"
 
@@ -128,7 +128,13 @@ def _call_advisor(
         model=ANTHROPIC_MODEL,
         max_tokens=1024,
     )
-    return parse_advisor_response(advisor, result.content)
+    vote = parse_advisor_response(advisor, result.content)
+    vote.cost = AdvisorCost(
+        tokens_in=result.tokens_in,
+        tokens_out=result.tokens_out,
+        duration_ms=result.duration_ms,
+    )
+    return vote
 
 
 def run_all_advisors(

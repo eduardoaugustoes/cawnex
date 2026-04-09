@@ -1,7 +1,7 @@
 """Tests for council data models."""
 
 from council.enums import AdvisorType, DecisionAction, VoteType
-from council.models import AdvisorVote, CouncilDecision, VotingRound
+from council.models import AdvisorCost, AdvisorVote, CouncilDecision, VotingRound
 
 
 class TestAdvisorVote:
@@ -94,6 +94,98 @@ class TestVotingRound:
         rnd = VotingRound(round_number=1, votes=votes)
         assert rnd.has_veto is False
         assert rnd.consensus is True
+
+
+class TestAdvisorCost:
+    def test_zero(self) -> None:
+        cost = AdvisorCost.zero()
+        assert cost.tokens_in == 0
+        assert cost.tokens_out == 0
+        assert cost.total_tokens == 0
+
+    def test_addition(self) -> None:
+        a = AdvisorCost(tokens_in=100, tokens_out=50, duration_ms=200)
+        b = AdvisorCost(tokens_in=200, tokens_out=100, duration_ms=300)
+        c = a + b
+        assert c.tokens_in == 300
+        assert c.tokens_out == 150
+        assert c.duration_ms == 500
+
+    def test_to_dict(self) -> None:
+        cost = AdvisorCost(tokens_in=1000, tokens_out=500, duration_ms=350)
+        d = cost.to_dict()
+        assert d == {"tokens_in": 1000, "tokens_out": 500, "duration_ms": 350}
+
+    def test_total_tokens(self) -> None:
+        cost = AdvisorCost(tokens_in=800, tokens_out=200, duration_ms=100)
+        assert cost.total_tokens == 1000
+
+
+class TestVoteCostIntegration:
+    def test_vote_includes_cost_in_dict(self) -> None:
+        vote = AdvisorVote(
+            advisor=AdvisorType.SECURITY,
+            vote=VoteType.APPROVE,
+            scores={},
+            reasoning="OK",
+            confidence=0.9,
+            cost=AdvisorCost(tokens_in=500, tokens_out=200, duration_ms=150),
+        )
+        d = vote.to_dict()
+        assert "cost" in d
+        assert d["cost"]["tokens_in"] == 500
+
+    def test_vote_omits_cost_when_zero(self) -> None:
+        vote = AdvisorVote(
+            advisor=AdvisorType.QUALITY,
+            vote=VoteType.APPROVE,
+            scores={},
+            reasoning="OK",
+            confidence=0.8,
+        )
+        d = vote.to_dict()
+        assert "cost" not in d
+
+    def test_round_aggregates_cost(self) -> None:
+        votes = [
+            AdvisorVote(
+                advisor=AdvisorType.SECURITY,
+                vote=VoteType.APPROVE,
+                scores={},
+                reasoning="OK",
+                confidence=0.9,
+                cost=AdvisorCost(tokens_in=500, tokens_out=200, duration_ms=150),
+            ),
+            AdvisorVote(
+                advisor=AdvisorType.QUALITY,
+                vote=VoteType.APPROVE,
+                scores={},
+                reasoning="OK",
+                confidence=0.8,
+                cost=AdvisorCost(tokens_in=600, tokens_out=300, duration_ms=200),
+            ),
+        ]
+        rnd = VotingRound(round_number=1, votes=votes)
+        total = rnd.total_cost
+        assert total.tokens_in == 1100
+        assert total.tokens_out == 500
+        assert total.duration_ms == 350
+
+    def test_round_dict_includes_cost(self) -> None:
+        votes = [
+            AdvisorVote(
+                advisor=AdvisorType.SECURITY,
+                vote=VoteType.APPROVE,
+                scores={},
+                reasoning="OK",
+                confidence=0.9,
+                cost=AdvisorCost(tokens_in=500, tokens_out=200, duration_ms=150),
+            ),
+        ]
+        rnd = VotingRound(round_number=1, votes=votes)
+        d = rnd.to_dict()
+        assert "cost" in d
+        assert d["cost"]["tokens_in"] == 500
 
 
 class TestCouncilDecision:

@@ -115,7 +115,8 @@ def _process_council_task(item: dict[str, Any]) -> None:
         project_context=project_context,
     )
 
-    # Save full council session
+    # Save full council session with cost tracking
+    session_cost = result.total_cost
     blackboard.update(
         pk,
         sk,
@@ -123,6 +124,7 @@ def _process_council_task(item: dict[str, Any]) -> None:
             "status": result.status.value,
             "rounds": [r.to_dict() for r in result.rounds],
             "decision": result.decision.to_dict(),
+            "cost": session_cost.to_dict(),
             "completed_at": datetime.now(timezone.utc).isoformat(),
         },
     )
