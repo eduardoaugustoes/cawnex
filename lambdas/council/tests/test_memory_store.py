@@ -90,6 +90,62 @@ class TestReadAllAdvisorMemories:
         assert result == {}
 
 
+class TestReadOrgStandards:
+    def test_reads_org_standards(self, memory_store: CouncilMemoryStore) -> None:
+        # Write org standards to tenant-level PK
+        memory_store._blackboard.write_item(
+            {
+                "PK": "T#t1",
+                "SK": "MEM#org#standards",
+                "content": "Use TypeScript strict mode. All APIs must have rate limiting.",
+                "entityType": "Memory",
+            }
+        )
+        result = memory_store.read_org_standards("t1")
+        assert "TypeScript strict mode" in result
+        assert "rate limiting" in result
+
+    def test_empty_org_returns_empty_string(
+        self, memory_store: CouncilMemoryStore
+    ) -> None:
+        result = memory_store.read_org_standards("t1")
+        assert result == ""
+
+
+class TestReadProjectContext:
+    def test_reads_all_project_memories(
+        self, memory_store: CouncilMemoryStore
+    ) -> None:
+        pk = "T#t1#P#p1"
+        memory_store._blackboard.write_item(
+            {
+                "PK": pk,
+                "SK": "MEM#project#conventions",
+                "content": "FastAPI + DynamoDB single table",
+                "entityType": "Memory",
+            }
+        )
+        memory_store._blackboard.write_item(
+            {
+                "PK": pk,
+                "SK": "MEM#project#wave_reflections",
+                "content": "- Wave w01: all 3 MVIs shipped",
+                "entityType": "Memory",
+            }
+        )
+        result = memory_store.read_project_context("t1", "p1")
+        assert "Conventions" in result
+        assert "FastAPI" in result
+        assert "Wave Reflections" in result
+        assert "all 3 MVIs shipped" in result
+
+    def test_empty_project_returns_empty(
+        self, memory_store: CouncilMemoryStore
+    ) -> None:
+        result = memory_store.read_project_context("t1", "p1")
+        assert result == ""
+
+
 class TestPruneMemory:
     def test_under_budget_unchanged(self) -> None:
         content = "# Header\n\n- Learning 1\n- Learning 2"

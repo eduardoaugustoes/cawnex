@@ -85,6 +85,33 @@ class CouncilMemoryStore:
                 result[advisor_type] = item.get("content", "")
         return result
 
+    def read_org_standards(self, tenant: str) -> str:
+        """Read org-level standards (shared across all projects).
+
+        Stored at PK=T#{tenant}, SK=MEM#org#standards.
+        """
+        pk = f"T#{tenant}"
+        sk = "MEM#org#standards"
+        item = self._blackboard.read(pk, sk)
+        if not item:
+            return ""
+        return item.get("content", "")
+
+    def read_project_context(self, tenant: str, project: str) -> str:
+        """Read all project-level memories concatenated.
+
+        Includes wave reflections, conventions, and other project memories.
+        """
+        pk = f"T#{tenant}#P#{project}"
+        items = self._blackboard.query(pk, "MEM#project#")
+        sections: list[str] = []
+        for item in items:
+            topic = item["SK"].split("#")[-1]
+            content = item.get("content", "")
+            if content:
+                sections.append(f"## {topic.replace('_', ' ').title()}\n{content}")
+        return "\n\n".join(sections)
+
 
 def _prune_memory(content: str) -> str:
     """Prune memory to stay within token budget.

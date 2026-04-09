@@ -30,13 +30,18 @@ def run_council_session(
     decision_context: dict[str, Any],
     max_rounds: int = MAX_ROUNDS,
     advisor_memories: dict[str, str] | None = None,
+    org_standards: str = "",
+    project_context: str = "",
 ) -> CouncilSessionResult:
     """Run a full council session with up to max_rounds of voting."""
     rounds: list[VotingRound] = []
 
     # Round 1: all advisors, independent assessment
     votes = run_all_advisors(
-        decision_context, advisor_memories=advisor_memories
+        decision_context,
+        advisor_memories=advisor_memories,
+        org_standards=org_standards,
+        project_context=project_context,
     )
     round_1 = VotingRound(round_number=1, votes=votes)
     rounds.append(round_1)
@@ -69,7 +74,11 @@ def run_council_session(
         }
 
         debate_votes = run_all_advisors(
-            debate_context, advisors=disagreeing, advisor_memories=advisor_memories
+            debate_context,
+            advisors=disagreeing,
+            advisor_memories=advisor_memories,
+            org_standards=org_standards,
+            project_context=project_context,
         )
         debate_round = VotingRound(
             round_number=round_num,

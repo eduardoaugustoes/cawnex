@@ -101,14 +101,18 @@ def _process_council_task(item: dict[str, Any]) -> None:
     # Mark as voting
     blackboard.update(pk, sk, {"status": "voting"})
 
-    # Load advisor memories for this project
+    # Load all memory layers for advisors
     memory_store = CouncilMemoryStore(blackboard)
     advisor_memories = memory_store.read_all_advisor_memories(tenant, project)
+    org_standards = memory_store.read_org_standards(tenant)
+    project_context = memory_store.read_project_context(tenant, project)
 
-    # Run the council session with advisor memories
+    # Run the council session with full 5-layer prompt context
     result = run_council_session(
         decision_context=context,
         advisor_memories=advisor_memories,
+        org_standards=org_standards,
+        project_context=project_context,
     )
 
     # Save full council session
