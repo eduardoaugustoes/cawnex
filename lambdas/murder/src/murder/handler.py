@@ -17,6 +17,7 @@ from murder.reactor import (
     react_to_crow_completion,
     react_to_human_task_completed,
     react_to_mvi_queued,
+    react_to_wave_steered,
 )
 from murder.stream import deserialize_stream_record
 
@@ -66,6 +67,9 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
                 processed += 1
             elif level == "murder" and status == "queued":
                 react_to_mvi_queued(blackboard, item, logger)
+                processed += 1
+            elif level == "wave" and status == "steered":
+                react_to_wave_steered(blackboard, item, logger)
                 processed += 1
             else:
                 skipped += 1

@@ -13,7 +13,7 @@ from typing import Any
 
 from murder.blackboard import Blackboard
 from murder.checks import run_deterministic_checks
-from murder.config import EVENT_TTL_DAYS
+from murder.config import EVENT_TTL_DAYS, WAVE_BUDGET_LIMIT
 from murder.context_builder import (
     build_instructions,
     build_planner_instructions,
@@ -729,6 +729,102 @@ def _check_and_unblock(
             crow_id=crow_id,
             unblocked_by=resolved_ref,
         )
+
+
+# --- Wave steering (council rejection) ---
+
+
+def react_to_wave_steered(
+    blackboard: Blackboard,
+    wave_item: dict[str, Any],
+    logger: StructuredLogger,
+) -> None:
+    """Handle council rejection: re-execute flagged MVIs with fixer crows."""
+    pk = wave_item["PK"]
+    sk = wave_item["SK"]
+    wave_id = sk.replace("S#", "")
+    tenant = _extract_tenant(pk)
+    project = _extract_project(pk)
+
+    council_feedback = wave_item.get("council_feedback", {})
+    flagged_mvis = council_feedback.get("flagged_mvis", [])
+    reasoning = council_feedback.get("reasoning", "Council rejected wave")
+
+    # Group concerns by MVI
+    mvi_concerns: dict[str, list[str]] = {}
+    for flagged in flagged_mvis:
+        mvi_id = flagged.get("mvi_id", "")
+        concern = flagged.get("concern", "")
+        advisor = flagged.get("advisor", "")
+        if mvi_id:
+            mvi_concerns.setdefault(mvi_id, []).append(
+                f"[{advisor}] {concern}" if advisor else concern
+            )
+
+    # Transition each flagged MVI back to executing and assign fixer crow
+    for mvi_id, concerns in mvi_concerns.items():
+        mvi_sk = build_sk(wave_id=wave_id, mvi_id=mvi_id)
+        mvi_item = blackboard.read(pk, mvi_sk)
+        if not mvi_item:
+            logger.error("steered_mvi_not_found", mvi_id=mvi_id)
+            continue
+
+        # Transition MVI back to executing
+        blackboard.update(pk, mvi_sk, {"status": MVIStatus.EXECUTING.value})
+
+        # Build fixer instructions from council feedback
+        concerns_text = "\n".join(f"- {c}" for c in concerns)
+        instructions = (
+            f"## Council Review Feedback\n\n"
+            f"The council rejected this MVI's output. Fix the following issues:\n\n"
+            f"{concerns_text}\n\n"
+            f"## Overall Reasoning\n{reasoning}\n\n"
+            f"## MVI Context\n{mvi_item.get('description', '')}"
+        )
+
+        # Read wave for budget
+        wave_sk = build_sk(wave_id=wave_id)
+        wave_read = blackboard.read(pk, wave_sk)
+        budget_remaining = WAVE_BUDGET_LIMIT
+        if wave_read and "budget" in wave_read:
+            budget_data = wave_read["budget"]
+            budget_remaining = int(budget_data.get("limit", WAVE_BUDGET_LIMIT)) - int(
+                budget_data.get("spent", 0)
+            )
+
+        crow_id = _next_crow_id(
+            blackboard, pk, wave_id, mvi_id, CrowType.FIXER
+        )
+        crow = CrowSnapshot(
+            tenant=tenant,
+            project=project,
+            wave_id=wave_id,
+            mvi_id=mvi_id,
+            crow_id=crow_id,
+            crow_type=CrowType.FIXER,
+            status=CrowStatus.PENDING,
+            instructions=instructions,
+            repo=mvi_item.get("repo", ""),
+            branch=mvi_item.get("branch", ""),
+            budget_remaining=budget_remaining,
+        )
+        blackboard.write_item(crow.to_item())
+        logger.event(
+            "council_fixer_assigned",
+            mvi_id=mvi_id,
+            crow_id=crow_id,
+            concerns=len(concerns),
+        )
+
+    # Transition wave back to executing
+    blackboard.update(pk, build_sk(wave_id=wave_id), {
+        "status": WaveStatus.EXECUTING.value,
+    })
+    logger.event(
+        "wave_steered_to_executing",
+        wave_id=wave_id,
+        flagged_mvis=len(mvi_concerns),
+    )
 
 
 # --- Wave lifecycle ---
