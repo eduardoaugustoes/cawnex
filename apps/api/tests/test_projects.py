@@ -134,3 +134,51 @@ def test_list_projects_returns_items(mock_boto3: Mock) -> None:
     assert items[0]["one_liner"] == "A cool project"
     assert items[0]["murders"] == ["dev", "infra"]
     assert items[0]["status"] == "draft"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_update_project_auto_mode(mock_boto3: Mock) -> None:
+    """PATCH /projects/{id} updates auto_mode on root snapshot."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {
+        "Item": {"PK": "T#tenant-abc#P#proj-1", "SK": "S#", "auto_mode": "off"}
+    }
+    mock_table.update_item.return_value = {"Attributes": {"auto_mode": "auto"}}
+
+    client = _make_client(_make_tenant())
+
+    response = client.patch("/projects/proj-1", json={"auto_mode": "auto"})
+
+    assert response.status_code == 200
+    assert response.json()["auto_mode"] == "auto"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_update_project_invalid_auto_mode(mock_boto3: Mock) -> None:
+    """PATCH /projects/{id} rejects invalid auto_mode values."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    client = _make_client(_make_tenant())
+
+    response = client.patch("/projects/proj-1", json={"auto_mode": "turbo"})
+
+    assert response.status_code == 422
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_update_project_not_found(mock_boto3: Mock) -> None:
+    """PATCH /projects/{id} returns 404 when project doesn't exist."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {}
+
+    client = _make_client(_make_tenant())
+
+    response = client.patch("/projects/nonexistent", json={"auto_mode": "auto"})
+
+    assert response.status_code == 404

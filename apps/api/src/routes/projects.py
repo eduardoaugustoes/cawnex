@@ -5,8 +5,8 @@ import time
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field, field_validator
 
 from src.auth.dependencies import get_tenant
 from src.auth.tenant import TenantContext
@@ -103,6 +103,8 @@ async def create_project(
         status="draft",
         repo=body.repo or None,
         repo_status="ready" if body.repo else "pending",
+        auto_mode="off",
+        maturity_stage="mvp",
         created_at=now,
         updated_at=now,
         entityType="Snapshot",
@@ -135,3 +137,46 @@ async def list_projects(
         }
         for item in items
     ]
+
+
+VALID_AUTO_MODES = {"off", "auto", "supervised"}
+
+
+class UpdateProjectRequest(BaseModel):
+    """Request body for updating project settings."""
+
+    auto_mode: str | None = None
+
+    @field_validator("auto_mode")
+    @classmethod
+    def validate_auto_mode(cls, v: str | None) -> str | None:
+        """Ensure auto_mode is one of the allowed values."""
+        if v is not None and v not in VALID_AUTO_MODES:
+            raise ValueError("auto_mode must be 'off', 'auto', or 'supervised'")
+        return v
+
+
+@router.patch("/{project_id}")
+async def update_project(
+    project_id: str,
+    body: UpdateProjectRequest,
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
+) -> Dict[str, Any]:
+    """Update project settings (auto_mode)."""
+    db = TenantDB(tenant)
+    root = db.get_project_item(project_id, "S#")
+    if not root:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    updates: Dict[str, Any] = {}
+    if body.auto_mode is not None:
+        updates["auto_mode"] = body.auto_mode
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    db.update_project_item(project_id, "S#", updates)
+    return {
+        "status": "updated",
+        "auto_mode": body.auto_mode or root.get("auto_mode", "off"),
+    }
