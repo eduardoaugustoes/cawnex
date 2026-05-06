@@ -38,7 +38,7 @@
     "security:check": "npm run security:audit && cd apps/api && make security",
     "setup": "npm install && cd apps/api && make dev-install && cd ../.. && npm run hooks:install",
     "hooks:install": "cd apps/api && make install-hooks",
-    "validate:strict": "echo '🔍 Running ULTRA-STRICT validation...' && npm run quality:all && npm run security:check && npm run test:coverage && echo '🏆 ALL VALIDATIONS PASSED!'"
+    "validate:strict": "echo '\ud83d\udd0d Running ULTRA-STRICT validation...' && npm run quality:all && npm run security:check && npm run test:coverage && echo '\ud83c\udfc6 ALL VALIDATIONS PASSED!'"
   },
   "devDependencies": {
     "@types/jest": "^29.0.0",
@@ -109,5 +109,6 @@
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
-  }
+  },
+  "license": "Apache-2.0"
 }
