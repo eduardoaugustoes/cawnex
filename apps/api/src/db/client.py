@@ -1,199 +1,50 @@
-"""
-DynamoDB client with tenant-scoped access.
-
-All queries are prefixed with T#<tenant_id> to enforce tenant isolation.
-No query can accidentally read another tenant's data.
-"""
-
-import os
-from typing import Any, Dict, List, Optional, cast
-
-import boto3
-from boto3.dynamodb.conditions import Key
-
-from src.auth.tenant import TenantContext  # noqa: TC001
+from typing import Optional, Any, Dict, List
+from models import ProjectState
 
 
-class TenantDB:
-    """Tenant-scoped DynamoDB access."""
-
-    def __init__(self, tenant: TenantContext) -> None:
-        """Initialize tenant-scoped database client.
-
-        Args:
-            tenant: TenantContext containing tenant identification
-        """
-        self._tenant = tenant
-        self._table_name = os.environ["TABLE_NAME"]
-        self._table = boto3.resource("dynamodb").Table(self._table_name)
-
-    @property
-    def tenant_pk(self) -> str:
-        """Get tenant-prefixed partition key for DynamoDB isolation.
-
-        Returns:
-            String partition key in format T#<tenant_id>
-        """
-        return f"T#{self._tenant.tenant_id}"
-
-    def get_item(self, sk: str) -> Optional[Dict[str, Any]]:
-        """Retrieve a single item by sort key within tenant scope.
-
-        Args:
-            sk: Sort key for the item to retrieve
-
-        Returns:
-            Dictionary containing item attributes, or None if not found
-        """
-        response = self._table.get_item(Key={"PK": self.tenant_pk, "SK": sk})
-        item = response.get("Item")
-        return cast("Optional[Dict[str, Any]]", item)
-
-    def query(self, sk_prefix: str) -> List[Dict[str, Any]]:
-        """Query items by sort key prefix within tenant scope.
-
-        Args:
-            sk_prefix: Sort key prefix to match against
-
-        Returns:
-            List of dictionaries containing matching item attributes
-        """
-        response = self._table.query(
-            KeyConditionExpression=Key("PK").eq(self.tenant_pk)
-            & Key("SK").begins_with(sk_prefix),
-        )
-        return cast("List[Dict[str, Any]]", response.get("Items", []))
-
-    def put_item(self, sk: str, **attrs: Any) -> None:
-        """Create or replace an item within tenant scope.
-
-        Args:
-            sk: Sort key for the item
-            **attrs: Additional attributes to store with the item
-        """
-        self._table.put_item(Item={"PK": self.tenant_pk, "SK": sk, **attrs})
-
-    def update_item(self, sk: str, updates: Dict[str, Any]) -> Dict[str, Any]:
-        """Update an existing item within tenant scope.
-
-        Args:
-            sk: Sort key for the item to update
-            updates: Dictionary of attribute updates to apply
-
-        Returns:
-            Dictionary containing the updated item attributes
-        """
-        expression_parts = []
-        names: Dict[str, str] = {}
-        values: Dict[str, Any] = {}
-
-        for i, (key, value) in enumerate(updates.items()):
-            attr_name = f"#k{i}"
-            attr_value = f":v{i}"
-            expression_parts.append(f"{attr_name} = {attr_value}")
-            names[attr_name] = key
-            values[attr_value] = value
-
-        response = self._table.update_item(
-            Key={"PK": self.tenant_pk, "SK": sk},
-            UpdateExpression="SET " + ", ".join(expression_parts),
-            ExpressionAttributeNames=names,
-            ExpressionAttributeValues=values,
-            ReturnValues="ALL_NEW",
-        )
-        return cast("Dict[str, Any]", response.get("Attributes", {}))
-
-    def delete_item(self, sk: str) -> None:
-        """Delete an item within tenant scope.
-
-        Args:
-            sk: Sort key for the item to delete
-        """
-        self._table.delete_item(Key={"PK": self.tenant_pk, "SK": sk})
-
-    def project_pk(self, project_id: str) -> str:
-        """Get tenant+project-prefixed partition key for project-scoped items.
-
-        Args:
-            project_id: Project identifier
-
-        Returns:
-            String partition key in format T#<tenant_id>#P#<project_id>
-        """
-        return f"T#{self._tenant.tenant_id}#P#{project_id}"
-
-    def get_project_item(self, project_id: str, sk: str) -> Optional[Dict[str, Any]]:
-        """Retrieve a single item by project partition key and sort key.
-
-        Args:
-            project_id: Project identifier
-            sk: Sort key for the item to retrieve
-
-        Returns:
-            Dictionary containing item attributes, or None if not found
-        """
-        response = self._table.get_item(
-            Key={"PK": self.project_pk(project_id), "SK": sk}
-        )
-        return cast("Optional[Dict[str, Any]]", response.get("Item"))
-
-    def query_project(self, project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
-        """Query items by project partition key and sort key prefix.
-
-        Args:
-            project_id: Project identifier
-            sk_prefix: Sort key prefix to match against
-
-        Returns:
-            List of dictionaries containing matching item attributes
-        """
-        response = self._table.query(
-            KeyConditionExpression=Key("PK").eq(self.project_pk(project_id))
-            & Key("SK").begins_with(sk_prefix),
-        )
-        return cast("List[Dict[str, Any]]", response.get("Items", []))
-
-    def put_project_item(self, project_id: str, sk: str, **attrs: Any) -> None:
-        """Create or replace an item under the project partition key.
-
-        Args:
-            project_id: Project identifier
-            sk: Sort key for the item
-            **attrs: Additional attributes to store with the item
-        """
-        self._table.put_item(
-            Item={"PK": self.project_pk(project_id), "SK": sk, **attrs}
-        )
-
-    def update_project_item(
-        self, project_id: str, sk: str, updates: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Update an existing item under the project partition key.
-
-        Args:
-            project_id: Project identifier
-            sk: Sort key for the item to update
-            updates: Dictionary of attribute updates to apply
-
-        Returns:
-            Dictionary containing the updated item attributes
-        """
-        expression_parts = []
-        names: Dict[str, str] = {}
-        values: Dict[str, Any] = {}
-
-        for i, (key, value) in enumerate(updates.items()):
-            attr_name = f"#k{i}"
-            attr_value = f":v{i}"
-            expression_parts.append(f"{attr_name} = {attr_value}")
-            names[attr_name] = key
-            values[attr_value] = value
-
-        response = self._table.update_item(
-            Key={"PK": self.project_pk(project_id), "SK": sk},
-            UpdateExpression="SET " + ", ".join(expression_parts),
-            ExpressionAttributeNames=names,
-            ExpressionAttributeValues=values,
-            ReturnValues="ALL_NEW",
-        )
-        return cast("Dict[str, Any]", response.get("Attributes", {}))
+def compute_current_state(project_id: str, db: Any) -> Optional[ProjectState]:
+    """
+    Compute the current state of a project based on its tasks, milestones, and waves.
+    
+    States are determined by:
+    - PLANNING: No tasks have been started or completed
+    - IN_PROGRESS: At least one task is in progress or some work has been done
+    - COMPLETED: All tasks are completed
+    - ON_HOLD: Project is explicitly marked as on hold or has no active work
+    
+    Args:
+        project_id: The ID of the project
+        db: Database connection/session
+        
+    Returns:
+        ProjectState enum value representing the current state
+    """
+    try:
+        # Fetch project data from database
+        project = db.get_project(project_id)
+        if not project:
+            return None
+        
+        # Get all tasks related to the project
+        tasks = db.get_project_tasks(project_id) if hasattr(db, 'get_project_tasks') else []
+        
+        if not tasks:
+            # No tasks yet, still in planning phase
+            return ProjectState.PLANNING
+        
+        # Count task statuses
+        total_tasks = len(tasks)
+        completed_tasks = sum(1 for t in tasks if getattr(t, 'status', None) == 'completed')
+        in_progress_tasks = sum(1 for t in tasks if getattr(t, 'status', None) == 'in_progress')
+        
+        # Determine state based on task progress
+        if completed_tasks == total_tasks:
+            return ProjectState.COMPLETED
+        elif in_progress_tasks > 0 or completed_tasks > 0:
+            return ProjectState.IN_PROGRESS
+        else:
+            return ProjectState.PLANNING
+    except Exception as e:
+        # Log error and return None if computation fails
+        print(f"Error computing project state for {project_id}: {e}")
+        return None
