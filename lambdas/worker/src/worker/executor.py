@@ -37,6 +37,7 @@ from worker.logging import StructuredLogger
 from worker.models import Cost
 from worker.parsing import parse_json_output
 from worker.prompts import CROW_IDENTITIES
+from worker.tools import WORKTREE_TOOL_SCHEMAS, WorktreeTools
 
 
 _SECRET_RE = re.compile(r"\{\{secret:([a-zA-Z0-9_\-]+)\}\}")
@@ -131,8 +132,8 @@ def _gather_context(
     crow_type: CrowType,
     worktree_dir: str,
     instructions_data: dict[str, Any],
-) -> str:
-    """Dispatch to the right context gatherer."""
+) -> tuple[str, dict[str, Any]]:
+    """Dispatch to the right context gatherer. Returns (context, audit)."""
     if crow_type == CrowType.PLANNER:
         return gather_planner_context(worktree_dir)
     if crow_type == CrowType.IMPLEMENTER:
@@ -220,8 +221,17 @@ def execute(
         elif isinstance(instructions, dict):
             instructions_data = instructions
 
-        context = _gather_context(crow_type, worktree_dir, instructions_data)
-        logger.event("context_gathered", crow_id=crow_id, chars=len(context))
+        context, context_audit = _gather_context(
+            crow_type, worktree_dir, instructions_data
+        )
+        logger.event(
+            "context_gathered",
+            crow_id=crow_id,
+            chars=len(context),
+            files_read=context_audit.get("files_read", []),
+            files_failed=context_audit.get("files_failed", []),
+            failure_reasons=context_audit.get("failure_reasons", {}),
+        )
 
         # Build prompt
         system_prompt = CROW_IDENTITIES.get(
@@ -251,15 +261,40 @@ def execute(
 
         user_prompt = f"## Instructions\n{resolved_instructions}\n\n## Codebase\n{context}"
 
+        # Implementer crows run the agentic loop so they can actively read files
+        # the planner referenced (including spec paths in the directive). Other
+        # crow types stay one-shot.
+        worktree_tools: WorktreeTools | None = None
+        tool_schemas: list[dict[str, Any]] | None = None
+        if crow_type == CrowType.IMPLEMENTER:
+            worktree_tools = WorktreeTools(worktree_dir=worktree_dir, logger=logger)
+            tool_schemas = WORKTREE_TOOL_SCHEMAS
+
         # Call Claude
-        claude_result = call_claude(system_prompt, user_prompt)
+        claude_result = call_claude(
+            system_prompt,
+            user_prompt,
+            tools=tool_schemas,
+            tool_executor=worktree_tools,
+        )
         logger.event(
             "claude_completed",
             crow_id=crow_id,
             tokens_in=claude_result.tokens_in,
             tokens_out=claude_result.tokens_out,
+            cache_creation=claude_result.cache_creation,
+            cache_read=claude_result.cache_read,
             duration_ms=claude_result.duration_ms,
+            turns=claude_result.turns,
+            tool_calls=len(claude_result.tool_calls),
         )
+        if worktree_tools is not None:
+            logger.event(
+                "crow_files_read",
+                crow_id=crow_id,
+                files=sorted(worktree_tools.files_read),
+                count=len(worktree_tools.files_read),
+            )
 
         # Parse output
         parsed = parse_json_output(claude_result.raw_output)

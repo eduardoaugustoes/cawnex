@@ -64,11 +64,13 @@ def test_gather_planner_context_includes_tree_and_files(tmp_path: object) -> Non
     with open(os.path.join(base, "README.md"), "w") as f:
         f.write("# Project")
 
-    ctx = gather_planner_context(base, max_files=5)
+    ctx, audit = gather_planner_context(base, max_files=5)
     assert "File Tree" in ctx
     assert "src/app.py" in ctx
     assert "print('app')" in ctx
     assert "# Project" in ctx
+    assert "src/app.py" in audit["files_read"]
+    assert "README.md" in audit["files_read"]
 
 
 def test_gather_planner_context_respects_max_files(tmp_path: object) -> None:
@@ -77,9 +79,10 @@ def test_gather_planner_context_respects_max_files(tmp_path: object) -> None:
         with open(os.path.join(base, f"file{i}.py"), "w") as f:
             f.write(f"# file {i}")
 
-    ctx = gather_planner_context(base, max_files=3)
+    ctx, audit = gather_planner_context(base, max_files=3)
     file_sections = ctx.count("## file")
     assert file_sections == 3
+    assert len(audit["files_read"]) == 3
 
 
 def test_gather_implementer_context_reads_specified_files(tmp_path: object) -> None:
@@ -92,7 +95,7 @@ def test_gather_implementer_context_reads_specified_files(tmp_path: object) -> N
     with open(os.path.join(base, "src", "c.py"), "w") as f:
         f.write("module_c")
 
-    ctx = gather_implementer_context(
+    ctx, audit = gather_implementer_context(
         base,
         files_to_read=["src/a.py"],
         files_to_modify=["src/b.py"],
@@ -102,6 +105,8 @@ def test_gather_implementer_context_reads_specified_files(tmp_path: object) -> N
     assert "[read]" in ctx
     assert "[modify]" in ctx
     assert "module_c" not in ctx
+    assert "src/a.py" in audit["files_read"]
+    assert "src/b.py" in audit["files_read"]
 
 
 def test_gather_implementer_context_deduplicates(tmp_path: object) -> None:
@@ -109,7 +114,7 @@ def test_gather_implementer_context_deduplicates(tmp_path: object) -> None:
     with open(os.path.join(base, "file.py"), "w") as f:
         f.write("code")
 
-    ctx = gather_implementer_context(
+    ctx, _ = gather_implementer_context(
         base,
         files_to_read=["file.py"],
         files_to_modify=["file.py"],
@@ -117,12 +122,28 @@ def test_gather_implementer_context_deduplicates(tmp_path: object) -> None:
     assert ctx.count("code") == 1
 
 
+def test_gather_implementer_context_audits_missing_files(tmp_path: object) -> None:
+    base = str(tmp_path)
+    with open(os.path.join(base, "exists.py"), "w") as f:
+        f.write("real")
+
+    ctx, audit = gather_implementer_context(
+        base,
+        files_to_read=["exists.py", "ghost.py"],
+        files_to_modify=[],
+    )
+    assert "real" in ctx
+    assert "exists.py" in audit["files_read"]
+    assert "ghost.py" in audit["files_failed"]
+    assert audit["failure_reasons"]["ghost.py"] == "missing"
+
+
 def test_gather_reviewer_context_includes_diff(tmp_path: object) -> None:
     base = str(tmp_path)
     with open(os.path.join(base, "file.py"), "w") as f:
         f.write("modified content")
 
-    ctx = gather_reviewer_context(
+    ctx, audit = gather_reviewer_context(
         base,
         git_diff="+added line\n-removed line",
         changed_files=["file.py"],
@@ -130,11 +151,13 @@ def test_gather_reviewer_context_includes_diff(tmp_path: object) -> None:
     assert "Git Diff" in ctx
     assert "+added line" in ctx
     assert "modified content" in ctx
+    assert "file.py" in audit["files_read"]
 
 
 def test_gather_reviewer_context_empty_diff(tmp_path: object) -> None:
-    ctx = gather_reviewer_context(str(tmp_path), git_diff="", changed_files=[])
+    ctx, audit = gather_reviewer_context(str(tmp_path), git_diff="", changed_files=[])
     assert isinstance(ctx, str)
+    assert audit["files_read"] == []
 
 
 def test_gather_fixer_context_includes_feedback(tmp_path: object) -> None:
@@ -142,7 +165,7 @@ def test_gather_fixer_context_includes_feedback(tmp_path: object) -> None:
     with open(os.path.join(base, "handler.py"), "w") as f:
         f.write("def handle(): pass")
 
-    ctx = gather_fixer_context(
+    ctx, audit = gather_fixer_context(
         base,
         issues=["Missing null check in handler.py:42"],
         suggestions=["Add input validation"],
@@ -153,6 +176,7 @@ def test_gather_fixer_context_includes_feedback(tmp_path: object) -> None:
     assert "Missing null check" in ctx
     assert "Add input validation" in ctx
     assert "+new code" in ctx
+    assert "handler.py" in audit["files_read"]
 
 
 def test_gather_reviewer_context_limits_files(tmp_path: object) -> None:
@@ -162,7 +186,7 @@ def test_gather_reviewer_context_limits_files(tmp_path: object) -> None:
         with open(os.path.join(base, f), "w") as fh:
             fh.write(f"content of {f}")
 
-    ctx = gather_reviewer_context(base, git_diff="diff", changed_files=files)
+    ctx, _ = gather_reviewer_context(base, git_diff="diff", changed_files=files)
     # Should only include first 10
     assert "file9.py" in ctx
     assert "file10.py" not in ctx

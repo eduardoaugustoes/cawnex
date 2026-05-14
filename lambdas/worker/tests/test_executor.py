@@ -115,7 +115,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_planner_context", return_value="context")
+    @patch("worker.executor.gather_planner_context", return_value=("context", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_planner_flow(
         self,
         mock_context: MagicMock,
@@ -142,7 +142,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_implementer_context", return_value="context")
+    @patch("worker.executor.gather_implementer_context", return_value=("context", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_implementer_flow_with_pr(
         self,
         mock_context: MagicMock,
@@ -173,7 +173,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_reviewer_context", return_value="diff context")
+    @patch("worker.executor.gather_reviewer_context", return_value=("diff context", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_reviewer_flow(
         self,
         mock_context: MagicMock,
@@ -201,7 +201,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_fixer_context", return_value="fixer context")
+    @patch("worker.executor.gather_fixer_context", return_value=("fixer context", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_fixer_flow_no_pr(
         self,
         mock_context: MagicMock,
@@ -244,7 +244,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_implementer_context", return_value="ctx")
+    @patch("worker.executor.gather_implementer_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_unparseable_claude_output(
         self,
         mock_context: MagicMock,
@@ -262,7 +262,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_planner_context", return_value="ctx")
+    @patch("worker.executor.gather_planner_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_cleanup_called_on_success(
         self,
         mock_context: MagicMock,
@@ -283,7 +283,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude", side_effect=RuntimeError("API error"))
-    @patch("worker.executor.gather_planner_context", return_value="ctx")
+    @patch("worker.executor.gather_planner_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_cleanup_called_on_error(
         self,
         mock_context: MagicMock,
@@ -304,7 +304,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_planner_context", return_value="ctx")
+    @patch("worker.executor.gather_planner_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_timeout_returns_failed(
         self,
         mock_context: MagicMock,
@@ -329,7 +329,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_implementer_context", return_value="ctx")
+    @patch("worker.executor.gather_implementer_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_memory_injection_when_enabled(
         self,
         mock_context: MagicMock,
@@ -364,7 +364,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_implementer_context", return_value="ctx")
+    @patch("worker.executor.gather_implementer_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_no_memory_injection_when_disabled(
         self,
         mock_context: MagicMock,
@@ -390,7 +390,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_implementer_context", return_value="ctx")
+    @patch("worker.executor.gather_implementer_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_no_memory_injection_when_no_entries(
         self,
         mock_context: MagicMock,
@@ -415,3 +415,66 @@ class TestExecute:
         snapshot = _make_snapshot(budget_remaining=0)
         result = execute(snapshot, logger=_make_logger())
         assert result["status"] == "failed"  # budget check before any config use
+
+
+class TestToolUseWiring:
+    """Implementer crow runs the agentic loop; others stay one-shot."""
+
+    @patch("worker.executor.create_pr")
+    @patch("worker.executor.commit_and_push", return_value="abc123")
+    @patch("worker.executor.apply_changes", return_value=[])
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_implementer_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    def test_implementer_invokes_call_claude_with_tools(
+        self,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+        mock_apply: MagicMock,
+        mock_push: MagicMock,
+        mock_pr: MagicMock,
+    ) -> None:
+        mock_claude.return_value = _make_claude_result('{"changes": [], "summary": "done"}')
+
+        execute(_make_snapshot(crow_type="implementer"), logger=_make_logger(), config=_make_config())
+
+        kwargs = mock_claude.call_args.kwargs
+        tools = kwargs.get("tools")
+        executor = kwargs.get("tool_executor")
+        assert tools is not None
+        assert len(tools) >= 4  # read_file, glob_files, grep_files, list_dir
+        assert executor is not None
+        # tool_executor is a WorktreeTools bound to the worktree
+        assert executor.worktree_dir == "/wt"
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_planner_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    def test_planner_stays_one_shot(
+        self,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        mock_claude.return_value = _make_claude_result('{"tasks": []}')
+
+        execute(_make_snapshot(crow_type="planner"), logger=_make_logger(), config=_make_config())
+
+        kwargs = mock_claude.call_args.kwargs
+        assert kwargs.get("tools") is None
+        assert kwargs.get("tool_executor") is None
