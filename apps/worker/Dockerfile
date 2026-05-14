@@ -1,4 +1,6 @@
-FROM python:3.12-slim
+# Pin Linux x86_64 explicitly so local builds on Apple Silicon don't produce
+# an arm64 image that crashes on Fargate (Linux/amd64) with "exec format error".
+FROM --platform=linux/amd64 python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 

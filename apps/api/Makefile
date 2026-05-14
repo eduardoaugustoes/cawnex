@@ -155,13 +155,20 @@ build: quality ## Build distribution (after quality checks)
 	$(PYTHON) -m build
 	@echo "✅ Build complete!"
 
-build-lambda: ## Build for AWS Lambda deployment
-	@echo "📦 Building for Lambda..."
+build-lambda: ## Build for AWS Lambda deployment (Linux x86_64, Python 3.12)
+	@echo "📦 Building for Lambda (Linux x86_64, Python 3.12)..."
 	rm -rf dist/
 	mkdir -p dist/
 	cp -r $(SRC_DIR) dist/
 	cp handler.py dist/
-	$(PIP) install -r requirements.txt -t dist/
+	# Force Linux wheels so local builds on Apple Silicon don't ship
+	# darwin-arm64 .so files that crash Lambda with ImportModuleError.
+	$(PIP) install \
+		--target dist/ \
+		--platform manylinux2014_x86_64 \
+		--python-version 3.12 \
+		--only-binary=:all: \
+		-r requirements.txt
 	@echo "✅ Lambda build complete!"
 
 # ================================
