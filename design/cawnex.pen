@@ -1,5 +1,5 @@
 {
-  "version": "2.8",
+  "version": "2.9",
   "children": [
     {
       "type": "frame",
@@ -27782,6 +27782,1101 @@
       "fontSize": 12,
       "fontWeight": "600",
       "letterSpacing": 1
+    },
+    {
+      "type": "frame",
+      "id": "hWgCw",
+      "x": 0,
+      "y": 8064,
+      "name": "S70 — Autopilot: FAB + Voice",
+      "theme": {
+        "Mode": "dark"
+      },
+      "width": 393,
+      "height": 852,
+      "fill": "$--background",
+      "layout": "none",
+      "children": [
+        {
+          "id": "Acy12",
+          "type": "ref",
+          "ref": "cckH0",
+          "name": "statusbar1",
+          "y": 0,
+          "x": 0
+        },
+        {
+          "id": "ldWGu",
+          "type": "ref",
+          "ref": "AEN93",
+          "name": "nav1",
+          "y": 62,
+          "x": 0,
+          "descendants": {
+            "eQsbb": {
+              "enabled": false
+            },
+            "K2g0z": {
+              "content": "Projects"
+            }
+          }
+        },
+        {
+          "type": "frame",
+          "id": "aoINR",
+          "x": 0,
+          "y": 110,
+          "name": "content",
+          "width": 393,
+          "height": 652,
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            16,
+            20,
+            24,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Acm0J",
+              "name": "greeting",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pig5v",
+                  "name": "greetTitle",
+                  "fill": "$--muted-foreground",
+                  "content": "Good evening,",
+                  "fontFamily": "Inter",
+                  "fontSize": 14
+                },
+                {
+                  "type": "text",
+                  "id": "X6KSP",
+                  "name": "greetName",
+                  "fill": "$--card-foreground",
+                  "content": "Eduardo",
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "71lN0",
+              "name": "projectCards",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "id": "hm6sO",
+                  "type": "ref",
+                  "ref": "ilPYk",
+                  "width": "fill_container",
+                  "name": "card1",
+                  "x": 0,
+                  "y": 0,
+                  "descendants": {
+                    "6zTYM": {
+                      "content": "URL Shortener"
+                    },
+                    "pk7w6": {
+                      "content": "Serverless URL shortener on AWS"
+                    }
+                  }
+                },
+                {
+                  "id": "hSKA9",
+                  "type": "ref",
+                  "ref": "ilPYk",
+                  "width": "fill_container",
+                  "name": "card2",
+                  "x": 0,
+                  "y": 90,
+                  "descendants": {
+                    "6zTYM": {
+                      "content": "Calculator E2E"
+                    },
+                    "pk7w6": {
+                      "content": "Simple online calculator"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "CBbiW",
+          "x": 311,
+          "y": 710,
+          "name": "MonarchFAB",
+          "width": 56,
+          "height": 56,
+          "fill": "$--primary",
+          "cornerRadius": 28,
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "8gOri",
+              "name": "fabIcon",
+              "width": 24,
+              "height": 24,
+              "iconFontName": "bird",
+              "iconFontFamily": "lucide",
+              "fill": "$--primary-foreground"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "ZYPR3",
+          "x": 299,
+          "y": 772,
+          "name": "fabLabel",
+          "fill": "$--muted-foreground",
+          "content": "Hold to speak",
+          "fontFamily": "Inter",
+          "fontSize": 11,
+          "fontWeight": "500"
+        },
+        {
+          "type": "frame",
+          "id": "mImTO",
+          "x": 0,
+          "y": 550,
+          "name": "VoiceOverlay",
+          "width": 393,
+          "height": 302,
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#00000000",
+                "position": 0
+              },
+              {
+                "color": "#000000DD",
+                "position": 0.4
+              },
+              {
+                "color": "#000000EE",
+                "position": 1
+              }
+            ]
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 40,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "ellipse",
+              "id": "choFN",
+              "name": "wavePulse",
+              "opacity": 0.3,
+              "fill": "$--primary",
+              "width": 80,
+              "height": 80
+            },
+            {
+              "type": "icon_font",
+              "id": "86HCl",
+              "name": "micIcon",
+              "width": 32,
+              "height": 32,
+              "iconFontName": "mic",
+              "iconFontFamily": "lucide",
+              "fill": "$--primary"
+            },
+            {
+              "type": "text",
+              "id": "ElnPw",
+              "name": "voiceText",
+              "fill": "$--card-foreground",
+              "content": "Listening...",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "bpLYV",
+              "name": "voiceHint",
+              "fill": "$--muted-foreground",
+              "content": "\"Build a URL shortener on AWS...\"",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontStyle": "italic"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "GKd1j",
+      "x": 493,
+      "y": 8064,
+      "name": "S71 — Autopilot: Chat Refine",
+      "theme": {
+        "Mode": "dark"
+      },
+      "width": 393,
+      "height": 852,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "sr6fQ",
+          "type": "ref",
+          "ref": "cckH0",
+          "name": "statusbar2",
+          "y": 0
+        },
+        {
+          "id": "Lz5iC",
+          "type": "ref",
+          "ref": "ptNDx",
+          "name": "nav2",
+          "y": 62,
+          "descendants": {
+            "PVAmZ": {
+              "content": "Cancel"
+            },
+            "sYbtm": {
+              "content": "Autopilot"
+            },
+            "mVJTM": {
+              "content": "",
+              "enabled": false
+            }
+          }
+        },
+        {
+          "type": "frame",
+          "id": "33P5i",
+          "name": "chatMessages",
+          "clip": true,
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            16,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "ubwOQ",
+              "name": "aiMessage1",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "8m2v2",
+                  "name": "aiAvatar1",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "WfkrC",
+                      "name": "aiIcon1",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "bird",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "UKwtd",
+                      "name": "aiLabel1",
+                      "fill": "$--primary",
+                      "content": "Monarch",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "31RGw",
+                  "name": "aiBubble1",
+                  "width": 310,
+                  "fill": "$--card",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "H7wZ8",
+                      "name": "aiText1",
+                      "fill": "$--card-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": 278,
+                      "content": "I heard: \"Build a URL shortener on AWS\"\n\nA few questions to get this right:",
+                      "lineHeight": 1.5,
+                      "fontFamily": "Inter",
+                      "fontSize": 14
+                    },
+                    {
+                      "type": "text",
+                      "id": "iVM0j",
+                      "name": "q1",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": 278,
+                      "content": "1. Do you have a GitHub repo, or should I create one?",
+                      "lineHeight": 1.4,
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "6tA8Q",
+                      "name": "q2",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": 278,
+                      "content": "2. Python or Node.js for Lambdas?",
+                      "lineHeight": 1.4,
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "dCeSN",
+                      "name": "q3",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": 278,
+                      "content": "3. Click analytics or just redirect?",
+                      "lineHeight": 1.4,
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "z1usC",
+              "name": "userMessage",
+              "width": "fill_container",
+              "justifyContent": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pq4zf",
+                  "name": "userBubble",
+                  "width": 280,
+                  "fill": "$--primary",
+                  "cornerRadius": 12,
+                  "layout": "vertical",
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "vXbrm",
+                      "name": "userText",
+                      "fill": "$--primary-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": 248,
+                      "content": "Create a new repo. Use Python. I want click analytics with timestamps and user-agent tracking.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "Inter",
+                      "fontSize": 14
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "LDhYW",
+              "name": "aiMessage2",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "C1Am4",
+                  "name": "aiAvatar2",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "o7EpN",
+                      "name": "aiIcon2",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "bird",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "rWNSY",
+                      "name": "aiLabel2",
+                      "fill": "$--primary",
+                      "content": "Monarch",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "r6abD",
+                  "name": "aiBubble2",
+                  "width": 310,
+                  "fill": "$--card",
+                  "cornerRadius": 12,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "WJSSE",
+                      "name": "aiText2",
+                      "fill": "$--card-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": 278,
+                      "content": "Got it. Here's my plan:",
+                      "lineHeight": 1.4,
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "rncGP",
+                      "name": "planHint",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": 278,
+                      "content": "Tap 'Review Plan' to see the full breakdown.",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "2oR5i",
+                      "name": "reviewBtn",
+                      "width": "fill_container",
+                      "fill": "$--primary",
+                      "cornerRadius": 8,
+                      "gap": 8,
+                      "padding": [
+                        10,
+                        16
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "451JG",
+                          "name": "reviewIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "rocket",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--primary-foreground"
+                        },
+                        {
+                          "type": "text",
+                          "id": "yMUXk",
+                          "name": "reviewLabel",
+                          "fill": "$--primary-foreground",
+                          "content": "Review Plan",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "SsuyE",
+          "type": "ref",
+          "ref": "8KrNB",
+          "name": "chatInput",
+          "x": 0,
+          "y": 796
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "zYlUg",
+      "x": 986,
+      "y": 8064,
+      "name": "S72 — Autopilot: Plan Review",
+      "theme": {
+        "Mode": "dark"
+      },
+      "width": 393,
+      "height": 852,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "AYf7e",
+          "type": "ref",
+          "ref": "cckH0",
+          "name": "statusbar3",
+          "y": 0
+        },
+        {
+          "id": "NDFFK",
+          "type": "ref",
+          "ref": "AEN93",
+          "name": "nav3",
+          "y": 62,
+          "descendants": {
+            "K2g0z": {
+              "content": "Review Plan"
+            }
+          }
+        },
+        {
+          "type": "frame",
+          "id": "ofjb7",
+          "name": "planContent",
+          "clip": true,
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            16,
+            20,
+            24,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "MGPMh",
+              "name": "projHeader",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "fD2rf",
+                  "name": "projName",
+                  "fill": "$--card-foreground",
+                  "content": "URL Shortener",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "4CvA4",
+                  "name": "projDesc",
+                  "fill": "$--muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Serverless URL shortener on AWS — API Gateway + Lambda + DynamoDB",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "9j52c",
+              "name": "repoRow",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "xG7BY",
+                  "name": "repoIcon",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "git-branch",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--primary"
+                },
+                {
+                  "type": "text",
+                  "id": "nmQzM",
+                  "name": "repoText",
+                  "fill": "$--muted-foreground",
+                  "content": "eduardoaugustoes/url-shortener (new)",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "BIgRp",
+              "name": "milestoneCard",
+              "width": "fill_container",
+              "fill": "$--card",
+              "cornerRadius": 12,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "E4nnj",
+                  "name": "msLabel",
+                  "fill": "$--muted-foreground",
+                  "content": "MILESTONE 1",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "600",
+                  "letterSpacing": 2
+                },
+                {
+                  "type": "text",
+                  "id": "IOrDX",
+                  "name": "msTitle",
+                  "fill": "$--card-foreground",
+                  "content": "Core URL Shortener",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "5ZSzD",
+                  "name": "goals",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ei7YU",
+                      "name": "g1",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "A8ajr",
+                          "name": "g1header",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "WKnVu",
+                              "name": "g1dot",
+                              "fill": "$--primary",
+                              "width": 8,
+                              "height": 8
+                            },
+                            {
+                              "type": "text",
+                              "id": "gQji6",
+                              "name": "g1name",
+                              "fill": "$--card-foreground",
+                              "textGrowth": "fixed-width",
+                              "width": 300,
+                              "content": "CDK Infrastructure + Lambda Functions",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "hY4tg",
+                          "name": "g1mvis",
+                          "fill": "$--muted-foreground",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "  2 MVIs · ~10h human equiv",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "vMMfW",
+                      "name": "g2",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "qp0N5",
+                          "name": "g2header",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "eH1W4",
+                              "name": "g2dot",
+                              "fill": "$--muted-foreground",
+                              "width": 8,
+                              "height": 8
+                            },
+                            {
+                              "type": "text",
+                              "id": "mEdzI",
+                              "name": "g2name",
+                              "fill": "$--card-foreground",
+                              "content": "Click Analytics",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "T9v7e",
+                          "name": "g2mvis",
+                          "fill": "$--muted-foreground",
+                          "content": "  1 MVI · ~5h human equiv",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Wqddt",
+                      "name": "g3",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "3s9lg",
+                          "name": "g3header",
+                          "width": "fill_container",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "PCGoY",
+                              "name": "g3dot",
+                              "fill": "$--muted-foreground",
+                              "width": 8,
+                              "height": 8
+                            },
+                            {
+                              "type": "text",
+                              "id": "wiQlA",
+                              "name": "g3name",
+                              "fill": "$--card-foreground",
+                              "content": "URL Expiration",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "pJrwM",
+                          "name": "g3mvis",
+                          "fill": "$--muted-foreground",
+                          "content": "  1 MVI · ~4h human equiv",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "XzS2U",
+              "name": "summary",
+              "width": "fill_container",
+              "fill": "$--card",
+              "cornerRadius": 12,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "padding": 16,
+              "justifyContent": "space_around",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "wgNa6",
+                  "name": "stat1",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "eN77D",
+                      "name": "stat1val",
+                      "fill": "$--primary",
+                      "content": "4",
+                      "fontFamily": "Inter",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "wodQR",
+                      "name": "stat1lbl",
+                      "fill": "$--muted-foreground",
+                      "content": "MVIs",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "OYxOt",
+                  "name": "stat2",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "8FJS0",
+                      "name": "stat2val",
+                      "fill": "$--card-foreground",
+                      "content": "~19h",
+                      "fontFamily": "Inter",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "kFA4B",
+                      "name": "stat2lbl",
+                      "fill": "$--muted-foreground",
+                      "content": "Human Equiv",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "LeY6j",
+                  "name": "stat3",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "CL5jg",
+                      "name": "stat3val",
+                      "fill": "#4ADE80",
+                      "content": "~$0.80",
+                      "fontFamily": "Inter",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xYqGm",
+                      "name": "stat3lbl",
+                      "fill": "$--muted-foreground",
+                      "content": "Est. Cost",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dyCWZ",
+              "name": "firstWave",
+              "width": "fill_container",
+              "fill": "$--card",
+              "cornerRadius": 10,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--primary"
+              },
+              "layout": "vertical",
+              "gap": 6,
+              "padding": [
+                12,
+                16
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "23ruP",
+                  "name": "fwLabel",
+                  "fill": "$--primary",
+                  "content": "FIRST WAVE",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "600",
+                  "letterSpacing": 2
+                },
+                {
+                  "type": "text",
+                  "id": "ia9pV",
+                  "name": "fwTitle",
+                  "fill": "$--card-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "CDK stack + Create and Redirect endpoints",
+                  "lineHeight": 1.4,
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "FJS3A",
+                  "name": "fwMeta",
+                  "fill": "$--muted-foreground",
+                  "content": "1 MVI · ~6h human equiv · ~$0.25 est.",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nN6Fi",
+              "name": "launchBtn",
+              "width": "fill_container",
+              "fill": "$--primary",
+              "cornerRadius": 12,
+              "gap": 10,
+              "padding": [
+                14,
+                20
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "25ub6",
+                  "name": "launchIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "rocket",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--primary-foreground"
+                },
+                {
+                  "type": "text",
+                  "id": "26Brx",
+                  "name": "launchLabel",
+                  "fill": "$--primary-foreground",
+                  "content": "Launch Wave",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {
