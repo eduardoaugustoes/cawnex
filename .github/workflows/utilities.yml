@@ -198,10 +198,13 @@ jobs:
         working-directory: infra
         run: |
           npm ci
+          # CDK needs to synthesize stacks before destroying, which resolves asset paths.
+          # Create stub directories for build artifacts that don't exist in a fresh checkout.
+          mkdir -p ../apps/api/dist
           echo "⚠️ WARNING: This will destroy ALL AWS resources!"
-          echo "Destroying in 10 seconds... (Cancel with Ctrl+C if needed)"
+          echo "Destroying in 10 seconds..."
           sleep 10
-          npx cdk destroy --all --force
+          npx cdk destroy --all --context stage=${{ github.event.inputs.stage }} --force
 
   deploy-staging:
     name: 🚀 Deploy to Staging
