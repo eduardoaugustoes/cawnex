@@ -70,7 +70,13 @@ final class APIMVIService: MVIService {
         )
 
         let activeCrows = mapCrows(detail.crows)
-        let tasks = mapTasks(from: detail.crows, tasksDone: tasksDone, tasksTotal: tasksTotal)
+        let tasks = mapTasks(
+            from: detail.crows,
+            tasksDone: tasksDone,
+            tasksTotal: tasksTotal,
+            waveId: waveId,
+            mviId: mviId
+        )
         let liveFeed = mapEvents(events.events ?? [])
         let mergeChecklist = buildMergeChecklist(tasksDone: tasksDone, tasksTotal: tasksTotal, canShip: canShip)
 
@@ -134,7 +140,13 @@ final class APIMVIService: MVIService {
         }
     }
 
-    private func mapTasks(from crows: [MVICrowDTO]?, tasksDone: Int, tasksTotal: Int) -> [MVITask] {
+    private func mapTasks(
+        from crows: [MVICrowDTO]?,
+        tasksDone: Int,
+        tasksTotal: Int,
+        waveId: String,
+        mviId: String
+    ) -> [MVITask] {
         guard let crows else { return [] }
 
         let plannerWithTasks = crows
@@ -142,7 +154,12 @@ final class APIMVIService: MVIService {
             .last ?? crows.first { $0.crow_type == "planner" }
 
         guard let tasks = plannerWithTasks?.outcome?.tasks, !tasks.isEmpty else {
-            return buildPlaceholderTasks(tasksDone: tasksDone, tasksTotal: tasksTotal)
+            return buildPlaceholderTasks(
+                tasksDone: tasksDone,
+                tasksTotal: tasksTotal,
+                waveId: waveId,
+                mviId: mviId
+            )
         }
 
         return tasks.enumerated().map { index, task in
@@ -150,7 +167,7 @@ final class APIMVIService: MVIService {
             let isBuilding = index == tasksDone && tasksDone < tasksTotal
             let status: TaskStatus = isCompleted ? .completed : isBuilding ? .building : .queued
             return MVITask(
-                id: "task_\(index)",
+                id: "\(waveId):\(mviId):\(index)",
                 name: task.name ?? "Task \(index + 1)",
                 status: status,
                 prNumber: nil,
@@ -159,14 +176,19 @@ final class APIMVIService: MVIService {
         }
     }
 
-    private func buildPlaceholderTasks(tasksDone: Int, tasksTotal: Int) -> [MVITask] {
+    private func buildPlaceholderTasks(
+        tasksDone: Int,
+        tasksTotal: Int,
+        waveId: String,
+        mviId: String
+    ) -> [MVITask] {
         guard tasksTotal > 0 else { return [] }
         return (0..<tasksTotal).map { index in
             let isCompleted = index < tasksDone
             let isBuilding = index == tasksDone && tasksDone < tasksTotal
             let status: TaskStatus = isCompleted ? .completed : isBuilding ? .building : .queued
             return MVITask(
-                id: "task_\(index)",
+                id: "\(waveId):\(mviId):\(index)",
                 name: "Task \(index + 1)",
                 status: status,
                 prNumber: nil,
