@@ -1,7 +1,7 @@
 # Ignore everything by default
 *
 
-# Only include what the Worker Docker image actually needs:
+# Worker Docker image inputs:
 #   - lambdas/worker/requirements.txt
 #   - lambdas/worker/src/
 #   - lambdas/murder/src/
@@ -12,3 +12,13 @@
 !lambdas/murder/src/
 !apps/worker/main.py
 !apps/worker/Dockerfile
+
+# Stream service Docker image inputs:
+#   - apps/stream/requirements.txt
+#   - apps/stream/src/
+#   - apps/stream/main.py
+#   - apps/stream/Dockerfile
+!apps/stream/requirements.txt
+!apps/stream/src/
+!apps/stream/main.py
+!apps/stream/Dockerfile
