@@ -163,7 +163,9 @@ def test_get_task_detail_with_implementer_and_pr(mock_boto3: Mock) -> None:
 
     assert body["name"] == "Task A"
     assert body["pr"] is not None
-    assert body["pr"]["number"] == "PR #42"
+    # Composite pr_id so iOS can pass it to the PR endpoint.
+    assert body["pr"]["number"] == "w1:1:42"
+    assert body["pr"]["title"] == "PR #42"
     assert body["pr"]["branch"] == "cawnex/w1-m1"
     assert body["assigned_crow"]["behavior_state"] == "landed"
     # Cost: 2_000_000 microdollars / 2 tasks = $1.00

@@ -252,12 +252,16 @@ def _task_status(impl_crow: dict[str, Any] | None) -> str:
     return str(status) if status is not None else "pending"
 
 
-def _maybe_pr_stub(impl_crow: dict[str, Any] | None) -> TaskPR | None:
+def _maybe_pr_stub(
+    impl_crow: dict[str, Any] | None, wave_id: str, mvi_id: str
+) -> TaskPR | None:
     """Return a minimal PR stub when the implementer has a pr.number.
 
     The full PR (title, line counts, status, coverage) is the PR endpoint's
     job — phase 1.2. This phase just surfaces "yes there is a PR" so iOS
-    can link out.
+    can link out. The `number` field is the iOS-side composite id
+    `wave_id:mvi_id:pr_number` so iOS can pass it through to the PR
+    endpoint without needing to recover the wave/mvi context separately.
     """
     if impl_crow is None:
         return None
@@ -265,9 +269,10 @@ def _maybe_pr_stub(impl_crow: dict[str, Any] | None) -> TaskPR | None:
     number = pr.get("number")
     if not number:
         return None
+    composite_id = f"{wave_id}:{mvi_id}:{number}"
     return TaskPR(
-        number=f"PR #{number}",
-        title="",
+        number=composite_id,
+        title=f"PR #{number}",
         branch=impl_crow.get("branch", ""),
         status="open",
         lines_added=0,
@@ -340,5 +345,5 @@ async def get_task_detail(
         assigned_crow=_build_assigned_crow(impl_crow, task),
         implementation_steps=[],
         acceptance_criteria=[],
-        pr=_maybe_pr_stub(impl_crow),
+        pr=_maybe_pr_stub(impl_crow, wave_id, mvi_id),
     )

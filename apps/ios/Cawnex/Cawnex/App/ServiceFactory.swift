@@ -56,11 +56,17 @@ struct ServiceFactory {
     }
 
     func makeTaskService() -> any TaskService {
-        InMemoryTaskService(store: store)
+        if let apiClient {
+            return APITaskService(client: apiClient)
+        }
+        return InMemoryTaskService(store: store)
     }
 
     func makePRService() -> any PRService {
-        InMemoryPRService(store: store)
+        if let apiClient {
+            return APIPRService(client: apiClient)
+        }
+        return InMemoryPRService(store: store)
     }
 
     func makeMurdersService() -> any MurdersService {
