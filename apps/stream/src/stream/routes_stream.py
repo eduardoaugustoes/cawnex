@@ -41,6 +41,7 @@ async def stream_wave_events(
             authorization,
             user_pool_id=cfg.user_pool_id,
             region=cfg.region,
+            allowed_audiences=cfg.allowed_audiences,
         )
     except AuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc

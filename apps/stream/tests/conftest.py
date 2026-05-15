@@ -15,4 +15,5 @@ def stub_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("USER_POOL_ID", "us-east-1_TESTPOOL")
     monkeypatch.setenv("AWS_REGION", "us-east-1")
     monkeypatch.setenv("PIPE_SECRET", "test-pipe-secret")
+    monkeypatch.setenv("ALLOWED_AUDIENCES", "test-client-id")
     yield

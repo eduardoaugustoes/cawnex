@@ -610,6 +610,7 @@ export class CawnexStack extends cdk.Stack {
         EVENTS_TABLE_NAME: eventsTable.tableName,
         USER_POOL_ID: userPoolId,
         AWS_REGION: this.region,
+        ALLOWED_AUDIENCES: `${iosClientId},${webClientId}`,
       },
       secrets: {
         PIPE_SECRET: ecs.Secret.fromSecretsManager(pipeSecret),

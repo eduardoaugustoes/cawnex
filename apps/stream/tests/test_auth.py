@@ -56,6 +56,7 @@ def _make_token(
     tenant_id: str = "tenant-abc",
     sub: str = "user-001",
     kid: str = "test-kid",
+    aud: str = "test-client-id",
 ) -> str:
     pem = key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -66,11 +67,12 @@ def _make_token(
         {
             "iss": iss,
             "sub": sub,
+            "aud": aud,
             "custom:tenant_id": tenant_id,
             "email": "t@example.com",
             "exp": int(time.time()) + exp_offset,
             "iat": int(time.time()),
-            "token_use": "access",
+            "token_use": "id",
         },
         pem,
         algorithm="RS256",
@@ -89,6 +91,7 @@ def test_validate_token_returns_tenant_claims(
             f"Bearer {token}",
             user_pool_id="us-east-1_TESTPOOL",
             region="us-east-1",
+            allowed_audiences=("test-client-id",),
         )
 
     assert isinstance(claims, TenantClaims)
@@ -108,6 +111,7 @@ def test_validate_token_rejects_expired(
                 f"Bearer {token}",
                 user_pool_id="us-east-1_TESTPOOL",
                 region="us-east-1",
+                allowed_audiences=("test-client-id",),
             )
 
 
@@ -125,6 +129,7 @@ def test_validate_token_rejects_wrong_issuer(
                 f"Bearer {token}",
                 user_pool_id="us-east-1_TESTPOOL",
                 region="us-east-1",
+                allowed_audiences=("test-client-id",),
             )
 
 
@@ -140,12 +145,45 @@ def test_validate_token_rejects_missing_tenant_id(
                 f"Bearer {token}",
                 user_pool_id="us-east-1_TESTPOOL",
                 region="us-east-1",
+                allowed_audiences=("test-client-id",),
             )
 
 
 def test_validate_token_rejects_missing_header() -> None:
     with pytest.raises(AuthError, match="authorization"):
         validate_token("", user_pool_id="x", region="us-east-1")
+
+
+def test_validate_token_rejects_wrong_audience(
+    rsa_keypair: tuple[rsa.RSAPrivateKey, dict[str, Any]],
+) -> None:
+    key, jwk = rsa_keypair
+    token = _make_token(key, aud="other-client-id")
+
+    with patch("stream.auth._fetch_jwks", return_value={"keys": [jwk]}):
+        with pytest.raises(AuthError, match="audience"):
+            validate_token(
+                f"Bearer {token}",
+                user_pool_id="us-east-1_TESTPOOL",
+                region="us-east-1",
+                allowed_audiences=("test-client-id",),
+            )
+
+
+def test_validate_token_accepts_one_of_many_audiences(
+    rsa_keypair: tuple[rsa.RSAPrivateKey, dict[str, Any]],
+) -> None:
+    key, jwk = rsa_keypair
+    token = _make_token(key, aud="web-client-id")
+
+    with patch("stream.auth._fetch_jwks", return_value={"keys": [jwk]}):
+        claims = validate_token(
+            f"Bearer {token}",
+            user_pool_id="us-east-1_TESTPOOL",
+            region="us-east-1",
+            allowed_audiences=("ios-client-id", "web-client-id"),
+        )
+    assert claims.tenant_id == "tenant-abc"
 
 
 def test_validate_token_rejects_kid_not_in_jwks(
@@ -160,4 +198,5 @@ def test_validate_token_rejects_kid_not_in_jwks(
                 f"Bearer {token}",
                 user_pool_id="us-east-1_TESTPOOL",
                 region="us-east-1",
+                allowed_audiences=("test-client-id",),
             )

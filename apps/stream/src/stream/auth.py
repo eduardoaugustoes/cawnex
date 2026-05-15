@@ -54,8 +54,14 @@ def validate_token(
     *,
     user_pool_id: str,
     region: str,
+    allowed_audiences: tuple[str, ...] | None = None,
 ) -> TenantClaims:
-    """Validate a Bearer token; return claims or raise AuthError."""
+    """Validate a Bearer token; return claims or raise AuthError.
+
+    If `allowed_audiences` is set, the token's `aud` claim must match one of
+    them — Cognito ID tokens carry the App Client ID here. If None,
+    audience validation is skipped (signature + issuer are still enforced).
+    """
     if not authorization_header or not authorization_header.lower().startswith("bearer "):
         raise AuthError("missing or malformed authorization header")
 
@@ -75,18 +81,25 @@ def validate_token(
     public_key = _public_key_for_kid(_fetch_jwks(user_pool_id, region), kid)
 
     expected_iss = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}"
+    decode_kwargs: dict[str, Any] = {
+        "algorithms": ["RS256"],
+        "issuer": expected_iss,
+        "options": {"require": ["exp", "iat", "sub"]},
+    }
+    if allowed_audiences:
+        # PyJWT accepts a list of acceptable audiences; matches if any overlap.
+        decode_kwargs["audience"] = list(allowed_audiences)
+    else:
+        decode_kwargs["options"]["verify_aud"] = False
+
     try:
-        claims = jwt.decode(
-            token,
-            public_key,
-            algorithms=["RS256"],
-            issuer=expected_iss,
-            options={"require": ["exp", "iat", "sub"]},
-        )
+        claims = jwt.decode(token, public_key, **decode_kwargs)
     except jwt.ExpiredSignatureError as exc:
         raise AuthError("token expired") from exc
     except jwt.InvalidIssuerError as exc:
         raise AuthError("invalid issuer") from exc
+    except jwt.InvalidAudienceError as exc:
+        raise AuthError("invalid audience") from exc
     except jwt.PyJWTError as exc:
         raise AuthError(f"token validation failed: {exc}") from exc
 
