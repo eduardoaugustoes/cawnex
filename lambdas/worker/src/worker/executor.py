@@ -116,8 +116,16 @@ def _resolve_templates(
     return instructions, env_vars
 
 
-def _build_git_diff(worktree_dir: str, base_branch: str = "main") -> tuple[str, list[str]]:
-    """Build git diff and changed file list from worktree. Used by reviewer/fixer."""
+def _build_git_diff(
+    worktree_dir: str, base_branch: str = "origin/main"
+) -> tuple[str, list[str]]:
+    """Build git diff and changed file list from worktree. Used by reviewer/fixer.
+
+    Always diff against `origin/main` rather than the worker's local `main`
+    ref — the local ref can be days/weeks behind origin (we only `git fetch`,
+    never check out main) and produces phantom diffs of unrelated commits
+    when the wave branch has no commits of its own.
+    """
     diff_content = run_git(
         f"git diff {base_branch}..HEAD", cwd=worktree_dir, check=False
     )
@@ -301,6 +309,18 @@ def execute(
         if not isinstance(parsed, dict):
             parsed = {}
 
+        # Always log the raw output (truncated) so future diagnostics can see what
+        # Claude actually wrote. Without this we have no way to investigate
+        # silent JSON parse failures or missing schema keys.
+        raw_preview = claude_result.raw_output[:2000] if claude_result.raw_output else ""
+        logger.event(
+            "raw_output_preview",
+            crow_id=crow_id,
+            raw_chars=len(claude_result.raw_output),
+            parsed_keys=sorted(parsed.keys()),
+            preview=raw_preview,
+        )
+
         # Calculate cost
         credits = calculate_credits(claude_result.tokens_in, claude_result.tokens_out)
         cost = Cost(
@@ -309,6 +329,35 @@ def execute(
             credits=credits,
             duration_ms=claude_result.duration_ms,
         )
+
+        # Guard: implementer/fixer that produced no `changes` must fail the
+        # crow. Otherwise Murder will advance to reviewer and the reviewer
+        # will diff against a stale `main` ref, producing phantom approvals.
+        if crow_type in (CrowType.IMPLEMENTER, CrowType.FIXER):
+            changes_list = parsed.get("changes")
+            if not isinstance(changes_list, list) or len(changes_list) == 0:
+                logger.event(
+                    "crow_empty_changes",
+                    crow_id=crow_id,
+                    crow_type=crow_type.value,
+                    parsed_keys=sorted(parsed.keys()),
+                )
+                now_fail = datetime.now(timezone.utc).isoformat()
+                fail_outcome = _build_failed(
+                    crow_type,
+                    (
+                        f"{crow_type.value} produced no file changes — output had "
+                        f"keys {sorted(parsed.keys())} but no `changes` array"
+                    ),
+                )
+                fail_result: dict[str, Any] = {
+                    **fail_outcome,
+                    "cost": cost.to_dict(),
+                    "completed_at": now_fail,
+                }
+                validate_crow_completion(fail_result)
+                logger.event("crow_failed", crow_id=crow_id, reason="empty_changes")
+                return fail_result
 
         # Apply changes for implementer/fixer
         git_commit = ""

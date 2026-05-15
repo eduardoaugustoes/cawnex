@@ -98,10 +98,18 @@ the file end-to-end. If a file is too large, read it in chunks via
 max_bytes. If you cannot find something the directive references, search
 for it — do not invent it.
 
-When you are done exploring, output a SINGLE JSON object as the final
-message (no markdown fences, no surrounding text) matching the format below.
-
 ## Output Format
+
+YOUR FINAL MESSAGE MUST BE A SINGLE JSON OBJECT — no prose, no markdown
+fences, no preamble. Do not write "Here is the JSON:" or "The implementation
+is:". Just emit the object. If you produce prose instead of JSON, the
+factory will reject your work as an empty result.
+
+The object MUST have a top-level `changes` array. If you genuinely cannot
+write code (for example, the directive is impossible without missing
+information), set `changes: []` AND put the reason in `summary` — the
+factory will treat that as a failure with a clear cause, rather than
+silently approving nothing.
 
 {
   "changes": [

@@ -231,7 +231,13 @@ def test_smoke_implementer_loop_reads_spec_and_emits_changes(tmp_path: object) -
 
 
 def test_smoke_implementer_loop_handles_missing_file_gracefully(tmp_path: object) -> None:
-    """Claude asking for a nonexistent file gets an error back, not a crash."""
+    """Claude asking for a nonexistent file gets an error back, not a crash.
+
+    Note: when the model decides not to make any changes (e.g. because it
+    couldn't find what it needed), the empty-changes guard now fails the
+    crow explicitly rather than silently completing with no work. This
+    forces Murder to surface the failure instead of advancing to a
+    phantom-diff reviewer."""
     base = str(tmp_path)
     _seed_worktree(base)
 
@@ -275,7 +281,10 @@ def test_smoke_implementer_loop_handles_missing_file_gracefully(tmp_path: object
 
         result = execute(snapshot, logger=logger, config=config)
 
-    assert result["status"] == "completed"
+    # Empty `changes` now fails the crow (was: silently completed).
+    assert result["status"] == "failed"
+    assert "no file changes" in result["outcome"]["error"]
+    # But the tool itself still propagated the error to Claude correctly.
     second_call = mock_client.messages.create.call_args_list[1].kwargs
     tool_result = second_call["messages"][-1]["content"][0]
     assert tool_result["type"] == "tool_result"

@@ -245,7 +245,7 @@ class TestExecute:
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
     @patch("worker.executor.gather_implementer_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
-    def test_unparseable_claude_output(
+    def test_unparseable_implementer_output_fails_crow(
         self,
         mock_context: MagicMock,
         mock_claude: MagicMock,
@@ -253,10 +253,13 @@ class TestExecute:
         mock_wt: MagicMock,
         mock_cleanup: MagicMock,
     ) -> None:
+        """Implementer that produces no parseable `changes` must FAIL the crow,
+        not complete with empty output — otherwise Murder advances to reviewer
+        and the reviewer sees a phantom diff (see dogfood run 3 incident)."""
         mock_claude.return_value = _make_claude_result("This is not JSON at all")
         result = execute(_make_snapshot(), logger=_make_logger(), config=_make_config())
-        assert result["status"] == "completed"
-        assert result["outcome"]["files_changed"] == []
+        assert result["status"] == "failed"
+        assert "no file changes" in result["outcome"]["error"]
 
     @patch("worker.executor.cleanup_worktree")
     @patch("worker.executor.create_worktree", return_value="/wt")
@@ -329,7 +332,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_implementer_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
+    @patch("worker.executor.gather_planner_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_memory_injection_when_enabled(
         self,
         mock_context: MagicMock,
@@ -338,11 +341,14 @@ class TestExecute:
         mock_wt: MagicMock,
         mock_cleanup: MagicMock,
     ) -> None:
-        mock_claude.return_value = _make_claude_result('{"changes": [], "summary": "done"}')
+        # Use planner crow so the empty-changes guard doesn't fire and we
+        # don't need to mock apply_changes/commit_and_push for this test.
+        mock_claude.return_value = _make_claude_result('{"tasks": [{"name": "x"}], "summary": "ok"}')
         config = ExecutionConfig(
             efs_mount="/efs", github_token="test-token", memory_injection_enabled=True
         )
         snapshot = _make_snapshot(
+            crow_type="planner",
             memory=[
                 {
                     "crow_type": "planner",
@@ -350,7 +356,7 @@ class TestExecute:
                     "context_files": ["src/app.py"],
                     "summary": "planned",
                 }
-            ]
+            ],
         )
         result = execute(snapshot, logger=_make_logger(), config=config)
         assert result["status"] == "completed"
@@ -364,7 +370,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_implementer_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
+    @patch("worker.executor.gather_planner_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_no_memory_injection_when_disabled(
         self,
         mock_context: MagicMock,
@@ -373,12 +379,13 @@ class TestExecute:
         mock_wt: MagicMock,
         mock_cleanup: MagicMock,
     ) -> None:
-        mock_claude.return_value = _make_claude_result('{"changes": [], "summary": "done"}')
+        mock_claude.return_value = _make_claude_result('{"tasks": [{"name": "x"}], "summary": "ok"}')
         config = ExecutionConfig(
             efs_mount="/efs", github_token="test-token", memory_injection_enabled=False
         )
         snapshot = _make_snapshot(
-            memory=[{"crow_type": "planner", "tasks": [], "summary": "plan"}]
+            crow_type="planner",
+            memory=[{"crow_type": "planner", "tasks": [], "summary": "plan"}],
         )
         result = execute(snapshot, logger=_make_logger(), config=config)
         assert result["status"] == "completed"
@@ -390,7 +397,7 @@ class TestExecute:
     @patch("worker.executor.create_worktree", return_value="/wt")
     @patch("worker.executor.ensure_repo", return_value="/repo")
     @patch("worker.executor.call_claude")
-    @patch("worker.executor.gather_implementer_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
+    @patch("worker.executor.gather_planner_context", return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}))
     def test_no_memory_injection_when_no_entries(
         self,
         mock_context: MagicMock,
@@ -399,11 +406,11 @@ class TestExecute:
         mock_wt: MagicMock,
         mock_cleanup: MagicMock,
     ) -> None:
-        mock_claude.return_value = _make_claude_result('{"changes": [], "summary": "done"}')
+        mock_claude.return_value = _make_claude_result('{"tasks": [{"name": "x"}], "summary": "ok"}')
         config = ExecutionConfig(
             efs_mount="/efs", github_token="test-token", memory_injection_enabled=True
         )
-        snapshot = _make_snapshot(memory=[])
+        snapshot = _make_snapshot(crow_type="planner", memory=[])
         result = execute(snapshot, logger=_make_logger(), config=config)
         assert result["status"] == "completed"
 
@@ -442,7 +449,10 @@ class TestToolUseWiring:
         mock_push: MagicMock,
         mock_pr: MagicMock,
     ) -> None:
-        mock_claude.return_value = _make_claude_result('{"changes": [], "summary": "done"}')
+        mock_claude.return_value = _make_claude_result(
+            '{"changes": [{"path": "x.py", "action": "create", "content": "x = 1\\n"}], '
+            '"commit_message": "feat: x", "summary": "done"}'
+        )
 
         execute(_make_snapshot(crow_type="implementer"), logger=_make_logger(), config=_make_config())
 
@@ -478,3 +488,163 @@ class TestToolUseWiring:
         kwargs = mock_claude.call_args.kwargs
         assert kwargs.get("tools") is None
         assert kwargs.get("tool_executor") is None
+
+
+class TestEmptyChangesGuard:
+    """Implementer/fixer that emits no `changes` must fail explicitly so
+    Murder doesn't advance to a phantom-diff reviewer."""
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_implementer_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    def test_implementer_with_no_changes_key_fails(
+        self,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        # JSON parses but has no `changes` key — this is the dogfood run 3 shape
+        mock_claude.return_value = _make_claude_result(
+            '{"summary": "I read everything", "commit_message": ""}'
+        )
+        result = execute(
+            _make_snapshot(crow_type="implementer"),
+            logger=_make_logger(),
+            config=_make_config(),
+        )
+        assert result["status"] == "failed"
+        assert "no file changes" in result["outcome"]["error"]
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_implementer_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    def test_implementer_with_explicit_empty_changes_fails(
+        self,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        mock_claude.return_value = _make_claude_result(
+            '{"changes": [], "summary": "decided not to change anything"}'
+        )
+        result = execute(
+            _make_snapshot(crow_type="implementer"),
+            logger=_make_logger(),
+            config=_make_config(),
+        )
+        assert result["status"] == "failed"
+        assert "no file changes" in result["outcome"]["error"]
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_fixer_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    @patch("worker.executor._build_git_diff", return_value=("", []))
+    def test_fixer_with_no_changes_fails(
+        self,
+        mock_diff: MagicMock,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        mock_claude.return_value = _make_claude_result(
+            '{"summary": "issues unclear"}'
+        )
+        result = execute(
+            _make_snapshot(crow_type="fixer"),
+            logger=_make_logger(),
+            config=_make_config(),
+        )
+        assert result["status"] == "failed"
+        assert "no file changes" in result["outcome"]["error"]
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_planner_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    def test_planner_with_no_changes_is_ok(
+        self,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        """Planner never writes file changes — the guard must not fire on planner."""
+        mock_claude.return_value = _make_claude_result(
+            '{"tasks": [{"name": "do thing"}], "context_files": [], "summary": "ok"}'
+        )
+        result = execute(
+            _make_snapshot(crow_type="planner"),
+            logger=_make_logger(),
+            config=_make_config(),
+        )
+        assert result["status"] == "completed"
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_reviewer_context",
+        return_value=("diff", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    @patch("worker.executor._build_git_diff", return_value=("some diff", ["f.py"]))
+    def test_reviewer_with_no_changes_is_ok(
+        self,
+        mock_diff: MagicMock,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        """Reviewer never writes file changes — the guard must not fire on reviewer."""
+        mock_claude.return_value = _make_claude_result(
+            '{"approved": true, "blocking_issues": [], "summary": "looks good"}'
+        )
+        result = execute(
+            _make_snapshot(crow_type="reviewer"),
+            logger=_make_logger(),
+            config=_make_config(),
+        )
+        assert result["status"] == "completed"
+
+
+class TestGitDiffBase:
+    """_build_git_diff must compare against origin/main, not local main,
+    because the worker's local main can be days behind origin and would
+    produce phantom diffs of unrelated commits."""
+
+    def test_default_base_is_origin_main(self) -> None:
+        """Smoke: the default base_branch parameter must be 'origin/main'."""
+        from inspect import signature
+
+        from worker.executor import _build_git_diff
+
+        sig = signature(_build_git_diff)
+        assert sig.parameters["base_branch"].default == "origin/main"
