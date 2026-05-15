@@ -29,8 +29,8 @@ final class APIGoalService: GoalService {
                 id: m.id,
                 name: m.name,
                 status: Self.mapStatus(m.status),
-                tasksDone: m.tasks_done ?? 0,
-                tasksTotal: m.tasks_total ?? 0,
+                tasksDone: m.tasks_done?.value ?? 0,
+                tasksTotal: m.tasks_total?.value ?? 0,
                 aiMinutes: 0,
                 humanDays: "~\(Int(hours))h",
                 aiCost: 0,
@@ -102,9 +102,16 @@ private struct ExistingMVIRefDTO: Decodable {
     // found a matching execution snapshot for this MVI's wave_id. Absent
     // means "no wave has run yet for this MVI" — defaults to draft + 0
     // counts in the mapping above.
+    //
+    // tasks_done/total use FlexibleInt because the goals/context endpoint
+    // returns the raw DDB items (no Pydantic response model), so DynamoDB
+    // Numbers serialize as JSON strings via Decimal. The /milestones/{id}
+    // endpoint uses Pydantic and gets proper JSON numbers; this one does
+    // not. Switching the route to a Pydantic response model is the cleaner
+    // long-term fix.
     let status: String?
-    let tasks_done: Int?
-    let tasks_total: Int?
+    let tasks_done: FlexibleInt?
+    let tasks_total: FlexibleInt?
 }
 
 private struct GoalContextResp: Decodable {
