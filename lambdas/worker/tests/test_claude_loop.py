@@ -319,3 +319,145 @@ def test_loop_flags_truncated_when_tool_loop_final_turn_hits_max_tokens(
 
     assert result.truncated is True
     assert result.turns == 2
+
+
+@patch("worker.claude._get_client")
+def test_submit_result_terminator_captures_structured_output(
+    mock_client_fn: MagicMock,
+) -> None:
+    """When Claude calls submit_result, the loop terminates and captures its
+    input as ClaudeResult.structured_output — no JSON text parsing required."""
+    mock_client = MagicMock()
+    mock_client_fn.return_value = mock_client
+
+    submitted = {
+        "changes": [{"path": "x.py", "action": "create", "content": "x = 1\n"}],
+        "commit_message": "feat: x",
+        "summary": "added x",
+    }
+    mock_client.messages.create.side_effect = [
+        _response(
+            [_tool_use_block("toolu_1", "read_file", {"path": "x.py"})],
+            stop_reason="tool_use",
+        ),
+        _response(
+            [_tool_use_block("toolu_2", "submit_result", submitted)],
+            stop_reason="tool_use",
+        ),
+    ]
+
+    tools = FakeTools()
+    result = call_claude(
+        "sys",
+        "user",
+        tools=[
+            {"name": "read_file", "input_schema": {"type": "object"}},
+            {"name": "submit_result", "input_schema": {"type": "object"}},
+        ],
+        tool_executor=tools,
+    )
+
+    assert result.structured_output == submitted
+    # The terminator must not be executed via the tool_executor
+    assert "submit_result" not in [c[0] for c in tools.calls]
+    # The audit log records the terminator with a marker
+    assert any(
+        c.get("name") == "submit_result" and c.get("result_keys") == ["__terminator__"]
+        for c in result.tool_calls
+    )
+
+
+@patch("worker.claude._get_client")
+def test_input_too_large_raises_before_messages_create(
+    mock_client_fn: MagicMock,
+) -> None:
+    """If count_tokens reports the input exceeds the model's window minus
+    the cushion + max_tokens, raise InputTooLarge instead of calling the API."""
+    from worker.claude import InputTooLarge
+
+    mock_client = MagicMock()
+    mock_client_fn.return_value = mock_client
+    # Simulate a runaway prompt — 199,000 tokens against haiku's 200k window
+    mock_client.messages.count_tokens.return_value = MagicMock(input_tokens=199_000)
+
+    try:
+        call_claude(
+            "sys",
+            "user",
+            model="claude-haiku-4-5-20251001",
+            max_tokens=8_192,
+        )
+    except InputTooLarge as e:
+        assert e.input_tokens == 199_000
+        assert e.model == "claude-haiku-4-5-20251001"
+        # The API must never have been called
+        mock_client.messages.create.assert_not_called()
+        return
+    raise AssertionError("expected InputTooLarge")
+
+
+@patch("worker.claude._get_client")
+def test_count_tokens_failure_does_not_block_request(
+    mock_client_fn: MagicMock,
+) -> None:
+    """count_tokens is advisory — if it raises, we still send the request."""
+    mock_client = MagicMock()
+    mock_client_fn.return_value = mock_client
+    mock_client.messages.count_tokens.side_effect = RuntimeError("network blip")
+    mock_client.messages.create.return_value = _response(
+        [_text_block("hello")], stop_reason="end_turn"
+    )
+
+    result = call_claude("sys", "user", model="claude-haiku-4-5-20251001")
+
+    assert result.raw_output == "hello"
+    mock_client.messages.create.assert_called_once()
+
+
+@patch("worker.claude._get_client")
+def test_dynamic_max_tokens_caps_to_model_output_ceiling(
+    mock_client_fn: MagicMock,
+) -> None:
+    """When caller passes max_tokens above the model's published output cap,
+    the effective max_tokens shrinks to the model ceiling. Haiku 4.5 max
+    output is 64k, so a caller passing 128k must get clamped."""
+    mock_client = MagicMock()
+    mock_client_fn.return_value = mock_client
+    mock_client.messages.count_tokens.return_value = MagicMock(input_tokens=10_000)
+    mock_client.messages.create.return_value = _response(
+        [_text_block("ok")], stop_reason="end_turn"
+    )
+
+    call_claude(
+        "sys",
+        "user",
+        model="claude-haiku-4-5-20251001",
+        max_tokens=128_000,
+    )
+
+    sent_kwargs = mock_client.messages.create.call_args.kwargs
+    assert sent_kwargs["max_tokens"] == 64_000  # Haiku's max output ceiling
+
+
+@patch("worker.claude._get_client")
+def test_dynamic_max_tokens_passes_through_when_under_caps(
+    mock_client_fn: MagicMock,
+) -> None:
+    """When caller's max_tokens is below both the model ceiling AND remaining
+    headroom, it passes through unchanged."""
+    mock_client = MagicMock()
+    mock_client_fn.return_value = mock_client
+    mock_client.messages.count_tokens.return_value = MagicMock(input_tokens=180_000)
+    mock_client.messages.create.return_value = _response(
+        [_text_block("ok")], stop_reason="end_turn"
+    )
+
+    call_claude(
+        "sys",
+        "user",
+        model="claude-haiku-4-5-20251001",
+        max_tokens=8_192,  # well below 16k headroom and 64k model cap
+    )
+
+    sent_kwargs = mock_client.messages.create.call_args.kwargs
+    assert sent_kwargs["max_tokens"] == 8_192

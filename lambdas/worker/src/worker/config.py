@@ -37,6 +37,49 @@ MAX_CROW_RETRIES: int = int(os.environ.get("MAX_CROW_RETRIES", "3"))
 CROW_TIMEOUT_SECONDS: int = int(os.environ.get("CROW_TIMEOUT_SECONDS", "600"))
 
 
+# Per-model context windows. Used by call_claude to pre-check input size
+# before submission and to derive a safe max_tokens from the remaining
+# headroom. Keep this in sync with the Anthropic models page; missing
+# entries fall back to MODEL_CONTEXT_DEFAULT.
+MODEL_CONTEXT_DEFAULT: int = 200_000
+MODEL_CONTEXT_WINDOWS: dict[str, int] = {
+    "claude-haiku-4-5-20251001": 200_000,
+    "claude-haiku-4-5": 200_000,
+    "claude-sonnet-4-20250514": 200_000,
+    "claude-sonnet-4-5-20250929": 200_000,
+    "claude-sonnet-4-6": 1_000_000,  # default response window; 1M beta requires header
+    "claude-opus-4-6": 1_000_000,
+    "claude-opus-4-7": 1_000_000,
+}
+
+# Per-model max output tokens (the API caps how much can be generated in a
+# single response). Pulled from the published model spec — see the Anthropic
+# models reference. Used as the ceiling when deriving dynamic max_tokens.
+MODEL_MAX_OUTPUT_TOKENS: dict[str, int] = {
+    "claude-haiku-4-5-20251001": 64_000,
+    "claude-haiku-4-5": 64_000,
+    "claude-sonnet-4-20250514": 64_000,
+    "claude-sonnet-4-5-20250929": 64_000,
+    "claude-sonnet-4-6": 64_000,
+    "claude-opus-4-6": 128_000,
+    "claude-opus-4-7": 128_000,
+}
+MODEL_MAX_OUTPUT_DEFAULT: int = 8_192
+
+# Safety cushion in the context budget calc — we don't want to pack the
+# input right up to the window because tokenization can differ slightly
+# from count_tokens estimates and we want a small buffer for retries.
+CONTEXT_SAFETY_CUSHION_TOKENS: int = 4_096
+
+
+def context_window(model: str) -> int:
+    return MODEL_CONTEXT_WINDOWS.get(model, MODEL_CONTEXT_DEFAULT)
+
+
+def max_output_tokens(model: str) -> int:
+    return MODEL_MAX_OUTPUT_TOKENS.get(model, MODEL_MAX_OUTPUT_DEFAULT)
+
+
 @dataclass(frozen=True)
 class ExecutionConfig:
     """Explicit config for executor — no module-level env reads."""

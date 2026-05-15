@@ -263,6 +263,65 @@ def _glob_match(rel_path: str, pattern: str) -> bool:
     return re.match(full_regex, normalized) is not None
 
 
+# Terminator tool schema for implementer/fixer crows. When Claude calls this,
+# the agentic loop captures its (server-validated) input as ClaudeResult.
+# structured_output and stops. The API validates the shape against this
+# input_schema before the tool_use block ever reaches us, which eliminates
+# the "Haiku writes prose instead of JSON" parse-fail-silently bug.
+IMPLEMENTER_SUBMIT_RESULT_SCHEMA: dict[str, Any] = {
+    "name": "submit_result",
+    "description": (
+        "Call this tool EXACTLY ONCE when you are done exploring and have "
+        "decided on the changes to make. This is how you deliver the final "
+        "result — do not write JSON in prose. The factory will apply your "
+        "`changes` list as file create/modify/delete operations, commit "
+        "with your `commit_message`, and use your `summary` as the PR title. "
+        "If you genuinely cannot make any changes, pass an empty `changes` "
+        "array and explain in `summary` — the factory will fail the crow "
+        "with a clear reason rather than silently approving nothing."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "changes": {
+                "type": "array",
+                "description": "File operations to apply. Empty array means no changes.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "path": {
+                            "type": "string",
+                            "description": "Path relative to repo root.",
+                        },
+                        "action": {
+                            "type": "string",
+                            "enum": ["create", "modify", "delete"],
+                        },
+                        "content": {
+                            "type": "string",
+                            "description": (
+                                "Full file content for create/modify. "
+                                "Omit or empty for delete."
+                            ),
+                        },
+                    },
+                    "required": ["path", "action"],
+                },
+            },
+            "commit_message": {
+                "type": "string",
+                "description": "Conventional-commit message for the changes.",
+            },
+            "summary": {
+                "type": "string",
+                "description": "Short summary of what was done and why.",
+            },
+        },
+        "required": ["changes", "commit_message", "summary"],
+    },
+}
+
+
 WORKTREE_TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
         "name": "read_file",

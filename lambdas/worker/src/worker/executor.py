@@ -37,7 +37,11 @@ from worker.logging import StructuredLogger
 from worker.models import Cost
 from worker.parsing import parse_json_output
 from worker.prompts import CROW_IDENTITIES
-from worker.tools import WORKTREE_TOOL_SCHEMAS, WorktreeTools
+from worker.tools import (
+    IMPLEMENTER_SUBMIT_RESULT_SCHEMA,
+    WORKTREE_TOOL_SCHEMAS,
+    WorktreeTools,
+)
 
 
 _SECRET_RE = re.compile(r"\{\{secret:([a-zA-Z0-9_\-]+)\}\}")
@@ -270,21 +274,22 @@ def execute(
         user_prompt = f"## Instructions\n{resolved_instructions}\n\n## Codebase\n{context}"
 
         # Implementer crows run the agentic loop so they can actively read files
-        # the planner referenced (including spec paths in the directive). Other
-        # crow types stay one-shot.
+        # the planner referenced (including spec paths in the directive). They
+        # also get the `submit_result` terminator tool so the final output is
+        # delivered as server-validated JSON (no parse-fail-silently). Other
+        # crow types stay one-shot for now.
         worktree_tools: WorktreeTools | None = None
         tool_schemas: list[dict[str, Any]] | None = None
         if crow_type == CrowType.IMPLEMENTER:
             worktree_tools = WorktreeTools(worktree_dir=worktree_dir, logger=logger)
-            tool_schemas = WORKTREE_TOOL_SCHEMAS
+            tool_schemas = [*WORKTREE_TOOL_SCHEMAS, IMPLEMENTER_SUBMIT_RESULT_SCHEMA]
 
         # max_tokens is the per-response output ceiling. Planner/reviewer emit
         # short JSON (tasks list, review verdict) and 8K is plenty. Implementer
-        # and fixer must serialize entire file contents into a JSON `content`
-        # string for every changed file, which can easily blow past 8K and
-        # truncate mid-string — turning the model's real implementation into
-        # an unparseable JSON fragment. Haiku 4.5 supports up to 64K output;
-        # 32K is the cost-bounded sweet spot for typical multi-file MVIs.
+        # and fixer serialize entire file contents into JSON, so they need a
+        # higher ceiling. call_claude further caps this to the model's actual
+        # max_output_tokens and remaining context headroom, so the caller's
+        # intent is the upper bound, not a hard requirement.
         max_tokens = 32_768 if crow_type in (CrowType.IMPLEMENTER, CrowType.FIXER) else 8192
 
         # Call Claude
@@ -314,10 +319,18 @@ def execute(
                 count=len(worktree_tools.files_read),
             )
 
-        # Parse output
-        parsed = parse_json_output(claude_result.raw_output)
-        if not isinstance(parsed, dict):
-            parsed = {}
+        # Parse output. Prefer `structured_output` (set when Claude called the
+        # submit_result terminator tool — server-validated JSON, guaranteed to
+        # match the schema) over text-parsing the raw_output. Falls back to
+        # text parsing for crow types that don't use the terminator tool.
+        if claude_result.structured_output is not None:
+            parsed = claude_result.structured_output
+            parse_source = "structured_output"
+        else:
+            parsed = parse_json_output(claude_result.raw_output)
+            if not isinstance(parsed, dict):
+                parsed = {}
+            parse_source = "raw_text"
 
         # Always log the raw output (truncated) so future diagnostics can see what
         # Claude actually wrote. Without this we have no way to investigate
@@ -327,6 +340,7 @@ def execute(
             "raw_output_preview",
             crow_id=crow_id,
             raw_chars=len(claude_result.raw_output),
+            parse_source=parse_source,
             parsed_keys=sorted(parsed.keys()),
             preview=raw_preview,
         )

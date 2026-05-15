@@ -747,3 +747,94 @@ class TestTruncationGuard:
         assert result["status"] == "failed"
         assert "truncated" in result["outcome"]["error"]
         assert "max_tokens" in result["outcome"]["error"]
+
+
+class TestStructuredOutputPath:
+    """When call_claude returns structured_output (Claude called submit_result),
+    the executor must prefer it over parse_json_output(raw_output)."""
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_implementer_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    @patch("worker.executor.apply_changes", return_value=["x.py"])
+    @patch("worker.executor.commit_and_push", return_value="abc123")
+    @patch(
+        "worker.executor.create_pr",
+        return_value={"number": 1, "html_url": "https://example.invalid/1"},
+    )
+    def test_implementer_prefers_structured_output_over_raw(
+        self,
+        mock_pr: MagicMock,
+        mock_push: MagicMock,
+        mock_apply: MagicMock,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        # raw_output is junk prose — would parse to {}. structured_output
+        # is the real payload (as if Claude called submit_result).
+        result_obj = ClaudeResult(
+            raw_output="Let me think about this...",
+            tokens_in=10,
+            tokens_out=5,
+            duration_ms=100,
+            model="test",
+            structured_output={
+                "changes": [{"path": "x.py", "action": "create", "content": "x = 1\n"}],
+                "commit_message": "feat: x",
+                "summary": "added x",
+            },
+        )
+        mock_claude.return_value = result_obj
+
+        result = execute(
+            _make_snapshot(crow_type="implementer"),
+            logger=_make_logger(),
+            config=_make_config(),
+        )
+
+        assert result["status"] == "completed"
+        # apply_changes received the structured payload's changes, NOT the
+        # raw text (which would have parsed to nothing).
+        mock_apply.assert_called_once()
+        applied = mock_apply.call_args[0][1]
+        assert applied[0]["path"] == "x.py"
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_implementer_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    def test_implementer_includes_submit_result_in_tools(
+        self,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        mock_claude.return_value = _make_claude_result(
+            '{"changes": [], "summary": "noop"}'
+        )
+        # Will fail at empty-changes guard, but we only care about the tools list
+        execute(
+            _make_snapshot(crow_type="implementer"),
+            logger=_make_logger(),
+            config=_make_config(),
+        )
+
+        tools = mock_claude.call_args.kwargs["tools"]
+        tool_names = [t["name"] for t in tools]
+        assert "submit_result" in tool_names
+        assert "read_file" in tool_names
+        assert "glob_files" in tool_names

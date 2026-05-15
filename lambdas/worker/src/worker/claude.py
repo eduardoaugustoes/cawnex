@@ -1,21 +1,33 @@
 """Anthropic API client wrapper.
 
-Supports two modes:
+Two modes:
 
-* **One-shot** — pass `tools=None` (default). Calls `messages.create` once
-  and returns the assembled text. Preserves the original behavior used by
-  planner / reviewer / fixer crows.
+* **One-shot** (`tools=None`) — single `messages.create` + assembled text.
+  Preserved for planner / reviewer / fixer crows whose JSON output fits in
+  one response without needing tools.
 
-* **Agentic loop** — pass `tools=[...]` (Claude tool schemas) and a
-  `tool_executor` with an `execute(name, input) -> dict` method. Loops
-  until Claude returns `stop_reason == "end_turn"` (or hits `max_iterations`),
-  feeding tool results back as user messages between turns.
+* **Agentic loop** (`tools=[...]` + `tool_executor`) — loops `messages.create`,
+  executes worktree tools (read_file/glob_files/etc), and re-prompts until
+  either (a) Claude stops requesting tools OR (b) Claude calls the special
+  `submit_result` terminator tool. The terminator tool's `input` is captured
+  verbatim as `ClaudeResult.structured_output` — guaranteed valid JSON
+  matching the schema, parsed server-side by the API. This kills the entire
+  "Haiku writes prose instead of JSON" class of bug because the API rejects
+  malformed structured tool input before it ever reaches us.
 
-The agentic loop aggregates `input_tokens`, `output_tokens`, and cache token
-counts across every API call in the loop. Only the FINAL assistant turn's
-text is treated as the parseable output — intermediate text blocks (where
-Claude is narrating tool use) are joined into `raw_output` too, but the
-JSON contract Claude is asked to produce is expected on the last turn.
+Defenses against token-budget failures, layered:
+
+* **`count_tokens` precheck** — before every API call, ask the API how many
+  tokens the request will cost. If it exceeds the model's context window
+  minus a safety cushion, raise InputTooLarge with diagnostic info instead
+  of paying for a request the API would reject anyway.
+* **Dynamic max_tokens** — derive the per-call output ceiling from
+  `model_context_window - count_tokens_input - safety_cushion`. Even if the
+  caller passes a generous ceiling, we cap to what the API will actually
+  honor.
+* **Truncation flag** — `stop_reason == "max_tokens"` sets
+  `ClaudeResult.truncated`, so callers can distinguish "ran out of room"
+  from "produced empty output".
 """
 
 from __future__ import annotations
@@ -27,7 +39,44 @@ from typing import Any, Protocol
 
 import anthropic
 
-from worker.config import ANTHROPIC_MODEL
+from worker.config import (
+    ANTHROPIC_MODEL,
+    CONTEXT_SAFETY_CUSHION_TOKENS,
+    context_window,
+    max_output_tokens,
+)
+
+# Reserved tool name that terminates the agentic loop. Claude calling it is
+# equivalent to "I'm done — here's the structured output." The loop captures
+# `tool_use.input` (which the API has already validated against the schema)
+# and returns it as ClaudeResult.structured_output.
+SUBMIT_RESULT_TOOL_NAME = "submit_result"
+
+
+class InputTooLarge(RuntimeError):
+    """Raised when the proposed request exceeds the model's context budget.
+
+    Carries enough diagnostic info that the executor can fail the crow with a
+    precise reason rather than waiting for the API to 4xx.
+    """
+
+    def __init__(
+        self,
+        input_tokens: int,
+        budget: int,
+        model: str,
+        turns_so_far: int,
+        message_count: int,
+    ) -> None:
+        self.input_tokens = input_tokens
+        self.budget = budget
+        self.model = model
+        self.turns_so_far = turns_so_far
+        self.message_count = message_count
+        super().__init__(
+            f"input tokens={input_tokens} exceeds budget {budget} "
+            f"(model={model}, turns={turns_so_far}, messages={message_count})"
+        )
 
 
 @dataclass
@@ -41,10 +90,12 @@ class ClaudeResult:
     cache_read: int = 0
     turns: int = 1
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
-    # True if the FINAL turn's stop_reason was "max_tokens" — i.e. Claude was
-    # cut off mid-output. The executor uses this to surface a precise failure
-    # rather than reporting "no changes" when changes existed but got truncated.
     truncated: bool = False
+    # Populated when Claude terminates the loop by calling submit_result.
+    # The dict is validated server-side against the tool's input_schema,
+    # so it's guaranteed to be a parseable JSON object with the required
+    # keys. Preferred over raw_output for structured-output crows.
+    structured_output: dict[str, Any] | None = None
 
 
 class ToolExecutor(Protocol):
@@ -80,6 +131,24 @@ def _get_client() -> anthropic.Anthropic:
     )
 
 
+def _compute_safe_max_tokens(
+    model: str, input_token_count: int, caller_max: int
+) -> int:
+    """Cap caller_max to what the API will honor for the remaining headroom.
+
+    Returns the smaller of:
+      * caller_max (the executor's intent)
+      * the model's published max output tokens
+      * remaining context headroom (window - input - safety cushion)
+    """
+    headroom = context_window(model) - input_token_count - CONTEXT_SAFETY_CUSHION_TOKENS
+    if headroom < 1:
+        # Caller will see this via the InputTooLarge raise — keep at least 1
+        # so this helper never produces a non-positive max_tokens.
+        return 1
+    return max(1, min(caller_max, max_output_tokens(model), headroom))
+
+
 def call_claude(
     system_prompt: str,
     user_prompt: str,
@@ -91,10 +160,13 @@ def call_claude(
 ) -> ClaudeResult:
     """Call Claude. One-shot when tools is None, agentic loop when tools is provided.
 
-    The agentic loop appends every assistant turn (including tool_use blocks)
-    to messages, executes tools via tool_executor.execute, appends a tool_result
-    user turn, and re-calls until Claude stops requesting tools or we hit
-    max_iterations.
+    The loop terminates when one of:
+      1. Claude calls the `submit_result` terminator tool (structured output).
+      2. stop_reason != "tool_use" (Claude has no more tools to call).
+      3. max_iterations reached.
+
+    Each iteration counts input tokens before sending; if the input would
+    exceed the model's window, InputTooLarge is raised with diagnostics.
     """
     import logging
 
@@ -126,9 +198,54 @@ def call_claude(
     text_chunks: list[str] = []
 
     for iteration in range(max_iterations):
+        # Layer 1: count input tokens before sending so we never submit a
+        # request the API will reject for context overflow.
+        try:
+            count_kwargs: dict[str, Any] = {
+                "model": model,
+                "system": system_prompt,
+                "messages": messages,
+            }
+            if tools:
+                count_kwargs["tools"] = tools
+            token_count = client.messages.count_tokens(**count_kwargs)
+            input_tokens = int(token_count.input_tokens)
+        except Exception as e:
+            # count_tokens is advisory — if it fails we still try the request
+            # rather than block the crow on a flaky precheck.
+            log.warning("count_tokens failed (proceeding anyway): %s", e)
+            input_tokens = 0
+
+        budget = context_window(model) - CONTEXT_SAFETY_CUSHION_TOKENS - max_tokens
+        if input_tokens > 0 and input_tokens > budget:
+            log.error(
+                "InputTooLarge: input=%d budget=%d (window=%d cushion=%d max_tokens=%d)",
+                input_tokens,
+                budget,
+                context_window(model),
+                CONTEXT_SAFETY_CUSHION_TOKENS,
+                max_tokens,
+            )
+            raise InputTooLarge(
+                input_tokens=input_tokens,
+                budget=budget,
+                model=model,
+                turns_so_far=aggregate.turns,
+                message_count=len(messages),
+            )
+
+        # Layer 2: derive a max_tokens that fits the remaining headroom.
+        # Even if the caller passed 64k but the input is huge, we shrink to
+        # what the window can actually accept.
+        effective_max_tokens = (
+            _compute_safe_max_tokens(model, input_tokens, max_tokens)
+            if input_tokens > 0
+            else max_tokens
+        )
+
         kwargs: dict[str, Any] = {
             "model": model,
-            "max_tokens": max_tokens,
+            "max_tokens": effective_max_tokens,
             "system": system_prompt,
             "messages": messages,
         }
@@ -140,7 +257,13 @@ def call_claude(
         except Exception as e:
             log.error("Claude API error: %s", e)
             log.error("system_prompt[:200]: %s", system_prompt[:200])
-            log.error("iteration: %d, turns so far: %d", iteration, aggregate.turns)
+            log.error(
+                "iteration: %d, turns so far: %d, input_tokens=%d, max_tokens=%d",
+                iteration,
+                aggregate.turns,
+                input_tokens,
+                effective_max_tokens,
+            )
             raise
 
         aggregate.turns += 1
@@ -151,17 +274,37 @@ def call_claude(
         aggregate.cache_creation += cache_create
         aggregate.cache_read += cache_read
 
-        # Collect text from this turn
+        # Collect text + tool_use blocks from this turn.
         turn_text_parts: list[str] = []
         tool_use_blocks: list[Any] = []
+        submit_block: Any = None
         for block in response.content:
             if block.type == "text":
                 turn_text_parts.append(block.text)
             elif block.type == "tool_use":
-                tool_use_blocks.append(block)
+                if block.name == SUBMIT_RESULT_TOOL_NAME:
+                    submit_block = block
+                else:
+                    tool_use_blocks.append(block)
         turn_text = "\n".join(turn_text_parts)
         if turn_text:
             text_chunks.append(turn_text)
+
+        # Terminator: Claude called submit_result. Capture its (server-validated)
+        # input as the structured output and stop.
+        if submit_block is not None:
+            aggregate.structured_output = dict(submit_block.input)
+            aggregate.raw_output = "\n".join(text_chunks)
+            aggregate.duration_ms = int((time.monotonic() - start) * 1000)
+            aggregate.truncated = response.stop_reason == "max_tokens"
+            aggregate.tool_calls.append(
+                {
+                    "name": submit_block.name,
+                    "input_keys": sorted(dict(submit_block.input).keys()),
+                    "result_keys": ["__terminator__"],
+                }
+            )
+            return aggregate
 
         # No tool requested OR no tools available — done
         if not tools or response.stop_reason != "tool_use" or not tool_use_blocks:
