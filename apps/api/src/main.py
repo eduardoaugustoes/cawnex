@@ -21,7 +21,9 @@ from src.routes import (
     hub,
     human_tasks,
     milestones,
+    murders,
     mvi,
+    notifications,
     projects,
     prs,
     tasks,
@@ -58,4 +60,6 @@ app.include_router(prs.router)
 app.include_router(tasks.router)
 app.include_router(vault.router)
 app.include_router(billing.router)
+app.include_router(murders.router)
+app.include_router(notifications.router)
 app.include_router(council.router)

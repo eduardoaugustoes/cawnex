@@ -80,7 +80,10 @@ struct ServiceFactory {
     }
 
     func makeMurdersService() -> any MurdersService {
-        InMemoryMurdersService(store: store)
+        if let apiClient {
+            return APIMurdersService(client: apiClient)
+        }
+        return InMemoryMurdersService(store: store)
     }
 
     func makeSkillsService() -> any SkillsService {
@@ -88,7 +91,10 @@ struct ServiceFactory {
     }
 
     func makeNotificationService() -> any NotificationService {
-        InMemoryNotificationService()
+        if let apiClient {
+            return APINotificationService(client: apiClient)
+        }
+        return InMemoryNotificationService()
     }
 
     func makeHumanTaskService() -> any HumanTaskService {
