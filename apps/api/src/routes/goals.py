@@ -100,9 +100,15 @@ async def get_goal_context(
         else:
             docs[doc_type] = ""
 
-    # Load existing MVIs for this goal
-    existing_mvis = db.get_project_item(
+    # Load existing MVIs for this goal — these are *plan* records (id, name,
+    # description, estimated_hours) written at goal-planning time. They go
+    # stale relative to execution. So we enrich each with the live state
+    # from the execution snapshot at S#{wave_id}#m{mvi_id} when one exists.
+    existing_mvis_item = db.get_project_item(
         project_id=project_id, sk=f"BACKLOG#goal#{goal_id}#mvis"
+    )
+    enriched_mvis = _enrich_with_execution_state(
+        db, project_id, existing_mvis_item.get("mvis", []) if existing_mvis_item else []
     )
 
     return {
@@ -114,8 +120,38 @@ async def get_goal_context(
         },
         "sibling_goals": sibling_goals,
         "documents": docs,
-        "existing_mvis": existing_mvis.get("mvis", []) if existing_mvis else [],
+        "existing_mvis": enriched_mvis,
     }
+
+
+def _enrich_with_execution_state(
+    db: TenantDB, project_id: str, plan_mvis: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Overlay live status/tasks_done/tasks_total from the execution snapshot.
+
+    The plan record at BACKLOG#goal#{gid}#mvis is frozen at planning time.
+    The execution snapshot at S#{wave_id}#m{mvi_id} carries the live truth
+    (status, tasks_done, tasks_total). When a plan record has wave_id set,
+    we look up the snapshot and overlay those fields; if no wave has run
+    yet (wave_id missing/empty), the plan record passes through unchanged.
+    """
+    out: list[dict[str, Any]] = []
+    for plan in plan_mvis:
+        merged = dict(plan)
+        wave_id = plan.get("wave_id") or ""
+        mvi_id = plan.get("id") or ""
+        if wave_id and mvi_id:
+            snapshot = db.get_project_item(
+                project_id=project_id,
+                sk=f"S#{wave_id}#m{mvi_id}",
+            )
+            if snapshot:
+                # Snapshot wins for execution-state fields.
+                for key in ("status", "tasks_done", "tasks_total", "can_ship"):
+                    if key in snapshot:
+                        merged[key] = snapshot[key]
+        out.append(merged)
+    return out
 
 
 @router.post("/{goal_id}/mvis", response_model=MVIResponse, status_code=201)

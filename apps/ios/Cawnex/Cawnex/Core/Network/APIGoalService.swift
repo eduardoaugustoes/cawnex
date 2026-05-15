@@ -20,12 +20,17 @@ final class APIGoalService: GoalService {
 
         let mvis = context.existing_mvis.map { m in
             let hours = m.estimated_hours?.value ?? 0
+            // Backend enriches plan records with execution snapshot state
+            // when an MVI has actually run (status, tasks_done, tasks_total
+            // overlaid from S#{wave_id}#m{mvi_id}). When no wave has run
+            // yet, these fields are absent and we fall back to "draft" /
+            // 0 counts — the correct representation of an unstarted MVI.
             return MVI(
                 id: m.id,
                 name: m.name,
-                status: .draft,
-                tasksDone: 0,
-                tasksTotal: 0,
+                status: Self.mapStatus(m.status),
+                tasksDone: m.tasks_done ?? 0,
+                tasksTotal: m.tasks_total ?? 0,
                 aiMinutes: 0,
                 humanDays: "~\(Int(hours))h",
                 aiCost: 0,
@@ -59,6 +64,22 @@ final class APIGoalService: GoalService {
 
 // MARK: - DTOs
 
+extension APIGoalService {
+    /// Map backend MVI status strings onto the iOS enum. Unknown values
+    /// (or absent — when no wave has run) fall back to .draft.
+    fileprivate static func mapStatus(_ raw: String?) -> MVIStatus {
+        switch (raw ?? "").lowercased() {
+        case "draft", "planned", "": return .draft
+        case "refining": return .refining
+        case "ready", "ready_to_ship": return .ready
+        case "executing", "running", "planning", "queued": return .executing
+        case "shipped", "completed": return .shipped
+        case "rejected", "failed", "cancelled": return .rejected
+        default: return .draft
+        }
+    }
+}
+
 private struct GoalRefDTO: Decodable {
     let id: String
     let name: String
@@ -77,6 +98,13 @@ private struct ExistingMVIRefDTO: Decodable {
     let description: String
     let acceptance_criteria: String?
     let estimated_hours: FlexibleDouble?
+    // Execution-state fields: present only when the backend's enrichment
+    // found a matching execution snapshot for this MVI's wave_id. Absent
+    // means "no wave has run yet for this MVI" — defaults to draft + 0
+    // counts in the mapping above.
+    let status: String?
+    let tasks_done: Int?
+    let tasks_total: Int?
 }
 
 private struct GoalContextResp: Decodable {
