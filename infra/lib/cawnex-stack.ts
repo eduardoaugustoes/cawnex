@@ -600,42 +600,6 @@ export class CawnexStack extends cdk.Stack {
     });
 
     // ─────────────────────────────────────────────
-    // Lambda — SSE (Server-Sent Events streaming)
-    // ─────────────────────────────────────────────
-    const sseFn = new lambda.Function(this, "SSEFunction", {
-      functionName: `cawnex-sse-${stage}`,
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: "handler.handler",
-      code: lambda.Code.fromAsset("../lambdas/sse"),
-      memorySize: 256,
-      timeout: cdk.Duration.minutes(15),
-      architecture: lambda.Architecture.ARM_64,
-      environment: {
-        EVENTS_TABLE_NAME: eventsTable.tableName,
-        TABLE_NAME: tableName,
-        USER_POOL_ID: userPoolId,
-        COGNITO_DOMAIN: cognitoDomain,
-        AWS_REGION_NAME: this.region,
-        STAGE: stage,
-      },
-      logRetention: logs.RetentionDays.ONE_MONTH,
-    });
-
-    eventsTable.grantReadData(sseFn);
-    table.grantReadData(sseFn);
-
-    const sseUrl = sseFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE, // JWT validated in code
-      invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
-      cors: {
-        allowedOrigins: ["*"],
-        allowedMethods: [lambda.HttpMethod.GET],
-        allowedHeaders: ["Authorization", "Content-Type"],
-        maxAge: cdk.Duration.hours(1),
-      },
-    });
-
-    // ─────────────────────────────────────────────
     // Lambda — Worker Scaler (auto scale-down)
     // ─────────────────────────────────────────────
     const scalerFn = new lambda.Function(this, "WorkerScalerFunction", {
@@ -725,11 +689,6 @@ export class CawnexStack extends cdk.Stack {
     new cdk.CfnOutput(this, "EventsTableName", {
       value: eventsTable.tableName,
       description: "DynamoDB events table (separate from main, TTL enabled)",
-    });
-
-    new cdk.CfnOutput(this, "SSEUrl", {
-      value: sseUrl.url,
-      description: "Lambda Function URL for SSE event streaming",
     });
 
     new cdk.CfnOutput(this, "RepoFileSystemId", {
