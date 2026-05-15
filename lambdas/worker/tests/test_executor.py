@@ -648,3 +648,102 @@ class TestGitDiffBase:
 
         sig = signature(_build_git_diff)
         assert sig.parameters["base_branch"].default == "origin/main"
+
+
+class TestMaxTokensPerCrowType:
+    """Implementer/fixer must get a higher max_tokens budget than planner/reviewer
+    because they serialize entire file contents into JSON `content` strings,
+    while planner/reviewer only emit short task lists or verdicts."""
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_implementer_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    @patch("worker.executor.apply_changes", return_value=[])
+    @patch("worker.executor.commit_and_push", return_value="abc")
+    @patch("worker.executor.create_pr", return_value={"number": 1, "html_url": "x"})
+    def test_implementer_gets_high_max_tokens(
+        self,
+        mock_pr: MagicMock,
+        mock_push: MagicMock,
+        mock_apply: MagicMock,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        mock_claude.return_value = _make_claude_result(
+            '{"changes": [{"path": "x.py", "action": "create", "content": "x"}], "commit_message": "feat", "summary": "ok"}'
+        )
+        execute(_make_snapshot(crow_type="implementer"), logger=_make_logger(), config=_make_config())
+        kwargs = mock_claude.call_args.kwargs
+        assert kwargs["max_tokens"] >= 32_000, (
+            f"implementer max_tokens={kwargs['max_tokens']} is too low — "
+            "file-content serialization truncates at 8K"
+        )
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_planner_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    def test_planner_keeps_default_max_tokens(
+        self,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        mock_claude.return_value = _make_claude_result('{"tasks": [{"name": "x"}], "summary": "ok"}')
+        execute(_make_snapshot(crow_type="planner"), logger=_make_logger(), config=_make_config())
+        kwargs = mock_claude.call_args.kwargs
+        # Planner doesn't need the high cap — keep cost low
+        assert kwargs["max_tokens"] <= 16_384
+
+
+class TestTruncationGuard:
+    """When the model hits max_tokens mid-JSON, the guard error must say
+    "truncated" so the operator knows to raise the cap, not "no changes"."""
+
+    @patch("worker.executor.cleanup_worktree")
+    @patch("worker.executor.create_worktree", return_value="/wt")
+    @patch("worker.executor.ensure_repo", return_value="/repo")
+    @patch("worker.executor.call_claude")
+    @patch(
+        "worker.executor.gather_implementer_context",
+        return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
+    )
+    def test_truncated_implementer_fails_with_specific_reason(
+        self,
+        mock_context: MagicMock,
+        mock_claude: MagicMock,
+        mock_ensure: MagicMock,
+        mock_wt: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        truncated_result = ClaudeResult(
+            raw_output='{"changes": [{"path": "a.py", "action": "create", "content": "x = 1\\n',
+            tokens_in=100,
+            tokens_out=32_768,
+            duration_ms=1000,
+            model="test",
+            truncated=True,
+        )
+        mock_claude.return_value = truncated_result
+        result = execute(
+            _make_snapshot(crow_type="implementer"),
+            logger=_make_logger(),
+            config=_make_config(),
+        )
+        assert result["status"] == "failed"
+        assert "truncated" in result["outcome"]["error"]
+        assert "max_tokens" in result["outcome"]["error"]

@@ -278,10 +278,20 @@ def execute(
             worktree_tools = WorktreeTools(worktree_dir=worktree_dir, logger=logger)
             tool_schemas = WORKTREE_TOOL_SCHEMAS
 
+        # max_tokens is the per-response output ceiling. Planner/reviewer emit
+        # short JSON (tasks list, review verdict) and 8K is plenty. Implementer
+        # and fixer must serialize entire file contents into a JSON `content`
+        # string for every changed file, which can easily blow past 8K and
+        # truncate mid-string — turning the model's real implementation into
+        # an unparseable JSON fragment. Haiku 4.5 supports up to 64K output;
+        # 32K is the cost-bounded sweet spot for typical multi-file MVIs.
+        max_tokens = 32_768 if crow_type in (CrowType.IMPLEMENTER, CrowType.FIXER) else 8192
+
         # Call Claude
         claude_result = call_claude(
             system_prompt,
             user_prompt,
+            max_tokens=max_tokens,
             tools=tool_schemas,
             tool_executor=worktree_tools,
         )
@@ -336,27 +346,39 @@ def execute(
         if crow_type in (CrowType.IMPLEMENTER, CrowType.FIXER):
             changes_list = parsed.get("changes")
             if not isinstance(changes_list, list) or len(changes_list) == 0:
+                # Distinguish "ran out of tokens mid-JSON" (max_tokens stop_reason)
+                # from "model wrote prose instead of JSON" — the operator needs
+                # to know whether to raise the cap or tighten the prompt.
+                if claude_result.truncated:
+                    reason = (
+                        f"{crow_type.value} output truncated at max_tokens "
+                        f"({claude_result.tokens_out} tokens generated) — raise "
+                        f"max_tokens or split the MVI into smaller tasks"
+                    )
+                    failure_event_reason = "truncated"
+                else:
+                    reason = (
+                        f"{crow_type.value} produced no file changes — output had "
+                        f"keys {sorted(parsed.keys())} but no `changes` array"
+                    )
+                    failure_event_reason = "empty_changes"
                 logger.event(
                     "crow_empty_changes",
                     crow_id=crow_id,
                     crow_type=crow_type.value,
                     parsed_keys=sorted(parsed.keys()),
+                    truncated=claude_result.truncated,
+                    tokens_out=claude_result.tokens_out,
                 )
                 now_fail = datetime.now(timezone.utc).isoformat()
-                fail_outcome = _build_failed(
-                    crow_type,
-                    (
-                        f"{crow_type.value} produced no file changes — output had "
-                        f"keys {sorted(parsed.keys())} but no `changes` array"
-                    ),
-                )
+                fail_outcome = _build_failed(crow_type, reason)
                 fail_result: dict[str, Any] = {
                     **fail_outcome,
                     "cost": cost.to_dict(),
                     "completed_at": now_fail,
                 }
                 validate_crow_completion(fail_result)
-                logger.event("crow_failed", crow_id=crow_id, reason="empty_changes")
+                logger.event("crow_failed", crow_id=crow_id, reason=failure_event_reason)
                 return fail_result
 
         # Apply changes for implementer/fixer

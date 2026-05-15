@@ -41,6 +41,10 @@ class ClaudeResult:
     cache_read: int = 0
     turns: int = 1
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
+    # True if the FINAL turn's stop_reason was "max_tokens" — i.e. Claude was
+    # cut off mid-output. The executor uses this to surface a precise failure
+    # rather than reporting "no changes" when changes existed but got truncated.
+    truncated: bool = False
 
 
 class ToolExecutor(Protocol):
@@ -163,6 +167,7 @@ def call_claude(
         if not tools or response.stop_reason != "tool_use" or not tool_use_blocks:
             aggregate.raw_output = "\n".join(text_chunks)
             aggregate.duration_ms = int((time.monotonic() - start) * 1000)
+            aggregate.truncated = response.stop_reason == "max_tokens"
             return aggregate
 
         # Append assistant turn verbatim (including tool_use blocks) so the

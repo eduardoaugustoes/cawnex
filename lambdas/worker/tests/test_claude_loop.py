@@ -272,3 +272,50 @@ def test_loop_continues_when_only_text_and_no_tool_use(
 
     assert result.turns == 1
     assert "no tools needed" in result.raw_output
+    assert result.truncated is False
+
+
+@patch("worker.claude._get_client")
+def test_loop_flags_truncated_when_final_turn_hits_max_tokens(
+    mock_client_fn: MagicMock,
+) -> None:
+    """stop_reason=='max_tokens' on the final turn must set ClaudeResult.truncated."""
+    mock_client = MagicMock()
+    mock_client_fn.return_value = mock_client
+    mock_client.messages.create.return_value = _response(
+        [_text_block('{"changes": [{"path": "a.py", "action": "create", "content": "x = 1')],
+        stop_reason="max_tokens",
+    )
+
+    result = call_claude("sys", "user", model="x", max_tokens=10)
+
+    assert result.truncated is True
+
+
+@patch("worker.claude._get_client")
+def test_loop_flags_truncated_when_tool_loop_final_turn_hits_max_tokens(
+    mock_client_fn: MagicMock,
+) -> None:
+    """The truncation flag must also be set on the final turn of an agentic loop."""
+    mock_client = MagicMock()
+    mock_client_fn.return_value = mock_client
+    mock_client.messages.create.side_effect = [
+        _response(
+            [_tool_use_block("toolu_1", "read_file", {"path": "x"})],
+            stop_reason="tool_use",
+        ),
+        _response(
+            [_text_block('{"changes": [...]')],
+            stop_reason="max_tokens",
+        ),
+    ]
+    tools = FakeTools()
+    result = call_claude(
+        "sys",
+        "user",
+        tools=[{"name": "read_file", "input_schema": {"type": "object"}}],
+        tool_executor=tools,
+    )
+
+    assert result.truncated is True
+    assert result.turns == 2
