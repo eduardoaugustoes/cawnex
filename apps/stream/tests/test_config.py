@@ -45,6 +45,7 @@ def test_config_is_immutable() -> None:
         region="d",
         pipe_secret="e",
         allowed_audiences=("ios",),
+        events_queue_url="",
     )
     with pytest.raises(AttributeError):
         cfg.table_name = "mutated"  # type: ignore[misc]

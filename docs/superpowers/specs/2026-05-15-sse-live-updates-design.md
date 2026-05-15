@@ -1,7 +1,23 @@
 # SSE Live Updates for Wave and MVI Screens
 
 **Date:** 2026-05-15
-**Status:** Draft — awaiting user review
+**Status:** Phase 1 deployed, Phase 2 in progress
+
+## Revision 2026-05-15 (after Phase 1)
+
+The original design had EventBridge Pipes POST directly to the stream
+service's `/_pipe` endpoint. EventBridge Pipes only support AWS-service
+targets (Lambda/SQS/SNS/Step Functions/API Destination/etc.) — arbitrary
+HTTP isn't a native target.
+
+**Revised fanout for Phase 2:**
+
+DDB Streams → EventBridge Pipe → **SQS queue** → stream service polls
+the queue in a background asyncio task → fans out to in-memory subscribers.
+
+The `/_pipe` HTTP endpoint stays for test injection and survives as the
+canonical fanout entry point inside the service (the SQS poller calls
+the same publishing code). Production traffic flows via SQS, not HTTP.
 
 ## Problem
 

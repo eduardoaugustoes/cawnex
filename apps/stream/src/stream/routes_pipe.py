@@ -1,41 +1,39 @@
-"""EventBridge Pipe ingestion endpoint.
+"""Pipe ingestion endpoint.
 
-The Pipe POSTs an array of records (or, during Phase 1, we POST manually).
-Each record should have at least PK and event_type. We extract wave_id
-from PK (`T#{tenant}#P#{project}#W#{wave_id}`) and fan out to in-memory
-subscribers.
+Accepts both flat records and DDB Streams shape via `pipe_record.normalize_record`.
+Production traffic flows via SQS (see `sqs_poller.py`); this HTTP endpoint stays
+for test injection.
 
-Authenticated via a shared secret header (X-Pipe-Secret). The endpoint
-lives behind an ALB listener rule scoped to this path; a stronger posture
-(IAM SigV4 verification) is a Phase 2 follow-up.
+Authenticated via a shared secret header (X-Pipe-Secret).
 """
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Request
 
 from stream.config import load_config
+from stream.pipe_record import normalize_record, wave_id_from_pk
 from stream.sse import encode_event
+from stream.subscribers import SubscriberRegistry
 
 router = APIRouter()
 
 
-_PK_PATTERN = re.compile(r"^T#(?P<tenant>[^#]+)#P#(?P<project>[^#]+)#W#(?P<wave>[^#]+)$")
+def record_to_frame(record: dict[str, Any]) -> tuple[str, str] | None:
+    """Return (wave_id, sse_frame) or None if the record should be skipped.
 
+    Accepts either flat or DDB-Streams-shaped input via normalize_record.
+    Public so the SQS poller can reuse it.
+    """
+    normalized = normalize_record(record)
+    if normalized is None:
+        return None
 
-def _wave_id_from_pk(pk: str) -> str | None:
-    match = _PK_PATTERN.match(pk)
-    return match.group("wave") if match else None
-
-
-def _record_to_frame(record: dict[str, Any]) -> tuple[str, str] | None:
-    """Return (wave_id, sse_frame) or None if the record should be skipped."""
-    pk = record.get("PK", "")
-    sk = record.get("SK", "")
-    wave_id = _wave_id_from_pk(pk)
+    pk = normalized.get("PK", "")
+    sk = normalized.get("SK", "")
+    wave_id = wave_id_from_pk(pk)
     if wave_id is None:
         return None
 
@@ -44,15 +42,33 @@ def _record_to_frame(record: dict[str, Any]) -> tuple[str, str] | None:
         event_id=event_id,
         event_name="wave_event",
         data={
-            "event_type": record.get("event_type", ""),
-            "message": record.get("message", ""),
-            "color": record.get("color", ""),
-            "timestamp": record.get("timestamp", ""),
+            "event_type": normalized.get("event_type", ""),
+            "message": normalized.get("message", ""),
+            "color": normalized.get("color", ""),
+            "timestamp": normalized.get("timestamp", ""),
             "wave_id": wave_id,
-            "mvi_id": record.get("mvi_id", ""),
+            "mvi_id": normalized.get("mvi_id", ""),
         },
     )
     return wave_id, frame
+
+
+async def publish_records(
+    registry: SubscriberRegistry,
+    records: list[dict[str, Any]],
+) -> int:
+    """Fan out a batch of records to subscribers. Returns count published."""
+    published = 0
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        result = record_to_frame(record)
+        if result is None:
+            continue
+        wave_id, frame = result
+        await registry.publish(wave_id, frame)
+        published += 1
+    return published
 
 
 @router.post("/_pipe")
@@ -68,16 +84,5 @@ async def receive_pipe_batch(
     if not isinstance(payload, list):
         raise HTTPException(status_code=400, detail="expected JSON array")
 
-    registry = request.app.state.registry
-    published = 0
-    for record in payload:
-        if not isinstance(record, dict):
-            continue
-        result = _record_to_frame(record)
-        if result is None:
-            continue
-        wave_id, frame = result
-        await registry.publish(wave_id, frame)
-        published += 1
-
+    published = await publish_records(request.app.state.registry, payload)
     return {"published": published}

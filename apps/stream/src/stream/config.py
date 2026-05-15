@@ -24,6 +24,7 @@ class Config:
     region: str
     pipe_secret: str
     allowed_audiences: tuple[str, ...]
+    events_queue_url: str  # optional; empty when SQS poller is disabled (tests)
 
 
 def load_config() -> Config:
@@ -49,4 +50,5 @@ def load_config() -> Config:
         region=os.environ["AWS_REGION"],
         pipe_secret=os.environ["PIPE_SECRET"],
         allowed_audiences=audiences,
+        events_queue_url=os.environ.get("EVENTS_QUEUE_URL", ""),
     )

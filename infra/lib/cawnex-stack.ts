@@ -20,6 +20,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as kms from "aws-cdk-lib/aws-kms";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
+import * as pipes from "aws-cdk-lib/aws-pipes";
 
 interface CawnexStackProps extends cdk.StackProps {
   stage: "dev" | "staging" | "prod";
@@ -113,6 +114,9 @@ export class CawnexStack extends cdk.Stack {
       sortKey: { name: "SK", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: "expires_at",
+      // DynamoDB Streams feed the EventBridge Pipe that fans events out to
+      // the stream service (SSE). NEW_IMAGE is enough — we don't need OLDs.
+      stream: dynamodb.StreamViewType.NEW_IMAGE,
       removalPolicy:
         stage === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
     });
@@ -595,6 +599,20 @@ export class CawnexStack extends cdk.Stack {
       },
     });
 
+    // SQS queue — DDB Streams → EventBridge Pipe target. Stream service
+    // long-polls this queue and fans messages out to SSE subscribers.
+    const streamEventsDlq = new sqs.Queue(this, "StreamEventsDLQ", {
+      queueName: `cawnex-stream-events-dlq-${stage}`,
+      retentionPeriod: cdk.Duration.days(14),
+    });
+
+    const streamEventsQueue = new sqs.Queue(this, "StreamEventsQueue", {
+      queueName: `cawnex-stream-events-${stage}`,
+      visibilityTimeout: cdk.Duration.seconds(60),
+      retentionPeriod: cdk.Duration.days(1),
+      deadLetterQueue: { queue: streamEventsDlq, maxReceiveCount: 5 },
+    });
+
     streamTaskDef.addContainer("stream", {
       containerName: "stream",
       image: ecs.ContainerImage.fromAsset("..", {
@@ -611,6 +629,7 @@ export class CawnexStack extends cdk.Stack {
         USER_POOL_ID: userPoolId,
         AWS_REGION: this.region,
         ALLOWED_AUDIENCES: `${iosClientId},${webClientId}`,
+        EVENTS_QUEUE_URL: streamEventsQueue.queueUrl,
       },
       secrets: {
         PIPE_SECRET: ecs.Secret.fromSecretsManager(pipeSecret),
@@ -630,6 +649,7 @@ export class CawnexStack extends cdk.Stack {
 
     table.grantReadData(streamTaskDef.taskRole);
     eventsTable.grantReadData(streamTaskDef.taskRole);
+    streamEventsQueue.grantConsumeMessages(streamTaskDef.taskRole);
 
     const streamService = new ecs.FargateService(this, "StreamService", {
       serviceName: `cawnex-stream-${stage}`,
@@ -696,6 +716,67 @@ export class CawnexStack extends cdk.Stack {
     new cdk.CfnOutput(this, "StreamPipeSecretArn", {
       value: pipeSecret.secretArn,
       description: "Secret holding the stream service PIPE_SECRET",
+    });
+
+    // EventBridge Pipe — DDB Streams (events table) → SQS queue
+    const pipeRole = new iam.Role(this, "StreamPipeRole", {
+      roleName: `cawnex-stream-pipe-${stage}`,
+      assumedBy: new iam.ServicePrincipal("pipes.amazonaws.com"),
+    });
+
+    pipeRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "dynamodb:DescribeStream",
+          "dynamodb:GetRecords",
+          "dynamodb:GetShardIterator",
+          "dynamodb:ListStreams",
+          "dynamodb:ListShards",
+        ],
+        resources: [eventsTable.tableStreamArn!],
+      }),
+    );
+
+    streamEventsQueue.grantSendMessages(pipeRole);
+
+    // CloudWatch log group for Pipe execution logs. Default Pipe log level
+    // (when configured via CFN) is OFF — without this we get no signal on
+    // why a Pipe is or isn't processing records.
+    const pipeLogs = new logs.LogGroup(this, "StreamEventsPipeLogs", {
+      logGroupName: `/aws/vendedlogs/pipes/cawnex-stream-events-${stage}`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+    pipeLogs.grantWrite(pipeRole);
+
+    new pipes.CfnPipe(this, "StreamEventsPipe", {
+      name: `cawnex-stream-events-${stage}-v2`,
+      roleArn: pipeRole.roleArn,
+      source: eventsTable.tableStreamArn!,
+      target: streamEventsQueue.queueArn,
+      sourceParameters: {
+        dynamoDbStreamParameters: {
+          startingPosition: "TRIM_HORIZON",
+          batchSize: 10,
+          maximumBatchingWindowInSeconds: 1,
+        },
+        // No filter — MODIFY/REMOVE events are filtered downstream in the
+        // stream service via pipe_record.normalize_record. Keeping the
+        // filter out simplifies the Pipe contract and reduces moving parts
+        // at the cost of slightly more SQS messages (negligible).
+      },
+      logConfiguration: {
+        level: "TRACE",
+        includeExecutionData: ["ALL"],
+        cloudwatchLogsLogDestination: {
+          logGroupArn: pipeLogs.logGroupArn,
+        },
+      },
+    });
+
+    new cdk.CfnOutput(this, "StreamEventsQueueUrl", {
+      value: streamEventsQueue.queueUrl,
+      description: "SQS queue where the EventBridge Pipe lands DDB Streams records",
     });
 
     // ─────────────────────────────────────────────
