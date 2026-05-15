@@ -51,12 +51,17 @@ final class APITaskService: TaskService {
     }
 
     private func mapStatus(_ raw: String) -> TaskStatus {
+        // Backend uses "pending" for not-yet-executed work; iOS enum uses
+        // "queued" for the same state. "reviewing" only surfaces if iOS
+        // adds a per-task reviewer phase later — backend status currently
+        // inherits from implementer crow so "reviewing" isn't emitted yet.
         switch raw.lowercased() {
         case "completed": return .completed
         case "building", "in_progress", "running": return .building
+        case "reviewing": return .reviewing
         case "failed": return .failed
-        case "pending", "queued", "": return .pending
-        default: return .pending
+        case "pending", "queued", "": return .queued
+        default: return .queued
         }
     }
 
@@ -72,12 +77,26 @@ final class APITaskService: TaskService {
     }
 
     private func mapBehaviorState(_ raw: String) -> CrowBehaviorState {
+        // iOS CrowBehaviorState has no "idle" or "error" cases — both map
+        // to .landed (the terminal/quiescent state). Active states map by
+        // closest semantic equivalent.
         switch raw.lowercased() {
-        case "landed", "completed": return .landed
-        case "building", "running": return .building
-        case "idle", "pending", "queued", "": return .idle
-        case "failed", "error": return .error
-        default: return .idle
+        case "landed", "completed", "failed", "error":
+            return .landed
+        case "building", "running", "in_progress":
+            return .building
+        case "planning":
+            return .planning
+        case "scouting", "exploring":
+            return .scouting
+        case "hunting":
+            return .hunting
+        case "reviewing":
+            return .reviewing
+        case "documenting":
+            return .documenting
+        default:
+            return .landed
         }
     }
 
