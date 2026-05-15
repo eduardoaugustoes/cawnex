@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, field_validator
 from src.auth.dependencies import get_tenant
 from src.auth.tenant import TenantContext
 from src.db.client import TenantDB
+from src.db.project_state import compute_current_state
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -32,6 +33,7 @@ class CreateProjectResponse(BaseModel):
     project_id: str
     name: str
     status: str
+    current_state: str
     murders: List[str]
     created_at: str
 
@@ -43,6 +45,7 @@ class ProjectSummary(BaseModel):
     name: str
     one_liner: str
     status: str
+    current_state: str
     murders: List[str]
     created_at: str
 
@@ -114,6 +117,7 @@ async def create_project(
         "project_id": project_id,
         "name": body.name,
         "status": "draft",
+        "current_state": "draft",
         "murders": murders,
         "created_at": now,
     }
@@ -126,17 +130,26 @@ async def list_projects(
     """List all projects for the authenticated tenant."""
     db = TenantDB(tenant)
     items = db.query(sk_prefix="P#")
-    return [
-        {
-            "project_id": item.get("project_id", ""),
-            "name": item.get("name", ""),
-            "one_liner": item.get("one_liner", item.get("description", "")),
-            "status": item.get("status", "draft"),
-            "murders": item.get("murders", ["dev"]),
-            "created_at": item.get("created_at", ""),
-        }
-        for item in items
-    ]
+    result = []
+    for item in items:
+        project_id = item.get("project_id", "")
+        try:
+            current_state = compute_current_state(project_id, db)
+        except Exception:
+            # If state computation fails, default to draft
+            current_state = "draft"
+        result.append(
+            {
+                "project_id": project_id,
+                "name": item.get("name", ""),
+                "one_liner": item.get("one_liner", item.get("description", "")),
+                "status": item.get("status", "draft"),
+                "current_state": current_state,
+                "murders": item.get("murders", ["dev"]),
+                "created_at": item.get("created_at", ""),
+            }
+        )
+    return result
 
 
 VALID_AUTO_MODES = {"off", "auto", "supervised"}

@@ -48,6 +48,7 @@ def test_create_project_returns_201(mock_boto3: Mock) -> None:
     assert "project_id" in data
     assert data["name"] == "My Project"
     assert data["status"] == "draft"
+    assert data["current_state"] == "draft"
     assert data["murders"] == ["dev"]
 
 
@@ -134,6 +135,56 @@ def test_list_projects_returns_items(mock_boto3: Mock) -> None:
     assert items[0]["one_liner"] == "A cool project"
     assert items[0]["murders"] == ["dev", "infra"]
     assert items[0]["status"] == "draft"
+    assert items[0]["current_state"] == "draft"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_list_projects_includes_current_state(mock_boto3: Mock) -> None:
+    """GET /projects includes computed current_state for each project."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    seeded: List[Dict[str, Any]] = [
+        {
+            "PK": "T#tenant-abc",
+            "SK": "P#proj-1",
+            "project_id": "proj-1",
+            "name": "Active Project",
+            "one_liner": "Test",
+            "status": "draft",
+            "murders": ["dev"],
+            "created_at": "2024-01-01T00:00:00+00:00",
+        }
+    ]
+    mock_table.query.return_value = {"Items": seeded}
+
+    # Mock query_project to return docs complete
+    def mock_query_project(project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
+        if sk_prefix == "DOC#":
+            return [
+                {"SK": "DOC#vision", "doc_type": "vision", "status": "complete"},
+                {"SK": "DOC#architecture", "doc_type": "architecture", "status": "complete"},
+                {"SK": "DOC#glossary", "doc_type": "glossary", "status": "complete"},
+                {"SK": "DOC#design", "doc_type": "design", "status": "complete"},
+            ]
+        return []
+
+    # Patch TenantDB directly for the list endpoint
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.query.return_value = seeded
+        mock_db_instance.query_project.side_effect = mock_query_project
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects")
+
+        assert response.status_code == 200
+        items = response.json()
+        assert len(items) == 1
+        assert "current_state" in items[0]
+        assert items[0]["current_state"] == "active"
 
 
 @patch("src.db.client.boto3")
