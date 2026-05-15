@@ -22,6 +22,7 @@ from src.routes import (
     milestones,
     mvi,
     projects,
+    tasks,
     vault,
     waves,
 )
@@ -51,5 +52,6 @@ app.include_router(milestones.router)
 app.include_router(goals.router)
 app.include_router(documents.router)
 app.include_router(human_tasks.router)
+app.include_router(tasks.router)
 app.include_router(vault.router)
 app.include_router(council.router)
