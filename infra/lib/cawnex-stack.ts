@@ -19,6 +19,7 @@ import * as eventsTargets from "aws-cdk-lib/aws-events-targets";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as kms from "aws-cdk-lib/aws-kms";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
+import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 
 interface CawnexStackProps extends cdk.StackProps {
   stage: "dev" | "staging" | "prod";
@@ -568,6 +569,132 @@ export class CawnexStack extends cdk.Stack {
           weight: stage === "prod" ? 1 : 0,
         },
       ],
+    });
+
+    // ─────────────────────────────────────────────
+    // Stream Service — Fargate task hosting SSE endpoints
+    // ─────────────────────────────────────────────
+    const streamSg = new ec2.SecurityGroup(this, "StreamServiceSG", {
+      vpc,
+      description: "Stream service ECS task",
+      allowAllOutbound: true,
+    });
+
+    const streamTaskDef = new ecs.FargateTaskDefinition(this, "StreamTask", {
+      family: `cawnex-stream-${stage}`,
+      cpu: 256, // 0.25 vCPU — plenty for thousands of idle SSE connections
+      memoryLimitMiB: 512,
+    });
+
+    // Pipe secret for /_pipe authentication (auto-generated, 48 chars)
+    const pipeSecret = new secretsmanager.Secret(this, "StreamPipeSecret", {
+      secretName: `cawnex/${stage}/stream-pipe-secret`,
+      generateSecretString: {
+        passwordLength: 48,
+        excludePunctuation: true,
+      },
+    });
+
+    streamTaskDef.addContainer("stream", {
+      containerName: "stream",
+      image: ecs.ContainerImage.fromAsset("..", {
+        file: "apps/stream/Dockerfile",
+      }),
+      logging: ecs.LogDrivers.awsLogs({
+        streamPrefix: "stream",
+        logRetention: logs.RetentionDays.ONE_MONTH,
+      }),
+      environment: {
+        STAGE: stage,
+        TABLE_NAME: tableName,
+        EVENTS_TABLE_NAME: eventsTable.tableName,
+        USER_POOL_ID: userPoolId,
+        AWS_REGION: this.region,
+      },
+      secrets: {
+        PIPE_SECRET: ecs.Secret.fromSecretsManager(pipeSecret),
+      },
+      portMappings: [{ containerPort: 8080 }],
+      healthCheck: {
+        command: [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:8080/_health || exit 1",
+        ],
+        interval: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(5),
+        retries: 3,
+        startPeriod: cdk.Duration.seconds(30),
+      },
+    });
+
+    table.grantReadData(streamTaskDef.taskRole);
+    eventsTable.grantReadData(streamTaskDef.taskRole);
+
+    const streamService = new ecs.FargateService(this, "StreamService", {
+      serviceName: `cawnex-stream-${stage}`,
+      cluster,
+      taskDefinition: streamTaskDef,
+      desiredCount: 1,
+      assignPublicIp: stage !== "prod",
+      securityGroups: [streamSg],
+      platformVersion: ecs.FargatePlatformVersion.LATEST,
+      capacityProviderStrategies: [
+        {
+          capacityProvider: "FARGATE_SPOT",
+          weight: stage === "prod" ? 0 : 1,
+        },
+        {
+          capacityProvider: "FARGATE",
+          weight: stage === "prod" ? 1 : 0,
+        },
+      ],
+    });
+
+    // ALB — public entrypoint for SSE
+    const streamAlb = new elbv2.ApplicationLoadBalancer(this, "StreamALB", {
+      vpc,
+      internetFacing: true,
+      loadBalancerName: `cawnex-stream-${stage}`,
+      idleTimeout: cdk.Duration.seconds(120),
+    });
+
+    const streamTargetGroup = new elbv2.ApplicationTargetGroup(
+      this,
+      "StreamTargets",
+      {
+        vpc,
+        port: 8080,
+        protocol: elbv2.ApplicationProtocol.HTTP,
+        targetType: elbv2.TargetType.IP,
+        targets: [
+          streamService.loadBalancerTarget({
+            containerName: "stream",
+            containerPort: 8080,
+          }),
+        ],
+        healthCheck: {
+          path: "/_health",
+          healthyHttpCodes: "200",
+          interval: cdk.Duration.seconds(30),
+        },
+        deregistrationDelay: cdk.Duration.seconds(15),
+      },
+    );
+
+    streamAlb.addListener("StreamListener", {
+      port: 80,
+      open: true,
+      defaultAction: elbv2.ListenerAction.forward([streamTargetGroup]),
+    });
+
+    new cdk.CfnOutput(this, "StreamServiceURL", {
+      value: `http://${streamAlb.loadBalancerDnsName}`,
+      description: "Stream service ALB DNS",
+    });
+
+    new cdk.CfnOutput(this, "StreamPipeSecretArn", {
+      value: pipeSecret.secretArn,
+      description: "Secret holding the stream service PIPE_SECRET",
     });
 
     // ─────────────────────────────────────────────
