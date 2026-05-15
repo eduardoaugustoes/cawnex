@@ -52,6 +52,13 @@ from worker.config import (
 # and returns it as ClaudeResult.structured_output.
 SUBMIT_RESULT_TOOL_NAME = "submit_result"
 
+# The Anthropic SDK refuses non-streaming requests when generation could
+# exceed 10 minutes. Haiku 4.5 generates roughly ~100 tok/sec, so anything
+# at or above ~16K max_tokens trips the guard. Switch to streaming above
+# this threshold; small one-shot calls keep using messages.create which
+# is simpler and avoids the SSE overhead.
+STREAM_THRESHOLD_TOKENS = 16_000
+
 
 class InputTooLarge(RuntimeError):
     """Raised when the proposed request exceeds the model's context budget.
@@ -252,17 +259,29 @@ def call_claude(
         if tools:
             kwargs["tools"] = tools
 
+        # The Anthropic SDK refuses non-streaming requests when the model
+        # might take longer than 10 minutes to respond — which Haiku 4.5 can
+        # exceed once max_tokens >= ~16K. Stream for large outputs and
+        # collect via get_final_message(). The resulting Message has the
+        # same shape as a non-streaming response, so downstream code is
+        # unchanged.
+        should_stream = effective_max_tokens >= STREAM_THRESHOLD_TOKENS
         try:
-            response = client.messages.create(**kwargs)
+            if should_stream:
+                with client.messages.stream(**kwargs) as stream:
+                    response = stream.get_final_message()
+            else:
+                response = client.messages.create(**kwargs)
         except Exception as e:
             log.error("Claude API error: %s", e)
             log.error("system_prompt[:200]: %s", system_prompt[:200])
             log.error(
-                "iteration: %d, turns so far: %d, input_tokens=%d, max_tokens=%d",
+                "iteration: %d, turns so far: %d, input_tokens=%d, max_tokens=%d, streamed=%s",
                 iteration,
                 aggregate.turns,
                 input_tokens,
                 effective_max_tokens,
+                should_stream,
             )
             raise
 

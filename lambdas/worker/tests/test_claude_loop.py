@@ -420,13 +420,17 @@ def test_dynamic_max_tokens_caps_to_model_output_ceiling(
 ) -> None:
     """When caller passes max_tokens above the model's published output cap,
     the effective max_tokens shrinks to the model ceiling. Haiku 4.5 max
-    output is 64k, so a caller passing 128k must get clamped."""
+    output is 64k, so a caller passing 128k must get clamped. At 64k the
+    call routes through streaming (>= STREAM_THRESHOLD_TOKENS)."""
     mock_client = MagicMock()
     mock_client_fn.return_value = mock_client
     mock_client.messages.count_tokens.return_value = MagicMock(input_tokens=10_000)
-    mock_client.messages.create.return_value = _response(
-        [_text_block("ok")], stop_reason="end_turn"
-    )
+    final_message = _response([_text_block("ok")], stop_reason="end_turn")
+    stream_ctx = MagicMock()
+    stream_ctx.__enter__ = MagicMock(return_value=stream_ctx)
+    stream_ctx.__exit__ = MagicMock(return_value=False)
+    stream_ctx.get_final_message = MagicMock(return_value=final_message)
+    mock_client.messages.stream = MagicMock(return_value=stream_ctx)
 
     call_claude(
         "sys",
@@ -435,7 +439,7 @@ def test_dynamic_max_tokens_caps_to_model_output_ceiling(
         max_tokens=128_000,
     )
 
-    sent_kwargs = mock_client.messages.create.call_args.kwargs
+    sent_kwargs = mock_client.messages.stream.call_args.kwargs
     assert sent_kwargs["max_tokens"] == 64_000  # Haiku's max output ceiling
 
 
@@ -461,3 +465,52 @@ def test_dynamic_max_tokens_passes_through_when_under_caps(
 
     sent_kwargs = mock_client.messages.create.call_args.kwargs
     assert sent_kwargs["max_tokens"] == 8_192
+
+
+@patch("worker.claude._get_client")
+def test_high_max_tokens_uses_stream_not_create(mock_client_fn: MagicMock) -> None:
+    """When effective max_tokens >= STREAM_THRESHOLD_TOKENS, we must use
+    client.messages.stream() (collected via get_final_message), not
+    client.messages.create()."""
+    mock_client = MagicMock()
+    mock_client_fn.return_value = mock_client
+    mock_client.messages.count_tokens.return_value = MagicMock(input_tokens=5_000)
+
+    final_message = _response([_text_block("ok")], stop_reason="end_turn")
+    stream_ctx = MagicMock()
+    stream_ctx.__enter__ = MagicMock(return_value=stream_ctx)
+    stream_ctx.__exit__ = MagicMock(return_value=False)
+    stream_ctx.get_final_message = MagicMock(return_value=final_message)
+    mock_client.messages.stream = MagicMock(return_value=stream_ctx)
+
+    call_claude(
+        "sys",
+        "user",
+        model="claude-haiku-4-5-20251001",
+        max_tokens=32_000,
+    )
+
+    mock_client.messages.stream.assert_called_once()
+    mock_client.messages.create.assert_not_called()
+
+
+@patch("worker.claude._get_client")
+def test_low_max_tokens_uses_create_not_stream(mock_client_fn: MagicMock) -> None:
+    """Small one-shot calls should use messages.create — streaming overhead
+    has no benefit when output is small."""
+    mock_client = MagicMock()
+    mock_client_fn.return_value = mock_client
+    mock_client.messages.count_tokens.return_value = MagicMock(input_tokens=5_000)
+    mock_client.messages.create.return_value = _response(
+        [_text_block("ok")], stop_reason="end_turn"
+    )
+
+    call_claude(
+        "sys",
+        "user",
+        model="claude-haiku-4-5-20251001",
+        max_tokens=8_192,
+    )
+
+    mock_client.messages.create.assert_called_once()
+    mock_client.messages.stream.assert_not_called()

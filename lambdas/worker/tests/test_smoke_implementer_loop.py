@@ -25,6 +25,38 @@ from worker.executor import execute
 from worker.logging import StructuredLogger
 
 
+def _wire_anthropic_responses(mock_client: MagicMock, responses: list[MagicMock]) -> None:
+    """Hook the responses into both messages.create AND messages.stream paths.
+
+    The agentic loop picks one or the other based on effective_max_tokens.
+    Implementer (max_tokens >= 16k) routes through stream; planner stays on
+    create. To make smoke tests resilient to that routing decision, expose
+    the same canned responses on both surfaces.
+    """
+    state = {"i": 0}
+
+    def _next_response(*_args: Any, **_kwargs: Any) -> MagicMock:
+        if state["i"] >= len(responses):
+            raise AssertionError(
+                f"smoke test ran out of canned responses (called {state['i']+1} times)"
+            )
+        r = responses[state["i"]]
+        state["i"] += 1
+        return r
+
+    def _stream_ctx(*_args: Any, **_kwargs: Any) -> MagicMock:
+        ctx = MagicMock()
+        ctx.__enter__ = MagicMock(return_value=ctx)
+        ctx.__exit__ = MagicMock(return_value=False)
+        ctx.get_final_message = MagicMock(side_effect=_next_response)
+        return ctx
+
+    mock_client.messages.create.side_effect = _next_response
+    mock_client.messages.stream.side_effect = _stream_ctx
+    # count_tokens is advisory; return a small value so the precheck passes
+    mock_client.messages.count_tokens.return_value = MagicMock(input_tokens=5_000)
+
+
 def _text_block(text: str) -> MagicMock:
     b = MagicMock()
     b.type = "text"
@@ -185,7 +217,7 @@ def test_smoke_implementer_loop_reads_spec_and_emits_changes(tmp_path: object) -
     ) as mock_apply:
         mock_client = MagicMock()
         mock_client_fn.return_value = mock_client
-        mock_client.messages.create.side_effect = responses
+        _wire_anthropic_responses(mock_client, responses)
 
         result = execute(snapshot, logger=logger, config=config)
 
@@ -193,14 +225,15 @@ def test_smoke_implementer_loop_reads_spec_and_emits_changes(tmp_path: object) -
     assert result["status"] == "completed", result
     assert "git_commit" in result
 
-    # 2. Three API calls were made (proves the loop ran end-to-end)
-    assert mock_client.messages.create.call_count == 3
+    # 2. Three API calls were made (proves the loop ran end-to-end).
+    # Implementer routes through messages.stream because max_tokens >= 16k.
+    assert mock_client.messages.stream.call_count == 3
 
     # 3. Walk the message history fed into the FINAL turn — it must contain a
     # tool_result whose content is the spec body read from disk. This proves
     # the loop actually read the spec file from the worktree rather than
     # accepting whatever the planner promised.
-    final_call = mock_client.messages.create.call_args_list[-1].kwargs
+    final_call = mock_client.messages.stream.call_args_list[-1].kwargs
     final_messages = final_call["messages"]
     spec_seen = False
     for msg in final_messages:
@@ -277,7 +310,7 @@ def test_smoke_implementer_loop_handles_missing_file_gracefully(tmp_path: object
     ):
         mock_client = MagicMock()
         mock_client_fn.return_value = mock_client
-        mock_client.messages.create.side_effect = responses
+        _wire_anthropic_responses(mock_client, responses)
 
         result = execute(snapshot, logger=logger, config=config)
 
@@ -285,7 +318,8 @@ def test_smoke_implementer_loop_handles_missing_file_gracefully(tmp_path: object
     assert result["status"] == "failed"
     assert "no file changes" in result["outcome"]["error"]
     # But the tool itself still propagated the error to Claude correctly.
-    second_call = mock_client.messages.create.call_args_list[1].kwargs
+    # Implementer uses messages.stream because max_tokens >= 16k.
+    second_call = mock_client.messages.stream.call_args_list[1].kwargs
     tool_result = second_call["messages"][-1]["content"][0]
     assert tool_result["type"] == "tool_result"
     assert tool_result["is_error"] is True
