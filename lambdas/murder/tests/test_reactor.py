@@ -507,6 +507,45 @@ class TestReactToCrowCompletion:
         assert mvi is not None
         assert mvi["status"] == "ready_to_ship"
         assert mvi["can_ship"] is True
+        # Task counts propagated from planner outcome onto the MVI so iOS
+        # merge-readiness gauge can render "1/1 tasks completed".
+        assert int(mvi.get("tasks_total", 0)) == 1
+        assert int(mvi.get("tasks_done", 0)) == 1
+
+    def test_planner_outcome_populates_mvi_task_count(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """Planner completion writes tasks_total onto the MVI snapshot.
+
+        Without this, iOS shows '0/0 tasks completed' on the merge-readiness
+        gauge even after the MVI ships, because the Murder loop never
+        propagates the planner's task count from its outcome onto the MVI.
+        """
+        _seed_wave(blackboard)
+        _seed_mvi(blackboard, status=MVIStatus.EXECUTING)
+
+        planner = _seed_crow(
+            blackboard,
+            outcome={
+                "tasks": [
+                    {"name": "task one"},
+                    {"name": "task two"},
+                    {"name": "task three"},
+                ]
+            },
+        )
+        planner_item = blackboard.read(planner.pk, planner.sk)
+        assert planner_item is not None
+        react_to_crow_completion(blackboard, planner_item, logger)
+
+        pk = build_pk("t1", "p1")
+        mvi_sk = build_sk(wave_id="w01", mvi_id="01")
+        mvi = blackboard.read(pk, mvi_sk)
+        assert mvi is not None
+        assert int(mvi.get("tasks_total", 0)) == 3
+        # tasks_done stays at 0 until the implementer finishes and the MVI
+        # transitions to ready_to_ship.
+        assert int(mvi.get("tasks_done", 0)) == 0
 
     def test_reviewer_rejects_after_max_fix_cycles_fails_mvi(
         self, blackboard: Blackboard, logger: StructuredLogger

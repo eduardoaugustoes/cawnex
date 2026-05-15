@@ -214,6 +214,16 @@ def _handle_assign(
         logger.error("mvi_not_found", mvi_id=mvi_id)
         return
 
+    # Persist task count from planner outcome onto the MVI so the iOS Wave
+    # Execution and MVI Detail screens can render the merge-readiness gauge
+    # accurately. Without this, tasks_total stays at 0 from MVI seeding and
+    # iOS shows "0/0 tasks completed" even when the implementer succeeded.
+    if previous_type == CrowType.PLANNER and previous_outcome:
+        planner_task_count = len(previous_outcome.get("tasks", []) or [])
+        if planner_task_count > 0 and int(mvi_item.get("tasks_total", 0) or 0) == 0:
+            blackboard.update(pk, mvi_sk, {"tasks_total": planner_task_count})
+            mvi_item["tasks_total"] = planner_task_count
+
     is_retry = action.crow_type == previous_type
     retry_count = previous_retry_count + 1 if is_retry else 0
 
@@ -366,12 +376,20 @@ def _handle_mvi_ready(
         "run_at": datetime.now(timezone.utc).isoformat(),
     }
 
+    # Bundled-PR mode: when the MVI is ready to ship, every task the
+    # planner emitted has landed in the same implementer PR. Mark them
+    # all complete so the iOS merge-readiness gauge shows the right
+    # state. (If we move to per-task PRs later, this needs to count
+    # actually-completed tasks instead.)
+    tasks_total_count = int((mvi_item or {}).get("tasks_total", 0) or 0)
+
     updates: dict[str, Any] = {
         "status": MVIStatus.READY_TO_SHIP.value,
         "can_ship": True,
         "merge_checklist": merge_checklist,
         "cost": total_cost.to_dict(),
         "deterministic_checks": checks_summary,
+        "tasks_done": tasks_total_count,
     }
 
     ready_item = {
