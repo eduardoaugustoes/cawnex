@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from src.auth.dependencies import get_tenant
@@ -170,6 +170,177 @@ async def get_milestones(
         "created_at": item.get("created_at", ""),
         "updated_at": item.get("updated_at", ""),
     }
+
+
+# ---- MilestoneDetail (Phase 2.1) -------------------------------------------
+#
+# iOS MilestoneDetail expects a mix of real and placeholder fields:
+#   * milestone (id, name, description, status, task counts, ROI) — real
+#   * breadcrumb — derived
+#   * sections (Business Achievement / Success Criteria / etc.) — placeholder
+#     (we don't track per-milestone section completion yet)
+#   * messages (AI chat history) — placeholder, no message store
+#   * goals[] with mvi_count + task_count — derived from goal MVIs
+
+
+class MilestoneTaskCounts(BaseModel):
+    """Per-milestone task tally rolled up from MVIs."""
+
+    done: int
+    active: int
+    refined: int
+    draft: int
+
+
+class MilestoneGoalSummary(BaseModel):
+    """Lightweight goal summary nested in milestone detail."""
+
+    id: str
+    name: str
+    status: str
+    description: str
+    mvi_count: int
+    task_count: int
+
+
+class MilestoneDefinitionSection(BaseModel):
+    """Placeholder until per-milestone section tracking is added."""
+
+    id: str
+    title: str
+    status: str  # "pending" | "complete"
+
+
+class MilestoneDetailResponse(BaseModel):
+    """Aggregated milestone view matching iOS MilestoneDetail."""
+
+    id: str
+    name: str
+    description: str
+    status: str
+    breadcrumb: str
+    tasks: MilestoneTaskCounts
+    credits_spent: int
+    human_equiv_saved: int
+    roi: int
+    goals: list[MilestoneGoalSummary]
+    sections: list[MilestoneDefinitionSection]
+    messages: list[dict[str, Any]]
+
+
+# Fixed section list iOS expects — order matters for the progress bar UI.
+_MILESTONE_SECTION_TITLES: list[str] = [
+    "Business Achievement",
+    "Success Criteria",
+    "Target Impact",
+    "Timeline",
+    "Dependencies",
+    "Risk Assessment",
+]
+
+
+def _aggregate_goal_mvis(
+    db: TenantDB, project_id: str, goals: list[dict[str, Any]]
+) -> tuple[list[MilestoneGoalSummary], MilestoneTaskCounts]:
+    """For each goal: count MVIs, sum task counts, compute status totals."""
+    summaries: list[MilestoneGoalSummary] = []
+    counts = {"done": 0, "active": 0, "refined": 0, "draft": 0}
+
+    for goal in goals:
+        goal_id = goal.get("id", "")
+        mvi_record = db.get_project_item(
+            project_id=project_id, sk=f"BACKLOG#goal#{goal_id}#mvis"
+        )
+        mvis: list[dict[str, Any]] = mvi_record.get("mvis", []) if mvi_record else []
+
+        task_count = 0
+        for m in mvis:
+            status = (m.get("status") or "draft").lower()
+            # MVI statuses we know about: draft, refined, planning, queued,
+            # executing, ready_to_ship, shipped, failed, cancelled
+            if status in ("shipped", "ready_to_ship"):
+                counts["done"] += 1
+            elif status in ("planning", "queued", "executing", "running"):
+                counts["active"] += 1
+            elif status == "refined":
+                counts["refined"] += 1
+            else:
+                counts["draft"] += 1
+            task_count += int(m.get("tasks_total", 0) or 0)
+
+        summaries.append(
+            MilestoneGoalSummary(
+                id=goal_id,
+                name=goal.get("name", ""),
+                status=goal.get("status", "planned"),
+                description=goal.get("description", ""),
+                mvi_count=len(mvis),
+                task_count=task_count,
+            )
+        )
+
+    return summaries, MilestoneTaskCounts(**counts)
+
+
+@router.get("/{milestone_id}", response_model=MilestoneDetailResponse)
+async def get_milestone_detail(
+    project_id: str,
+    milestone_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
+) -> MilestoneDetailResponse:
+    """Aggregate one milestone's detail view for iOS MilestoneDetailScreen.
+
+    Sources:
+      * BACKLOG#milestones for the milestone record
+      * BACKLOG#goal#{id}#mvis for each goal's MVIs + task tallies
+
+    Placeholders (empty arrays / zeros):
+      * sections — 6 fixed titles returned with status='pending'
+      * messages — chat history not stored yet
+      * credits_spent / human_equiv_saved / roi — set to 0 until we
+        roll up wave costs per milestone (Phase 2.2 will own
+        cross-project aggregation; milestone-level rollup is a
+        separate enrichment we can layer on later)
+    """
+    db = TenantDB(tenant)
+    container = db.get_project_item(project_id=project_id, sk="BACKLOG#milestones")
+    if container is None:
+        raise HTTPException(status_code=404, detail="No milestones for this project")
+    milestones = container.get("milestones", []) or []
+
+    target = next((m for m in milestones if m.get("id") == milestone_id), None)
+    if target is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Milestone {milestone_id} not found in project",
+        )
+
+    goals = target.get("goals", []) or []
+    goal_summaries, task_counts = _aggregate_goal_mvis(db, project_id, goals)
+
+    sections = [
+        MilestoneDefinitionSection(
+            id=f"sec-{i}",
+            title=title,
+            status="pending",
+        )
+        for i, title in enumerate(_MILESTONE_SECTION_TITLES)
+    ]
+
+    return MilestoneDetailResponse(
+        id=milestone_id,
+        name=target.get("name", "Milestone"),
+        description=target.get("description", ""),
+        status=target.get("status", "planned"),
+        breadcrumb=f"Backlog › {target.get('name', milestone_id)}",
+        tasks=task_counts,
+        credits_spent=0,
+        human_equiv_saved=0,
+        roi=0,
+        goals=goal_summaries,
+        sections=sections,
+        messages=[],
+    )
 
 
 @router.get("/context")

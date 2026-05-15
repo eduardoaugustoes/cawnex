@@ -37,10 +37,6 @@ struct ServiceFactory {
         return InMemoryBacklogService(store: store)
     }
 
-    func makeMilestoneService() -> any MilestoneService {
-        InMemoryMilestoneService(store: store)
-    }
-
     func makeGoalService() -> any GoalService {
         if let apiClient {
             return APIGoalService(client: apiClient, store: store)
@@ -53,6 +49,20 @@ struct ServiceFactory {
             return APIMVIService(client: apiClient)
         }
         return InMemoryMVIService(store: store)
+    }
+
+    func makeMilestoneService() -> any MilestoneService {
+        if let apiClient {
+            return APIMilestoneService(client: apiClient)
+        }
+        return InMemoryMilestoneService(store: store)
+    }
+
+    func makeCreditsService() -> any CreditsService {
+        if let apiClient {
+            return APICreditsService(client: apiClient)
+        }
+        return InMemoryCreditsService(store: store)
     }
 
     func makeTaskService() -> any TaskService {
@@ -75,10 +85,6 @@ struct ServiceFactory {
 
     func makeSkillsService() -> any SkillsService {
         InMemorySkillsService(store: store)
-    }
-
-    func makeCreditsService() -> any CreditsService {
-        InMemoryCreditsService(store: store)
     }
 
     func makeNotificationService() -> any NotificationService {

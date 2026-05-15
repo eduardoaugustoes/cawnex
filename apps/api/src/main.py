@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.routes import (
     ai,
     autopilot,
+    billing,
     config,
     council,
     documents,
@@ -56,4 +57,5 @@ app.include_router(human_tasks.router)
 app.include_router(prs.router)
 app.include_router(tasks.router)
 app.include_router(vault.router)
+app.include_router(billing.router)
 app.include_router(council.router)
