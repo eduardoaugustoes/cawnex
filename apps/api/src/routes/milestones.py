@@ -183,8 +183,13 @@ async def get_milestones(
 #   * goals[] with mvi_count + task_count — derived from goal MVIs
 
 
-class MilestoneTaskCounts(BaseModel):
-    """Per-milestone task tally rolled up from MVIs."""
+class MilestoneMVICounts(BaseModel):
+    """Per-milestone MVI status tally — buckets MVIs by their lifecycle stage.
+
+    This is NOT a task count. Tasks live inside MVIs (and we sum them
+    elsewhere for Project Hub totals). Milestones aggregate at the MVI
+    grain because that's the natural unit of milestone progress.
+    """
 
     done: int
     active: int
@@ -219,7 +224,7 @@ class MilestoneDetailResponse(BaseModel):
     description: str
     status: str
     breadcrumb: str
-    tasks: MilestoneTaskCounts
+    mvi_counts: MilestoneMVICounts
     credits_spent: int
     human_equiv_saved: int
     roi: int
@@ -241,8 +246,12 @@ _MILESTONE_SECTION_TITLES: list[str] = [
 
 def _aggregate_goal_mvis(
     db: TenantDB, project_id: str, goals: list[dict[str, Any]]
-) -> tuple[list[MilestoneGoalSummary], MilestoneTaskCounts]:
-    """For each goal: count MVIs, sum task counts, compute status totals."""
+) -> tuple[list[MilestoneGoalSummary], MilestoneMVICounts]:
+    """For each goal: count MVIs by status, plus per-goal task totals.
+
+    The returned MilestoneMVICounts buckets MVIs by lifecycle stage —
+    not tasks (per the rename done with the iOS rename to mvi_counts).
+    """
     summaries: list[MilestoneGoalSummary] = []
     counts = {"done": 0, "active": 0, "refined": 0, "draft": 0}
 
@@ -279,7 +288,7 @@ def _aggregate_goal_mvis(
             )
         )
 
-    return summaries, MilestoneTaskCounts(**counts)
+    return summaries, MilestoneMVICounts(**counts)
 
 
 @router.get("/{milestone_id}", response_model=MilestoneDetailResponse)
@@ -316,7 +325,7 @@ async def get_milestone_detail(
         )
 
     goals = target.get("goals", []) or []
-    goal_summaries, task_counts = _aggregate_goal_mvis(db, project_id, goals)
+    goal_summaries, mvi_counts = _aggregate_goal_mvis(db, project_id, goals)
 
     sections = [
         MilestoneDefinitionSection(
@@ -333,7 +342,7 @@ async def get_milestone_detail(
         description=target.get("description", ""),
         status=target.get("status", "planned"),
         breadcrumb=f"Backlog › {target.get('name', milestone_id)}",
-        tasks=task_counts,
+        mvi_counts=mvi_counts,
         credits_spent=0,
         human_equiv_saved=0,
         roi=0,

@@ -50,11 +50,16 @@ final class APIMilestoneService: MilestoneService {
             name: dto.name,
             description: dto.description,
             status: mapMilestoneStatus(dto.status),
+            // Backend `mvi_counts` buckets MVIs by lifecycle stage. We
+            // pack them into the iOS `TaskCounts` struct because the
+            // domain model is shared with Backlog/ProjectHub views, but
+            // the milestone-detail UI labels them "MVIs" — see
+            // MilestoneDetailScreen.
             tasks: TaskCounts(
-                done: dto.tasks.done,
-                active: dto.tasks.active,
-                refined: dto.tasks.refined,
-                draft: dto.tasks.draft
+                done: dto.mvi_counts.done,
+                active: dto.mvi_counts.active,
+                refined: dto.mvi_counts.refined,
+                draft: dto.mvi_counts.draft
             ),
             creditsSpent: Decimal(dto.credits_spent),
             humanEquivSaved: Decimal(dto.human_equiv_saved),
@@ -142,7 +147,7 @@ private struct MilestoneDetailDTO: Decodable {
     let description: String
     let status: String
     let breadcrumb: String
-    let tasks: TaskCountsDTO
+    let mvi_counts: MVICountsDTO
     let credits_spent: Int
     let human_equiv_saved: Int
     let roi: Int
@@ -151,7 +156,7 @@ private struct MilestoneDetailDTO: Decodable {
     let messages: [[String: AnyCodable]]
 }
 
-private struct TaskCountsDTO: Decodable {
+private struct MVICountsDTO: Decodable {
     let done: Int
     let active: Int
     let refined: Int

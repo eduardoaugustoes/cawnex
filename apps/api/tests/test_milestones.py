@@ -86,8 +86,13 @@ def _goal_mvis(goal_id: str) -> Dict[str, Any]:
 
 @patch("src.db.client.boto3")
 @patch.dict("os.environ", {"TABLE_NAME": "test-table"})
-def test_get_milestone_detail_aggregates_goals_and_tasks(mock_boto3: Mock) -> None:
-    """MilestoneDetail aggregates MVIs per goal and rolls up task counts."""
+def test_get_milestone_detail_aggregates_goals_and_mvi_counts(mock_boto3: Mock) -> None:
+    """MilestoneDetail aggregates MVIs per goal and buckets MVIs by status.
+
+    Note: the response field is `mvi_counts`, not `tasks` — the counts bucket
+    MVIs by lifecycle stage, not tasks. Tasks live inside MVIs and roll up
+    via Project Hub's separate aggregation.
+    """
     mock_table = Mock()
 
     def get_handler(**kwargs: Any) -> Dict[str, Any]:
@@ -119,10 +124,11 @@ def test_get_milestone_detail_aggregates_goals_and_tasks(mock_boto3: Mock) -> No
     g2 = next(g for g in body["goals"] if g["id"] == "g-2")
     assert g2["mvi_count"] == 0
 
-    # Task counts: 1 shipped (done), 1 executing (active), 1 draft (draft)
-    assert body["tasks"]["done"] == 1
-    assert body["tasks"]["active"] == 1
-    assert body["tasks"]["draft"] == 1
+    # MVI status counts: 1 shipped (done), 1 executing (active), 1 draft (draft)
+    assert body["mvi_counts"]["done"] == 1
+    assert body["mvi_counts"]["active"] == 1
+    assert body["mvi_counts"]["draft"] == 1
+    assert "tasks" not in body  # old field name must be gone
 
     # Sections: 6 fixed titles, all pending placeholder
     assert len(body["sections"]) == 6

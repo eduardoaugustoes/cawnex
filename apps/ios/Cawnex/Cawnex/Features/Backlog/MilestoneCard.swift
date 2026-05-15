@@ -55,9 +55,13 @@ struct MilestoneCard: View {
     }
 
     private var tasksSection: some View {
+        // Despite the name, this section shows MVI lifecycle counts —
+        // `milestone.tasks` holds `mvi_counts` from the backend (see
+        // APIMilestoneService.mapToMilestoneDetail). Tasks themselves
+        // roll up at the Project Hub level, one grain finer.
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Tasks")
+                Text("MVIs")
                     .font(CawnexTypography.label)
                     .foregroundStyle(CawnexColors.mutedForeground)
                 Spacer()
@@ -66,7 +70,7 @@ struct MilestoneCard: View {
                         .font(CawnexTypography.tiny)
                         .foregroundStyle(CawnexColors.mutedForeground)
                 } else {
-                    Text("0 tasks")
+                    Text("0 MVIs")
                         .font(CawnexTypography.tiny)
                         .foregroundStyle(CawnexColors.mutedForeground)
                 }
