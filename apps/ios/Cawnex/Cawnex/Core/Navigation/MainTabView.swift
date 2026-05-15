@@ -246,7 +246,8 @@ struct MainTabView: View {
                 waveId: waveId,
                 mviId: mviId,
                 viewModel: MVIDetailViewModel(
-                    mviService: services.makeMVIService()
+                    mviService: services.makeMVIService(),
+                    streamService: services.makeWaveEventStreamService()
                 ),
                 onBack: { tabRouter.projectPath.removeLast() },
                 onTaskTap: { taskId in tabRouter.pushTask(projectId, taskId: taskId) },
@@ -329,6 +330,7 @@ struct MainTabView: View {
             WaveExecutionScreen(
                 viewModel: WaveExecutionViewModel(
                     waveService: services.makeWaveService(),
+                    streamService: services.makeWaveEventStreamService(),
                     projectId: projectId,
                     waveId: waveId
                 ),

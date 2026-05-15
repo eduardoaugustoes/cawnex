@@ -3,7 +3,7 @@ import Foundation
 /// Authenticated HTTP client for the Cawnex API.
 /// Uses the JWT access token from the current auth session.
 final class APIClient: @unchecked Sendable {
-    private let authService: any AuthService
+    let authService: any AuthService
     private let session = URLSession.shared
 
     init(authService: any AuthService) {

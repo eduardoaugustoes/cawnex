@@ -26,7 +26,7 @@ struct WaveExecutionScreen: View {
         .background(CawnexColors.background)
         .navigationBarHidden(true)
         .task { await viewModel.load() }
-        .onDisappear { viewModel.stopPolling() }
+        .onDisappear { viewModel.unsubscribe() }
     }
 
     // MARK: - Navigation
@@ -365,6 +365,7 @@ struct WaveExecutionScreen: View {
     WaveExecutionScreen(
         viewModel: WaveExecutionViewModel(
             waveService: InMemoryWaveService(store: AppStore()),
+            streamService: InMemoryWaveEventStreamService(),
             projectId: "proj-001",
             waveId: "w001"
         )

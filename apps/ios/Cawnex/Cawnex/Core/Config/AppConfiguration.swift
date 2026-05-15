@@ -52,6 +52,20 @@ struct AppConfiguration {
             }
         }
 
+        var streamBaseURL: String {
+            // SSE service runs on a separate Fargate ALB (Lambda can't hold
+            // long-lived connections). Stage-specific endpoints follow the
+            // CDK output `StreamServiceURL`.
+            switch self {
+            case .development:
+                return "http://cawnex-stream-dev-711294816.us-east-1.elb.amazonaws.com"
+            case .staging:
+                return "https://stream-staging.cawnex.ai"
+            case .production:
+                return "https://stream.cawnex.ai"
+            }
+        }
+
         var cognitoDomain: String {
             switch self {
             case .development:
@@ -80,6 +94,7 @@ struct AppConfiguration {
     static var clientId: String { environment.clientId }
     static var region: String { environment.region }
     static var apiBaseURL: String { environment.apiBaseURL }
+    static var streamBaseURL: String { environment.streamBaseURL }
     static var cognitoDomain: String { environment.cognitoDomain }
     static var environmentName: String { environment.description }
 

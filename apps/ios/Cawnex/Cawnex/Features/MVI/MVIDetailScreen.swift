@@ -43,6 +43,7 @@ struct MVIDetailScreen: View {
         .background(CawnexColors.background)
         .navigationBarHidden(true)
         .task { await viewModel.load(projectId: projectId, waveId: waveId, mviId: mviId) }
+        .onDisappear { viewModel.unsubscribe() }
     }
 
     // MARK: - Loading
@@ -380,7 +381,8 @@ struct MVIDetailScreen: View {
             waveId: nil,
             mviId: "mvi2",
             viewModel: MVIDetailViewModel(
-                mviService: InMemoryMVIService(store: store)
+                mviService: InMemoryMVIService(store: store),
+                streamService: InMemoryWaveEventStreamService()
             )
         )
     }

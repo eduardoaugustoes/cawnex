@@ -4,6 +4,7 @@ import SwiftUI
 @Observable
 final class WaveExecutionViewModel {
     let waveService: any WaveService
+    let streamService: any WaveEventStreamService
     let projectId: String
     let waveId: String
 
@@ -12,8 +13,7 @@ final class WaveExecutionViewModel {
     var isShipping: Set<String> = []
     var actionError: String?
 
-    private var lastEventCursor: String?
-    private var pollTimer: Timer?
+    private var streamTask: Task<Void, Never>?
 
     var detail: WaveDetail? {
         if case .loaded(let d) = detailState { return d }
@@ -24,8 +24,14 @@ final class WaveExecutionViewModel {
     var mvis: [WaveMVI] { detail?.mvis ?? [] }
     var humanTasks: [HumanTask] { detail?.humanTasks ?? [] }
 
-    init(waveService: any WaveService, projectId: String, waveId: String) {
+    init(
+        waveService: any WaveService,
+        streamService: any WaveEventStreamService,
+        projectId: String,
+        waveId: String
+    ) {
         self.waveService = waveService
+        self.streamService = streamService
         self.projectId = projectId
         self.waveId = waveId
     }
@@ -37,59 +43,78 @@ final class WaveExecutionViewModel {
         do {
             let loaded = try await waveService.getWave(projectId: projectId, waveId: waveId)
             detailState = .loaded(loaded)
-            await loadEvents()
-            startPolling()
+            await loadInitialEvents()
+            subscribe()
         } catch {
             detailState = .error(error.localizedDescription)
         }
     }
 
-    func loadEvents() async {
+    /// Fetch any events that already exist for this wave (REST call). SSE
+    /// only delivers events that arrive *after* connection; this catches
+    /// the history. Once both have run, SSE takes over.
+    private func loadInitialEvents() async {
         do {
             let page = try await waveService.getEvents(
-                projectId: projectId, waveId: waveId, after: lastEventCursor
+                projectId: projectId, waveId: waveId, after: nil
             )
-            if !page.events.isEmpty {
-                // Prepend new events (newest first from API, we want chronological)
-                let newEvents = page.events.reversed()
-                for event in newEvents where !events.contains(where: { $0.id == event.id }) {
-                    events.append(event)
-                }
-                lastEventCursor = page.events.first?.timestamp
+            let chronological = page.events.reversed()
+            for event in chronological where !events.contains(where: { $0.id == event.id }) {
+                events.append(event)
             }
         } catch {
-            // Silent — polling will retry
+            // Silent — SSE will pick up new events anyway.
         }
     }
 
-    // MARK: - Polling
+    // MARK: - SSE subscription
 
-    func startPolling() {
-        stopPolling()
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+    func subscribe() {
+        unsubscribe()
+        streamTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            Task { @MainActor in
-                await self.refresh()
+            let stream = self.streamService.subscribe(
+                projectId: self.projectId, waveId: self.waveId
+            )
+            for await event in stream {
+                self.append(event: event)
+                await self.handleSideEffects(event: event)
             }
         }
     }
 
-    func stopPolling() {
-        pollTimer?.invalidate()
-        pollTimer = nil
+    func unsubscribe() {
+        streamTask?.cancel()
+        streamTask = nil
     }
 
-    private func refresh() async {
-        // Refresh wave detail
-        if let loaded = try? await waveService.getWave(projectId: projectId, waveId: waveId) {
+    @MainActor
+    private func append(event: WaveEvent) {
+        guard !events.contains(where: { $0.id == event.id }) else { return }
+        events.append(event)
+    }
+
+    /// Some events mutate aggregate state that SSE doesn't carry directly
+    /// (wave status, MVI tasks_done counts). For those, refetch the wave
+    /// detail. We deliberately do NOT refetch on every event — that would
+    /// reintroduce the polling cost we're trying to remove.
+    @MainActor
+    private func handleSideEffects(event: WaveEvent) async {
+        let triggersRefresh: Set<String> = [
+            "mvi_ready", "mvi_shipped",
+            "wave_paused", "wave_cancelled",
+            "wave_activated", "wave_failed",
+            "crow_completed", "crow_failed",
+        ]
+        guard triggersRefresh.contains(event.eventType) else { return }
+        if let loaded = try? await waveService.getWave(
+            projectId: projectId, waveId: waveId
+        ) {
             detailState = .loaded(loaded)
-            // Stop polling if wave is terminal
             if loaded.wave.status.isTerminal {
-                stopPolling()
+                unsubscribe()
             }
         }
-        // Fetch new events
-        await loadEvents()
     }
 
     // MARK: - Actions
@@ -129,7 +154,6 @@ final class WaveExecutionViewModel {
         actionError = nil
         do {
             _ = try await waveService.shipMVI(projectId: projectId, waveId: waveId, mviId: mviId)
-            // Refresh to get updated status
             await load()
         } catch {
             actionError = error.localizedDescription
@@ -138,6 +162,6 @@ final class WaveExecutionViewModel {
     }
 
     deinit {
-        pollTimer?.invalidate()
+        streamTask?.cancel()
     }
 }

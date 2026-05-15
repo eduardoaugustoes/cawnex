@@ -111,6 +111,15 @@ struct ServiceFactory {
         return InMemoryWaveService(store: store)
     }
 
+    func makeWaveEventStreamService() -> any WaveEventStreamService {
+        if let apiClient {
+            return APIWaveEventStreamService(
+                client: EventStreamClient(authService: apiClient.authService)
+            )
+        }
+        return InMemoryWaveEventStreamService()
+    }
+
     func makeAutopilotService() -> any AutopilotService {
         if let apiClient {
             return APIAutopilotService(client: apiClient)

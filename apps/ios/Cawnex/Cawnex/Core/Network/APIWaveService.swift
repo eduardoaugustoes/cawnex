@@ -271,8 +271,11 @@ private struct EventItemDTO: Decodable {
     let extra: [String: String]?
 
     func toDomain(index: Int) -> WaveEvent {
+        // Use `{timestamp}#{event_type}` to match the SSE id format
+        // (DDB SK is `{ISO_ts}#{event_type}`). This lets the SSE delta
+        // path dedup against REST-loaded history correctly.
         WaveEvent(
-            id: "\(timestamp)_\(index)",
+            id: "\(timestamp)#\(event_type)",
             eventType: event_type,
             message: message,
             color: color,
