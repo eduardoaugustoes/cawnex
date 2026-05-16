@@ -1,9 +1,11 @@
 # Cawnex through the Dark-Factory Lens
 
-**Date:** 2026-05-16
+**Date:** 2026-05-16 (revised after full-corpus read)
 **Source corpus:** Background Agents research at `~/background-agents/transcripts/` — Ona Background Agents Summit (Day 1 + Day 2, Feb 2026) + Software Factory live-build (Apr/May 2026) + Stripe Minions blog. Specifically [Shardul Vaidya's "Dark Factories" talk](https://github.com/eduardoaugustoes/background-agents) and the convergent architecture across **Coinbase, Ramp, Stripe, Anthropic, and StrongDM**.
 
 This doc compares Cawnex against the convergent dark-factory pattern those five companies independently arrived at. The point: if convergent design is real, the pattern is probably right, and the gaps between Cawnex today and that pattern are the work that turns Cawnex from "supervised single-thread agent" into "factory."
+
+**Companion doc:** [`BACKGROUND-AGENTS-LEARNINGS.md`](BACKGROUND-AGENTS-LEARNINGS.md) covers the 10 other case studies in the corpus and the lenses beyond Shardul's architectural one. Read it for the context-engineering, perpetual-new-hire, codecs-trust, and "go where the pain lives" frames — none of which are in this doc.
 
 ---
 
@@ -72,6 +74,8 @@ Most dark factories collapse to one human gate (PR merge). Cawnex has four: Mile
 
 Tradeoff: Cawnex is **deliberately L3, not L4**. The convergent five trust their verification gates enough to let the bot merge to main. Cawnex trusts its verification gates enough to let the founder *one tap*, then merge.
 
+This also maps cleanly to Patrick Debois's CDLC framework (see [`BACKGROUND-AGENTS-LEARNINGS.md`](BACKGROUND-AGENTS-LEARNINGS.md) §2). Cawnex's four gates are the **"Enable"** stage of context-engineering — the human-harness layer. The convergent five mostly collapsed Enable into "PR merge"; Cawnex spreads it across four altitudes because the user is a founder learning their own product, not an engineering org executing on settled strategy.
+
 ### 5. The append-only event log + SSE fanout (strong match)
 
 DDB Streams → EventBridge Pipe → SQS → Stream Service is essentially a small Kafka. Every state transition is an event. Every event has a consumer. This is the **observability spine** Shardul says the convergent five all built — `CloudWatch + CloudTrail` in his AWS mapping, our events-table + SSE in ours.
@@ -96,6 +100,8 @@ Dark factory: implementer ships → **inside the Worker, before the reviewer**, 
 
 For Cawnex specifically: this is `black --check` + `flake8` + `mypy` + `pytest` run inside the Worker container against the implementer's worktree, with structured failure output threaded into the Reviewer's instructions. Maybe 100 lines of code. Massive jump in autonomy.
 
+**Stripe's "2-CI-iteration cap"** is the operational variant: agent fixes failures, autofixes applied; second iteration fixes residual; hit 2 → escalate to human. The cap is itself back pressure — forces the agent to be careful early. Cawnex's existing `FIX_CYCLE_LIMIT` is the right primitive; we just need the verification gate that triggers it.
+
 ### 2. Cost-routed model dispatch
 
 Today every crow type hardcodes `claude-haiku-4-5-20251001`. That's $1/M input across the board.
@@ -106,6 +112,8 @@ Stripe (the convergent five's most-mature) routes per task:
 - Adversarial review → cheap model (the gate value is in independence, not depth)
 
 For Cawnex: planner = Sonnet 4.6 (worth the cost on harder decompositions); implementer = Haiku for trivial / Sonnet for complex (decision based on planner's task count or context token count); reviewer = Haiku; fixer = Sonnet (always — they're handling Reviewer's pushback, hard problems by definition); Council votes = Haiku majority + Opus for tie-breaker.
+
+**Beyond cost.** The convergent pattern isn't just "save money on easy work." It's **escalate to a stronger model when the easier model fails.** The Fixer crow specifically should be Sonnet because by the time we're invoking it, the Haiku implementer has already produced something the Reviewer rejected. The rework loop's value comes from *different* compute, not just *retried* compute.
 
 Wiring is straightforward — `lambdas/worker/src/worker/config.py:MODEL_CONTEXT_WINDOWS` already knows about all three models. The selection logic doesn't exist yet.
 
@@ -171,9 +179,12 @@ Items (1), (2), and (5) together would move Cawnex from L2-shaped to L3.5. Items
 - `~/background-agents/transcripts/concepts/07-trust-and-verification.md` — back-pressure model, SAE levels, multi-LLM defense
 - Cawnex's own architecture: [`docs/ARCHITECTURE.md`](ARCHITECTURE.md), [`docs/diagrams/cawnex-architecture.drawio`](diagrams/cawnex-architecture.drawio)
 - The five published artifacts from the convergent companies — Stripe Minions blog (parts 1+2), Ramp Inspect, Coinbase posts, StrongDM digital-twin, Anthropic's Claude-Code-on-Claude-Code
+- **[`BACKGROUND-AGENTS-LEARNINGS.md`](BACKGROUND-AGENTS-LEARNINGS.md)** — the 10 other case studies + 12 concept docs in the corpus, and the four lenses (CDLC, perpetual new hire, codecs trust, "go where the pain lives") this doc deliberately doesn't cover
 
 ---
 
 ## One-line takeaway
 
 **Cawnex is dark-factory-shaped at the orchestrator and event-log layers, half-built at the verification and isolation layers, and deliberately different at the human-in-the-loop layer.** The work that turns it into a factory is the verification gate, not the orchestrator — and that work is closer than it looks.
+
+**Updated takeaway (after the broader corpus read):** the dark-factory shape is necessary but not sufficient. What separates *successful* dark-factory teams from their architectural twins is **how well they teach the AI about their codebase** — Stripe's translation layers, Cloudflare's codecs, Genentech's measured skill evolution. Cawnex's user is a founder; their job is becoming the AI's onboarding director. That's a product surface Cawnex doesn't yet expose. See [`BACKGROUND-AGENTS-LEARNINGS.md`](BACKGROUND-AGENTS-LEARNINGS.md) for that framing.
