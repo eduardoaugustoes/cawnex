@@ -13,7 +13,10 @@ class ProjectState(BaseModel):
 
     state: str = Field(
         ...,
-        description='Current state of the project: "draft", "active", "running", "idle", or "completed"',
+        description=(
+            'Current state of the project: "draft", "active", "running", '
+            '"idle", or "completed"'
+        ),
     )
 
 

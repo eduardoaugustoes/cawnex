@@ -1,8 +1,11 @@
 """Compute project's current_state from underlying entity truth."""
 
-from typing import Any, Dict, List
+from __future__ import annotations
 
-from src.db.client import TenantDB
+from typing import TYPE_CHECKING, Any, Dict, List
+
+if TYPE_CHECKING:
+    from src.db.client import TenantDB
 
 _DOC_TYPES = {"vision", "architecture", "glossary", "design"}
 _TERMINAL_WAVE_STATUSES = {"delivered", "cancelled"}

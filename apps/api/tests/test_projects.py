@@ -164,7 +164,11 @@ def test_list_projects_includes_current_state(mock_boto3: Mock) -> None:
         if sk_prefix == "DOC#":
             return [
                 {"SK": "DOC#vision", "doc_type": "vision", "status": "complete"},
-                {"SK": "DOC#architecture", "doc_type": "architecture", "status": "complete"},
+                {
+                    "SK": "DOC#architecture",
+                    "doc_type": "architecture",
+                    "status": "complete",
+                },
                 {"SK": "DOC#glossary", "doc_type": "glossary", "status": "complete"},
                 {"SK": "DOC#design", "doc_type": "design", "status": "complete"},
             ]
