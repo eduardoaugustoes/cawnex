@@ -15,6 +15,7 @@ from murder.config import EVENTS_TABLE_NAME, TABLE_NAME
 from murder.logging import StructuredLogger
 from murder.reactor import (
     react_to_crow_completion,
+    react_to_mvi_terminal,
     react_to_human_task_completed,
     react_to_mvi_queued,
     react_to_wave_steered,
@@ -67,6 +68,14 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
                 processed += 1
             elif level == "murder" and status == "queued":
                 react_to_mvi_queued(blackboard, item, logger)
+                processed += 1
+            elif level == "murder" and status in (
+                "shipped", "rejected", "cancelled",
+            ):
+                # MVI transitioned to a post-review terminal state (founder
+                # hit Approve & Merge or Reject in iOS PR Review). The
+                # reactor checks whether the wave can now finish.
+                react_to_mvi_terminal(blackboard, item, logger)
                 processed += 1
             elif level == "wave" and status == "steered":
                 react_to_wave_steered(blackboard, item, logger)

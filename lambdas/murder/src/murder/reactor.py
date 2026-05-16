@@ -888,6 +888,76 @@ def _maybe_transition_wave(
         _trigger_council_review(blackboard, pk, wave_id, mvis, wave_item, logger)
 
 
+def _maybe_transition_review_to_delivered(
+    blackboard: Blackboard,
+    pk: str,
+    wave_id: str,
+    logger: StructuredLogger,
+) -> None:
+    """If every MVI in this wave is in a post-review terminal state, deliver the wave.
+
+    Triggered after an MVI transitions to `shipped` or `rejected` (from
+    the founder approving or rejecting via the iOS PR actions). The wave
+    is allowed to leave REVIEW only when all of its MVIs have a definite
+    final disposition — not when some are still in `ready_to_ship`.
+
+    Terminal-after-review statuses: shipped, rejected, failed, cancelled.
+    (`ready_to_ship` is intentionally NOT terminal here — that's the
+    pre-review staging state. The user hasn't acted on it yet.)
+    """
+    mvi_prefix = f"S#{wave_id}#m"
+    mvi_items = blackboard.query(pk, mvi_prefix)
+    mvis = [m for m in mvi_items if m.get("level") == "murder"]
+    if not mvis:
+        return
+
+    post_review_terminal = {"shipped", "rejected", "failed", "cancelled"}
+    all_terminal = all(m.get("status") in post_review_terminal for m in mvis)
+    if not all_terminal:
+        return
+
+    wave_sk = build_sk(wave_id=wave_id)
+    wave_item = blackboard.read(pk, wave_sk)
+    if not wave_item or wave_item.get("status") != WaveStatus.REVIEW.value:
+        return
+
+    # REVIEW → DELIVERED is the only forward transition from review per
+    # enums._WAVE_TRANSITIONS. "Delivered" here means "the wave finished
+    # the review gate" — it doesn't require all MVIs to be shipped, just
+    # that every MVI got a final disposition (shipped or rejected).
+    blackboard.update(pk, wave_sk, {"status": WaveStatus.DELIVERED.value})
+    logger.event(
+        "wave_delivered",
+        wave_id=wave_id,
+        mvi_count=len(mvis),
+        shipped_count=sum(1 for m in mvis if m.get("status") == "shipped"),
+        rejected_count=sum(1 for m in mvis if m.get("status") == "rejected"),
+    )
+
+
+def react_to_mvi_terminal(
+    blackboard: Blackboard,
+    mvi_item: dict[str, Any],
+    logger: StructuredLogger,
+) -> None:
+    """Dispatched when an MVI transitions to shipped/rejected/cancelled.
+
+    These transitions are user-driven (founder hitting Approve & Merge
+    or Reject in the iOS PR Review screen) — they're not produced by
+    crow completions. The dispatcher in handler.py routes here when
+    level=murder and status is a post-review terminal.
+
+    The only follow-up action is to check whether the wave can now
+    transition REVIEW → DELIVERED.
+    """
+    pk = mvi_item.get("PK", "")
+    sk = mvi_item.get("SK", "")
+    if not pk or not sk:
+        return
+    wave_id = _extract_wave_id(sk)
+    _maybe_transition_review_to_delivered(blackboard, pk, wave_id, logger)
+
+
 def _trigger_council_review(
     blackboard: Blackboard,
     pk: str,

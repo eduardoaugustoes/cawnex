@@ -13,7 +13,11 @@ from murder.enums import CrowStatus, CrowType, MVIStatus, WaveStatus
 from murder.keys import build_pk, build_sk
 from murder.logging import StructuredLogger
 from murder.models import Cost, CrowSnapshot, MVISnapshot, WaveBudget, WaveSnapshot
-from murder.reactor import react_to_crow_completion, react_to_mvi_queued
+from murder.reactor import (
+    react_to_crow_completion,
+    react_to_mvi_queued,
+    react_to_mvi_terminal,
+)
 
 
 def _seed_wave(
@@ -715,3 +719,122 @@ class TestReactToCrowCompletion:
         assert "Recent Fixes Applied" in instructions
         assert "Added null guard" in instructions
         assert "src/handler.py" in instructions
+
+
+class TestReactToMVITerminal:
+    """Tests for the MVI shipped/rejected → wave delivered transition.
+
+    Triggered by the iOS PR Review screen calling Approve & Merge or
+    Reject. After the API updates the MVI snapshot, the DDB Stream
+    dispatches into react_to_mvi_terminal, which checks if the wave can
+    now leave REVIEW → DELIVERED.
+    """
+
+    def test_shipped_mvi_transitions_wave_to_delivered_when_only_mvi(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """Single-MVI wave: shipping the only MVI delivers the wave."""
+        wave = WaveSnapshot(
+            tenant="t1",
+            project="p1",
+            wave_id="w01",
+            status=WaveStatus.REVIEW,  # wave already moved past executing
+            human_directive="x",
+            budget=WaveBudget(spent=0, limit=WAVE_BUDGET_LIMIT),
+        )
+        blackboard.write_item(wave.to_item())
+        _seed_mvi(blackboard, status=MVIStatus.SHIPPED)
+
+        mvi_sk = build_sk(wave_id="w01", mvi_id="01")
+        mvi_item = blackboard.read(build_pk("t1", "p1"), mvi_sk)
+        assert mvi_item is not None
+        react_to_mvi_terminal(blackboard, mvi_item, logger)
+
+        wave_after = blackboard.read(build_pk("t1", "p1"), build_sk(wave_id="w01"))
+        assert wave_after is not None
+        assert wave_after["status"] == "delivered"
+
+    def test_shipped_mvi_does_not_deliver_when_sibling_still_ready(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """Wave stays in REVIEW if another MVI is still ready_to_ship."""
+        wave = WaveSnapshot(
+            tenant="t1",
+            project="p1",
+            wave_id="w01",
+            status=WaveStatus.REVIEW,
+            human_directive="x",
+            budget=WaveBudget(spent=0, limit=WAVE_BUDGET_LIMIT),
+        )
+        blackboard.write_item(wave.to_item())
+        _seed_mvi(blackboard, mvi_id="01", status=MVIStatus.SHIPPED)
+        _seed_mvi(blackboard, mvi_id="02", status=MVIStatus.READY_TO_SHIP)
+
+        mvi_sk = build_sk(wave_id="w01", mvi_id="01")
+        mvi_item = blackboard.read(build_pk("t1", "p1"), mvi_sk)
+        assert mvi_item is not None
+        react_to_mvi_terminal(blackboard, mvi_item, logger)
+
+        wave_after = blackboard.read(build_pk("t1", "p1"), build_sk(wave_id="w01"))
+        assert wave_after is not None
+        assert wave_after["status"] == "review"
+
+    def test_rejected_mvi_also_counts_as_terminal(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """A rejected MVI is a final disposition — wave can still deliver."""
+        wave = WaveSnapshot(
+            tenant="t1",
+            project="p1",
+            wave_id="w01",
+            status=WaveStatus.REVIEW,
+            human_directive="x",
+            budget=WaveBudget(spent=0, limit=WAVE_BUDGET_LIMIT),
+        )
+        blackboard.write_item(wave.to_item())
+        _seed_mvi(blackboard, mvi_id="01", status=MVIStatus.SHIPPED)
+        _seed_mvi(blackboard, mvi_id="02", status=MVIStatus.REJECTED)
+
+        mvi_sk = build_sk(wave_id="w01", mvi_id="02")
+        mvi_item = blackboard.read(build_pk("t1", "p1"), mvi_sk)
+        assert mvi_item is not None
+        react_to_mvi_terminal(blackboard, mvi_item, logger)
+
+        wave_after = blackboard.read(build_pk("t1", "p1"), build_sk(wave_id="w01"))
+        assert wave_after is not None
+        assert wave_after["status"] == "delivered"
+
+    def test_terminal_mvi_with_no_wave_is_noop(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """If the wave snapshot is missing, the reactor exits cleanly."""
+        _seed_mvi(blackboard, status=MVIStatus.SHIPPED)
+        mvi_sk = build_sk(wave_id="w01", mvi_id="01")
+        mvi_item = blackboard.read(build_pk("t1", "p1"), mvi_sk)
+        assert mvi_item is not None
+        # No wave seeded; this should not raise.
+        react_to_mvi_terminal(blackboard, mvi_item, logger)
+
+    def test_terminal_mvi_does_not_advance_wave_if_already_delivered(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """Idempotency — re-dispatching on an already-delivered wave is a noop."""
+        wave = WaveSnapshot(
+            tenant="t1",
+            project="p1",
+            wave_id="w01",
+            status=WaveStatus.DELIVERED,
+            human_directive="x",
+            budget=WaveBudget(spent=0, limit=WAVE_BUDGET_LIMIT),
+        )
+        blackboard.write_item(wave.to_item())
+        _seed_mvi(blackboard, status=MVIStatus.SHIPPED)
+
+        mvi_sk = build_sk(wave_id="w01", mvi_id="01")
+        mvi_item = blackboard.read(build_pk("t1", "p1"), mvi_sk)
+        assert mvi_item is not None
+        react_to_mvi_terminal(blackboard, mvi_item, logger)
+
+        wave_after = blackboard.read(build_pk("t1", "p1"), build_sk(wave_id="w01"))
+        assert wave_after is not None
+        assert wave_after["status"] == "delivered"
