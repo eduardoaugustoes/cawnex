@@ -79,6 +79,15 @@ struct ServiceFactory {
         return InMemoryPRService(store: store)
     }
 
+    /// PR mutation actions (merge, reject). Returns nil for InMemory mode —
+    /// actions only work with a real APIClient. The PRReviewViewModel
+    /// handles a nil service gracefully by surfacing an "actions disabled"
+    /// error if the user taps a button.
+    func makePRActionsService() -> (any PRActionsService)? {
+        guard let apiClient else { return nil }
+        return APIPRActionsService(client: apiClient)
+    }
+
     func makeMurdersService() -> any MurdersService {
         if let apiClient {
             return APIMurdersService(client: apiClient)

@@ -268,7 +268,8 @@ struct MainTabView: View {
                 projectId: projectId,
                 prId: prId,
                 viewModel: PRReviewViewModel(
-                    prService: services.makePRService()
+                    prService: services.makePRService(),
+                    actionsService: services.makePRActionsService()
                 ),
                 onBack: { tabRouter.projectPath.removeLast() }
             )

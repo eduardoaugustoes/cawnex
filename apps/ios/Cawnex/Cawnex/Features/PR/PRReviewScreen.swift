@@ -6,6 +6,9 @@ struct PRReviewScreen: View {
     @State var viewModel: PRReviewViewModel
     var onBack: () -> Void = {}
 
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+
     var body: some View {
         ZStack(alignment: .bottom) {
             CawnexColors.background.ignoresSafeArea()
@@ -51,6 +54,56 @@ struct PRReviewScreen: View {
         }
         .navigationBarHidden(true)
         .task { await viewModel.load(projectId: projectId, prId: prId) }
+        .sheet(isPresented: $viewModel.showMergeConfirmSheet) {
+            MergeConfirmSheet(
+                prNumber: prNumberFromId,
+                prTitle: viewModel.detail?.title ?? "",
+                isMerging: viewModel.isMerging,
+                onConfirm: {
+                    Task { await viewModel.approveAndMerge() }
+                },
+                onCancel: { viewModel.showMergeConfirmSheet = false }
+            )
+            .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $viewModel.showRejectSheet) {
+            RejectSheet(
+                prNumber: prNumberFromId,
+                reason: $viewModel.rejectReason,
+                isRejecting: viewModel.isRejecting,
+                onConfirm: {
+                    Task { await viewModel.rejectPR() }
+                },
+                onCancel: { viewModel.showRejectSheet = false }
+            )
+            .presentationDetents([.medium, .large])
+        }
+        .alert(
+            "Action failed",
+            isPresented: Binding(
+                get: { viewModel.actionError != nil },
+                set: { if !$0 { viewModel.actionError = nil } }
+            )
+        ) {
+            Button("OK") { viewModel.actionError = nil }
+        } message: {
+            Text(viewModel.actionError ?? "")
+        }
+        .onChange(of: viewModel.lastActionResult) { _, result in
+            if result != nil {
+                // Pop back to the wave/MVI screen. The live SSE feed will
+                // reflect the MVI status change there.
+                dismiss()
+            }
+        }
+    }
+
+    /// Parses the trailing PR number out of the composite `wave_id:mvi_id:pr_number`.
+    /// Used for sheet titles; the ViewModel uses its own internal parse for API calls.
+    private var prNumberFromId: Int {
+        let parts = prId.split(separator: ":")
+        guard parts.count == 3, let n = Int(parts[2]) else { return 0 }
+        return n
     }
 
     // MARK: - Nav
@@ -483,10 +536,16 @@ struct PRReviewScreen: View {
     // MARK: - Action Bar
 
     private func actionBar(status: PRStatus) -> some View {
-        VStack(spacing: CawnexSpacing.sm) {
+        let mergeEnabled = viewModel.canMutate && !viewModel.isMerging
+        return VStack(spacing: CawnexSpacing.sm) {
             // Primary: Approve & Merge
-            Button {} label: {
+            Button {
+                viewModel.showMergeConfirmSheet = true
+            } label: {
                 HStack(spacing: CawnexSpacing.sm) {
+                    if viewModel.isMerging {
+                        ProgressView().tint(.white)
+                    }
                     Image(systemName: "arrow.triangle.merge")
                         .font(.system(size: 15, weight: .bold))
                     Text("Approve & Merge")
@@ -495,18 +554,31 @@ struct PRReviewScreen: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                .background(CawnexColors.muted)
+                .background(mergeEnabled ? CawnexColors.success : CawnexColors.muted)
                 .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
             }
             .buttonStyle(.plain)
-            .disabled(true)
-            .opacity(0.4)
+            .disabled(!mergeEnabled)
+            .opacity(mergeEnabled ? 1.0 : 0.4)
 
-            // Secondary row
+            // Secondary row — Steer stays disabled until Phase 2.
             HStack(spacing: CawnexSpacing.md) {
-                secondaryButton(label: "Steer", icon: "arrow.uturn.left", color: CawnexColors.warning)
-                secondaryButton(label: "Reject", icon: "xmark", color: CawnexColors.destructive)
-                secondaryButton(label: "GitHub", icon: "arrow.up.right", color: CawnexColors.mutedForeground)
+                secondaryButton(
+                    label: "Steer", icon: "arrow.uturn.left", color: CawnexColors.warning,
+                    disabled: true,
+                    action: {}
+                )
+                secondaryButton(
+                    label: "Reject", icon: "xmark", color: CawnexColors.destructive,
+                    disabled: !viewModel.canMutate || viewModel.isRejecting,
+                    action: { viewModel.showRejectSheet = true }
+                )
+                secondaryButton(
+                    label: "GitHub", icon: "arrow.up.right",
+                    color: CawnexColors.mutedForeground,
+                    disabled: viewModel.detail == nil,
+                    action: openGitHub
+                )
             }
         }
         .padding(.horizontal, CawnexSpacing.xl)
@@ -515,8 +587,14 @@ struct PRReviewScreen: View {
         .background(CawnexColors.background)
     }
 
-    private func secondaryButton(label: String, icon: String, color: Color) -> some View {
-        Button {} label: {
+    private func secondaryButton(
+        label: String,
+        icon: String,
+        color: Color,
+        disabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 12, weight: .medium))
@@ -534,8 +612,21 @@ struct PRReviewScreen: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(true)
-        .opacity(0.4)
+        .disabled(disabled)
+        .opacity(disabled ? 0.4 : 1.0)
+    }
+
+    /// Build the canonical GitHub PR URL from the composite prId.
+    /// The backend's PR response doesn't expose `url` directly on the
+    /// iOS PRReviewDetail today — we construct it from the repo we know
+    /// (cawnex) + the parsed PR number. If we later need a different
+    /// repo, the backend can surface it on PRReviewDetail.
+    private func openGitHub() {
+        let parts = prId.split(separator: ":")
+        guard parts.count == 3, let n = Int(parts[2]),
+            let url = URL(string: "https://github.com/eduardoaugustoes/cawnex/pull/\(n)")
+        else { return }
+        openURL(url)
     }
 }
 
