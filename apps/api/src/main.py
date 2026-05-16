@@ -24,6 +24,7 @@ from src.routes import (
     murders,
     mvi,
     notifications,
+    pr_actions,
     projects,
     prs,
     tasks,
@@ -57,6 +58,7 @@ app.include_router(goals.router)
 app.include_router(documents.router)
 app.include_router(human_tasks.router)
 app.include_router(prs.router)
+app.include_router(pr_actions.router)
 app.include_router(tasks.router)
 app.include_router(vault.router)
 app.include_router(billing.router)

@@ -505,6 +505,14 @@ export class CawnexStack extends cdk.Stack {
       this, "AnthropicAuthSecret", `cawnex/${stage}/anthropic-auth-token`
     );
 
+    // PR action routes (merge, reject) call GitHub's REST API to mutate PRs.
+    // Inject the raw token as an env var — the secret stores a plain token
+    // string (not JSON), so unsafeUnwrap is correct.
+    apiFunction.addEnvironment(
+      "GITHUB_TOKEN", githubTokenSecret.secretValue.unsafeUnwrap()
+    );
+    githubTokenSecret.grantRead(apiFunction);
+
     const workerContainer = workerTaskDef.addContainer("worker", {
       containerName: "murder",
       image: ecs.ContainerImage.fromAsset("..", {
