@@ -50,7 +50,7 @@ struct ProjectServiceContractTests {
     @Test func listProjects_allProjectsHaveValidStatus() async throws {
         let (service, _) = makeSUT()
         let projects = try await service.listProjects()
-        let validStatuses: Set<ProjectStatus> = [.draft, .active, .paused, .completed, .archived]
+        let validStatuses: Set<ProjectStatus> = [.draft, .active, .running, .idle, .completed, .paused, .archived]
         for project in projects {
             #expect(validStatuses.contains(project.status))
         }
@@ -155,5 +155,48 @@ struct ProjectServiceContractTests {
         let created = try await service.createProject(name: "New", description: "new", murders: [.dev])
         let fetched = try await service.getProject(created.id)
         #expect(fetched == created)
+    }
+
+    // MARK: - Snapshot tests for state decoding
+
+    @Test func projectStatus_decodesRunning() {
+        let status = ProjectStatus(rawValue: "Running")
+        #expect(status == .running)
+    }
+
+    @Test func projectStatus_decodesIdle() {
+        let status = ProjectStatus(rawValue: "Idle")
+        #expect(status == .idle)
+    }
+
+    @Test func projectStatus_decodesDraft() {
+        let status = ProjectStatus(rawValue: "Draft")
+        #expect(status == .draft)
+    }
+
+    @Test func projectStatus_decodesActive() {
+        let status = ProjectStatus(rawValue: "Active")
+        #expect(status == .active)
+    }
+
+    @Test func projectStatus_decodesCompleted() {
+        let status = ProjectStatus(rawValue: "Completed")
+        #expect(status == .completed)
+    }
+
+    @Test func projectStatus_runningHasCorrectProperties() {
+        let status = ProjectStatus.running
+        #expect(status.label == "Running")
+        #expect(status.icon == "play.fill")
+        #expect(status.color == CawnexColors.success)
+        #expect(status.transitions.isEmpty)
+    }
+
+    @Test func projectStatus_idleHasCorrectProperties() {
+        let status = ProjectStatus.idle
+        #expect(status.label == "Idle")
+        #expect(status.icon == "pause.circle")
+        #expect(status.color == CawnexColors.warning)
+        #expect(status.transitions.isEmpty)
     }
 }
