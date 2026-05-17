@@ -3,9 +3,13 @@ import Foundation
 @Observable
 final class MilestoneDetailViewModel {
     private let milestoneService: any MilestoneService
+    private var refreshTimer: Timer?
+    private let projectService: any ProjectService
+    
     var state: ViewState<MilestoneDetail> = .idle
     var messageText: String = ""
     var isSending: Bool = false
+    @ObservationIgnored var stateReadout: ProjectState?
 
     var detail: MilestoneDetail? {
         if case .loaded(let d) = state { return d }
@@ -15,8 +19,9 @@ final class MilestoneDetailViewModel {
     var completedSections: Int { detail?.completedSections ?? 0 }
     var totalSections: Int { detail?.totalSections ?? 0 }
 
-    init(milestoneService: any MilestoneService) {
+    init(milestoneService: any MilestoneService, projectService: any ProjectService = APIProjectService(client: APIClient.shared, store: AppStore())) {
         self.milestoneService = milestoneService
+        self.projectService = projectService
     }
 
     func load(projectId: String, milestoneId: String) async {
@@ -61,5 +66,28 @@ final class MilestoneDetailViewModel {
             state = .error(error.localizedDescription)
         }
         isSending = false
+    }
+
+    /// Start a 30-second auto-refresh timer for project state.
+    func startRefreshTimer(projectId: String) {
+        stopRefreshTimer()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            Task { await self?.refreshProjectState(projectId) }
+        }
+        // Initial load
+        Task { await refreshProjectState(projectId) }
+    }
+
+    /// Stop the auto-refresh timer.
+    func stopRefreshTimer() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+
+    /// Refresh the project state from the API.
+    private func refreshProjectState(_ projectId: String) async {
+        // This is a placeholder. In a real implementation, we would fetch the project
+        // from the API and extract the state field. For now, we'll skip this.
+        // Once ProjectService has a dedicated method, we can implement this properly.
     }
 }

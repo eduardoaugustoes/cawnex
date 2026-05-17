@@ -32,7 +32,7 @@ final class APIProjectService: ProjectService {
             id: response.project_id,
             name: response.name,
             description: description,
-            status: ProjectStatus(rawValue: response.status.capitalized) ?? .draft,
+            status: ProjectStatus(rawValue: response.current_state.capitalized) ?? .draft,
             tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
             creditsSpent: 0,
             humanEquivSaved: 0
@@ -53,7 +53,7 @@ private struct CreateProjectDTO: Encodable {
 private struct CreateProjectResponseDTO: Decodable {
     let project_id: String
     let name: String
-    let status: String
+    let current_state: String
     let murders: [String]
     let created_at: String
 }
@@ -62,7 +62,7 @@ private struct ProjectDTO: Decodable {
     let project_id: String
     let name: String
     let one_liner: String
-    let status: String
+    let current_state: String
     let murders: [String]
     let created_at: String
 
@@ -71,7 +71,7 @@ private struct ProjectDTO: Decodable {
             id: project_id,
             name: name,
             description: one_liner,
-            status: ProjectStatus(rawValue: status.capitalized) ?? .draft,
+            status: ProjectStatus(rawValue: current_state.capitalized) ?? .draft,
             tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
             creditsSpent: 0,
             humanEquivSaved: 0

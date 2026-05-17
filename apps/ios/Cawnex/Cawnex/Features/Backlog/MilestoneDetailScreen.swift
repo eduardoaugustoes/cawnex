@@ -15,6 +15,12 @@ struct MilestoneDetailScreen: View {
         .background(CawnexColors.background)
         .navigationBarHidden(true)
         .task { await viewModel.load(projectId: projectId, milestoneId: milestoneId) }
+        .onAppear {
+            viewModel.startRefreshTimer(projectId: projectId)
+        }
+        .onDisappear {
+            viewModel.stopRefreshTimer()
+        }
     }
 
     // MARK: - Scroll Content
@@ -26,6 +32,10 @@ struct MilestoneDetailScreen: View {
                     navRow
                     if let detail = viewModel.detail {
                         definitionBanner
+                        // Wave Overview Card (conditionally shown when state is available)
+                        if let state = viewModel.stateReadout {
+                            WaveOverviewCard(state: state)
+                        }
                         sectionsList(detail.sections)
                         chatArea(detail.messages)
                         previewButton
