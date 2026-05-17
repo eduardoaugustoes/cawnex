@@ -183,7 +183,12 @@ struct ProjectHubScreen: View {
     private func startRefreshTimer() {
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
             Task {
-                await viewModel.load(projectId: projectId)
+                do {
+                    await viewModel.load(projectId: projectId)
+                } catch {
+                    // Log error silently; Timer continues firing
+                    print("Refresh error: \(error.localizedDescription)")
+                }
             }
         }
     }

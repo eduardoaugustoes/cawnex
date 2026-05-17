@@ -144,5 +144,6 @@ async def get_project_hub(  # noqa: C901
             "mvis_total": total_mvis,
             "mvis_shipped": mvis_shipped,
             "total_crows": total_crows,
+            "active_crows": active_crows,
         },
     }

@@ -40,11 +40,8 @@ struct ProjectHubWaveOverviewCard: View {
     private var crowCompletionRow: some View {
         HStack {
             HStack(spacing: 8) {
-                Image("crow-icon")
-                    .renderingMode(.template)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 16, height: 16)
+                Image(systemName: "bird.fill")
+                    .font(.system(size: 14))
                     .foregroundStyle(CawnexColors.success)
                 Text("Crow Completion")
                     .font(CawnexTypography.footnote)
@@ -93,7 +90,7 @@ struct ProjectHubWaveOverviewCard: View {
                     .foregroundStyle(CawnexColors.mutedForeground)
             }
             Spacer()
-            Text("\(waveOverview.activeWaves) active")  
+            Text("\(waveOverview.activeWaves) active")
                 .font(CawnexTypography.footnoteMedium)
                 .foregroundStyle(waveOverview.activeWaves > 0 ? CawnexColors.success : CawnexColors.info)
         }
