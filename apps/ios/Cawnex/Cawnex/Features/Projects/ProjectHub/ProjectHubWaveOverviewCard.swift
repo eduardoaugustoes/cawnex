@@ -2,8 +2,6 @@ import SwiftUI
 
 struct ProjectHubWaveOverviewCard: View {
     let waveOverview: WaveOverviewSummary
-    @State private var elapsedSeconds: Int = 0
-    @State private var refreshTimer: Timer?
 
     var body: some View {
         VStack(alignment: .leading, spacing: CawnexSpacing.md) {
@@ -20,12 +18,6 @@ struct ProjectHubWaveOverviewCard: View {
             RoundedRectangle(cornerRadius: CawnexRadius.md)
                 .stroke(CawnexColors.primary.opacity(0.27), lineWidth: 1)
         )
-        .onAppear {
-            startRefreshTimer()
-        }
-        .onDisappear {
-            stopRefreshTimer()
-        }
     }
 
     private var cardHeader: some View {
@@ -130,17 +122,6 @@ struct ProjectHubWaveOverviewCard: View {
         .padding(.vertical, CawnexSpacing.sm)
         .background(CawnexColors.muted)
         .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.sm))
-    }
-
-    private func startRefreshTimer() {
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            elapsedSeconds += 1
-        }
-    }
-
-    private func stopRefreshTimer() {
-        refreshTimer?.invalidate()
-        refreshTimer = nil
     }
 }
 
