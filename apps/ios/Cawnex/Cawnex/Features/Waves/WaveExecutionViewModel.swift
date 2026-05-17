@@ -12,6 +12,18 @@ final class WaveExecutionViewModel {
     var events: [WaveEvent] = []
     var isShipping: Set<String> = []
     var actionError: String?
+    /// Layer B: set when a `council_decision` SSE event arrives. The Wave
+    /// Execution screen renders a tappable banner that deep-links to the
+    /// Wave Review screen (S35).
+    var pendingCouncilBanner: CouncilBanner?
+
+    struct CouncilBanner: Identifiable, Equatable {
+        var id: String { sessionId }
+        let waveId: String
+        let sessionId: String
+        let decisionAction: String
+        let confidence: Double
+    }
 
     private var streamTask: Task<Void, Never>?
 
@@ -100,6 +112,17 @@ final class WaveExecutionViewModel {
     /// reintroduce the polling cost we're trying to remove.
     @MainActor
     private func handleSideEffects(event: WaveEvent) async {
+        // Layer B: surface the Council banner on council_decision events.
+        if event.eventType == "council_decision" {
+            pendingCouncilBanner = CouncilBanner(
+                waveId: event.extra["wave_id"] ?? waveId,
+                sessionId: event.extra["session_id"] ?? "",
+                decisionAction: event.extra["decision_action"] ?? "—",
+                confidence: Double(event.extra["confidence"] ?? "") ?? 0
+            )
+            return
+        }
+
         let triggersRefresh: Set<String> = [
             "mvi_ready", "mvi_shipped",
             "wave_paused", "wave_cancelled",
