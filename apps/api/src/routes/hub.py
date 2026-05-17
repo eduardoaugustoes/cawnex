@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.auth.dependencies import get_tenant
 from src.auth.tenant import TenantContext
 from src.db.client import TenantDB
+from src.db.project_state import compute_current_state
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["hub"])
 
@@ -112,12 +113,20 @@ async def get_project_hub(  # noqa: C901
 
     progress_pct = int(mvis_shipped * 100 / total_mvis) if total_mvis > 0 else 0
 
+    # Compute current state
+    try:
+        current_state = compute_current_state(project_id, db)
+    except Exception:
+        # If state computation fails, default to draft
+        current_state = "draft"
+
     return {
         "project": {
             "id": project_id,
             "name": project.get("name", ""),
             "one_liner": project.get("one_liner", ""),
             "status": project.get("status", "draft"),
+            "current_state": current_state,
             "murders": project.get("murders", ["dev"]),
         },
         "documents": documents,
