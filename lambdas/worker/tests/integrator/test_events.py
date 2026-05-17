@@ -20,7 +20,10 @@ def test_emit_pipeline_error_writes_to_events_table_and_logs() -> None:
     )
     assert blackboard.write_event.called
     args = blackboard.write_event.call_args
-    event_item = args.kwargs["event_item"]
+    # write_event takes a positional arg (matches the production Blackboard
+    # signature used by the worker — earlier kwarg form crashed on the live
+    # Blackboard which expects positional only).
+    event_item = args.args[0]
     assert event_item["event_type"] == "council_pipeline_error"
     assert event_item["phase"] == "integrator-fetch"
     assert event_item["final"] is True

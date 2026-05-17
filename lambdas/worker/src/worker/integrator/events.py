@@ -41,7 +41,7 @@ def emit_pipeline_error(
         "created_at": now,
         "expires_at": int(datetime.now(timezone.utc).timestamp()) + 86400,
     }
-    blackboard.write_event(event_item=event_item)
+    blackboard.write_event(event_item)
     logger.error(
         json.dumps(
             {
