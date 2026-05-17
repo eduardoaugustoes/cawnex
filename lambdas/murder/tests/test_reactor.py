@@ -1049,3 +1049,35 @@ class TestHandleIntegrationComplete:
         mvi_2 = blackboard.read("P#p1", "S#w1#m_2")
         assert mvi_1 is not None and mvi_1["status"] == "executing"
         assert mvi_2 is not None and mvi_2["status"] == "executing"
+
+
+class TestHandleCouncilComplete:
+    def test_council_completed_transitions_wave_to_under_human_review(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w1",
+                "level": "wave",
+                "status": "under_council_review",
+                "wave_id": "w1",
+            }
+        )
+        session = {
+            "PK": "P#p1",
+            "SK": "COUNCIL#wr_w1_xyz",
+            "status": "completed",
+            "wave_id": "w1",
+            "decision": {"action": "approve"},
+        }
+        from murder.reactor import react_to_council_complete
+
+        react_to_council_complete(
+            blackboard=blackboard,
+            session=session,
+            logger=logger,
+        )
+        wave = blackboard.read("P#p1", "S#w1")
+        assert wave is not None
+        assert wave["status"] == "under_human_review"

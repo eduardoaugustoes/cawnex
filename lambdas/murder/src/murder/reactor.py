@@ -1125,6 +1125,28 @@ def react_to_integration_complete(
     )
 
 
+def react_to_council_complete(
+    blackboard: Blackboard,
+    session: dict[str, Any],
+    logger: StructuredLogger,
+) -> None:
+    """When Council writes status=completed, transition wave to under_human_review."""
+    pk = session.get("PK", "")
+    wave_id = session.get("wave_id", "")
+    if not pk or not wave_id:
+        return
+    blackboard.update(
+        pk,
+        build_sk(wave_id=wave_id),
+        {"status": WaveStatus.UNDER_HUMAN_REVIEW.value},
+    )
+    logger.event(
+        "council_complete",
+        wave_id=wave_id,
+        decision_action=(session.get("decision") or {}).get("action", ""),
+    )
+
+
 def _maybe_start_integrator(
     blackboard: Blackboard,
     pk: str,

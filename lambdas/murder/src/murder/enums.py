@@ -17,6 +17,7 @@ class WaveStatus(Enum):
     INTEGRATING = "integrating"
     NEEDS_REWORK = "needs_rework"
     UNDER_COUNCIL_REVIEW = "under_council_review"
+    UNDER_HUMAN_REVIEW = "under_human_review"
     STEERED = "steered"
     DELIVERED = "delivered"
     CANCELLED = "cancelled"

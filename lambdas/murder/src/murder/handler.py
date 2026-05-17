@@ -14,6 +14,7 @@ from murder.blackboard import Blackboard
 from murder.config import EVENTS_TABLE_NAME, TABLE_NAME
 from murder.logging import StructuredLogger
 from murder.reactor import (
+    react_to_council_complete,
     react_to_crow_completion,
     react_to_human_task_completed,
     react_to_integration_complete,
@@ -83,6 +84,13 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
                 processed += 1
             elif item.get("SK", "").startswith("INTEGRATION#") and event_name == "INSERT":
                 react_to_integration_complete(blackboard, item, logger)
+                processed += 1
+            elif (
+                item.get("SK", "").startswith("COUNCIL#")
+                and event_name == "MODIFY"
+                and item.get("status") == "completed"
+            ):
+                react_to_council_complete(blackboard, item, logger)
                 processed += 1
             else:
                 skipped += 1

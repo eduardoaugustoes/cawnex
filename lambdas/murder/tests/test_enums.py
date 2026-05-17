@@ -30,6 +30,7 @@ class TestWaveStatus:
             "integrating",
             "needs_rework",
             "under_council_review",
+            "under_human_review",
             "steered",
             "delivered",
             "cancelled",
