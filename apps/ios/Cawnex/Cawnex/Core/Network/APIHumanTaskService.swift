@@ -22,13 +22,21 @@ final class APIHumanTaskService: HumanTaskService {
     }
 
     func respond(projectId: String, humanTaskId: String, response: [String: Any]?, steer: String?) async throws -> String {
+        // The response dict carries heterogeneous types (Bool for toggles,
+        // Int/Double for number fields, String for everything else). Encode
+        // via AnyCodable so the backend's per-field type validation passes —
+        // previously we forced a `[String: String]?` cast which silently
+        // turned every value into a string and tripped the API's
+        // `type_mismatch` validator on boolean fields.
         struct RespondBody: Encodable {
-            let response: [String: String]?
+            let response: [String: AnyCodable]?
             let steer: String?
         }
 
-        let responseDict = response as? [String: String]
-        let body = RespondBody(response: responseDict, steer: steer)
+        let typedResponse: [String: AnyCodable]? = response.map { dict in
+            Dictionary(uniqueKeysWithValues: dict.map { ($0, AnyCodable($1)) })
+        }
+        let body = RespondBody(response: typedResponse, steer: steer)
         let result: RespondResponseDTO = try await client.post(
             "/projects/\(projectId)/human-tasks/\(humanTaskId)/respond",
             body: body

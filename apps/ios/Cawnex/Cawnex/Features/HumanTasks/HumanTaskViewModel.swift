@@ -79,7 +79,12 @@ final class HumanTaskViewModel {
         }
 
         do {
-            let response: [String: Any]? = hasResponse ? fieldValues : nil
+            // Coerce each field's String-form value into the type the backend expects.
+            // Without this, boolean toggles arrive as "true"/"false" strings and fail
+            // the API's type validation with `type_mismatch`.
+            let typedResponse: [String: Any]? = hasResponse
+                ? coerceFieldValues() : nil
+            let response: [String: Any]? = typedResponse
             let steer: String? = hasSteer ? steerText : nil
             let status = try await humanTaskService.respond(
                 projectId: projectId,
@@ -94,5 +99,37 @@ final class HumanTaskViewModel {
             submitError = error.localizedDescription
             isSubmitting = false
         }
+    }
+
+    /// Convert each fieldValues string to the JSON type the backend expects,
+    /// based on the field's declared InputFieldType. Toggles arrive as
+    /// "true"/"false" strings from the UI; the backend wants real booleans.
+    /// Number fields likewise need to land as Int/Double.
+    private func coerceFieldValues() -> [String: Any] {
+        guard case .loaded(let d) = detailState else {
+            return fieldValues  // fall back to raw strings
+        }
+        var typed: [String: Any] = [:]
+        let typeByFieldId = Dictionary(
+            uniqueKeysWithValues: d.inputSchema.map { ($0.id, $0.type) }
+        )
+        for (id, raw) in fieldValues {
+            let fieldType = typeByFieldId[id] ?? .string
+            switch fieldType {
+            case .boolean:
+                typed[id] = (raw == "true")
+            case .number:
+                if let intVal = Int(raw) {
+                    typed[id] = intVal
+                } else if let dblVal = Double(raw) {
+                    typed[id] = dblVal
+                } else {
+                    typed[id] = raw
+                }
+            default:
+                typed[id] = raw
+            }
+        }
+        return typed
     }
 }
