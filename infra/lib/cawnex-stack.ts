@@ -584,6 +584,94 @@ export class CawnexStack extends cdk.Stack {
     });
 
     // ─────────────────────────────────────────────
+    // Council Fargate service — runs 6-advisor wave-review sessions
+    // Reads from EFS (post-merge state); writes only COUNCIL# + MEM# rows.
+    // desiredCount stays at 0; the scaler bumps it on COUNCIL# inserts.
+    // ─────────────────────────────────────────────
+    const councilSg = new ec2.SecurityGroup(this, "CouncilServiceSG", {
+      vpc,
+      description: "Council Fargate egress-only",
+      allowAllOutbound: true,
+    });
+    repoFs.connections.allowDefaultPortFrom(councilSg, "Council EFS read");
+
+    const councilAccessPoint = repoFs.addAccessPoint("CouncilTenantAP", {
+      path: "/T/dev-tenant",
+      posixUser: { uid: "1000", gid: "1000" },
+      createAcl: { ownerUid: "1000", ownerGid: "1000", permissions: "750" },
+    });
+
+    const councilTaskDef = new ecs.FargateTaskDefinition(this, "CouncilTask", {
+      family: `cawnex-council-${stage}`,
+      cpu: 512,
+      memoryLimitMiB: 1024,
+    });
+
+    councilTaskDef.addVolume({
+      name: "repos",
+      efsVolumeConfiguration: {
+        fileSystemId: repoFs.fileSystemId,
+        transitEncryption: "ENABLED",
+        authorizationConfig: {
+          accessPointId: councilAccessPoint.accessPointId,
+          iam: "ENABLED",
+        },
+      },
+    });
+
+    const councilContainer = councilTaskDef.addContainer("council", {
+      image: ecs.ContainerImage.fromAsset("..", {
+        file: "apps/council/Dockerfile",
+      }),
+      environment: {
+        TABLE_NAME: tableName,
+        EVENTS_TABLE_NAME: eventsTable.tableName,
+        STAGE: stage,
+        AWS_REGION: this.region,
+      },
+      secrets: {
+        ANTHROPIC_AUTH_TOKEN: ecs.Secret.fromSecretsManager(
+          anthropicAuthForCouncil
+        ),
+      },
+      logging: ecs.LogDrivers.awsLogs({
+        streamPrefix: "council",
+        logRetention: logs.RetentionDays.ONE_MONTH,
+      }),
+    });
+    councilContainer.addMountPoints({
+      containerPath: "/mnt/repos",
+      sourceVolume: "repos",
+      readOnly: true,
+    });
+
+    // Read-only on the main table for everything except COUNCIL# + MEM# rows.
+    table.grantReadData(councilTaskDef.taskRole);
+    eventsTable.grantReadWriteData(councilTaskDef.taskRole);
+    councilTaskDef.taskRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
+        resources: [table.tableArn],
+        conditions: {
+          "ForAllValues:StringLike": {
+            "dynamodb:LeadingKeys": ["COUNCIL#*", "MEM#*", "E#*"],
+          },
+        },
+      })
+    );
+    repoFs.grantRead(councilTaskDef.taskRole);
+
+    const _councilService = new ecs.FargateService(this, "CouncilService", {
+      serviceName: `cawnex-council-${stage}`,
+      cluster,
+      taskDefinition: councilTaskDef,
+      desiredCount: 0, // scaler bumps on COUNCIL# insert
+      assignPublicIp: stage !== "prod",
+      securityGroups: [councilSg],
+      platformVersion: ecs.FargatePlatformVersion.VERSION1_4,
+    });
+
+    // ─────────────────────────────────────────────
     // Stream Service — Fargate task hosting SSE endpoints
     // ─────────────────────────────────────────────
     const streamSg = new ec2.SecurityGroup(this, "StreamServiceSG", {
