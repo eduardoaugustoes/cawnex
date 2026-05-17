@@ -86,8 +86,17 @@ final class MilestoneDetailViewModel {
 
     /// Refresh the project state from the API.
     private func refreshProjectState(_ projectId: String) async {
-        // This is a placeholder. In a real implementation, we would fetch the project
-        // from the API and extract the state field. For now, we'll skip this.
-        // Once ProjectService has a dedicated method, we can implement this properly.
+        do {
+            guard let project = try await projectService.getProject(projectId) else {
+                return
+            }
+            // Extract state from project response
+            // Note: This requires ProjectService to be updated to return state field
+            // For now, this is a placeholder that will be fully implemented
+            // once the API contract is finalized
+        } catch {
+            // Log error silently; do not disrupt UI
+            print("Failed to refresh project state: \(error.localizedDescription)")
+        }
     }
 }

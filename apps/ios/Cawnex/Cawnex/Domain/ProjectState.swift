@@ -4,13 +4,14 @@ import Foundation
 /// Decoded from the API response's `state` field in GET /projects/{id}.
 struct ProjectState: Decodable {
     let crow_count: Int
+    let total_crow_count: Int
     let mvi_queue_count: Int
     let wave_status: WaveStatus
     let council_decision: CouncilDecision?
 
     /// Crow completion count string (e.g., "12 of 15 Crows completed").
     var crowCompletionLabel: String {
-        "\(crow_count) of \(crow_count) Crows completed"
+        "\(crow_count) of \(total_crow_count) Crows completed"
     }
 
     /// MVI approval queue count string (e.g., "2 awaiting founder review").
@@ -71,7 +72,7 @@ struct CouncilDecision: Decodable {
     let other_count: Int
 
     /// Summary string for display (e.g., "Council: 4 approve, 1 security flag").
-    var summary: String {
+    var summary: String? {
         var parts: [String] = []
         if approved_count > 0 {
             parts.append("\(approved_count) approve")
@@ -82,6 +83,7 @@ struct CouncilDecision: Decodable {
         if other_count > 0 {
             parts.append("\(other_count) other")
         }
+        guard !parts.isEmpty else { return nil }
         return "Council: " + parts.joined(separator: ", ")
     }
 }

@@ -12,6 +12,7 @@ The `state` object returned by the backend has the following structure:
 {
   "state": {
     "crow_count": 12,
+    "total_crow_count": 15,
     "mvi_queue_count": 2,
     "wave_status": {
       "status": "running",
@@ -33,6 +34,11 @@ The `state` object returned by the backend has the following structure:
 - **Type**: Integer
 - **Description**: The number of crows (autonomous agents) that have completed their work.
 - **Example**: `12` means 12 crows have completed their tasks.
+
+### total_crow_count
+- **Type**: Integer
+- **Description**: The total number of crows allocated to the project.
+- **Example**: `15` means 15 crows total are allocated.
 
 ### mvi_queue_count
 - **Type**: Integer
@@ -64,6 +70,7 @@ Optional object describing council approval status:
   "current_state": "draft",
   "state": {
     "crow_count": 0,
+    "total_crow_count": 0,
     "mvi_queue_count": 0,
     "wave_status": {
       "status": "idle"
@@ -82,6 +89,7 @@ Optional object describing council approval status:
   "current_state": "active",
   "state": {
     "crow_count": 0,
+    "total_crow_count": 10,
     "mvi_queue_count": 0,
     "wave_status": {
       "status": "idle"
@@ -100,6 +108,7 @@ Optional object describing council approval status:
   "current_state": "running",
   "state": {
     "crow_count": 12,
+    "total_crow_count": 15,
     "mvi_queue_count": 2,
     "wave_status": {
       "status": "running",
@@ -120,6 +129,7 @@ Optional object describing council approval status:
   "current_state": "running",
   "state": {
     "crow_count": 15,
+    "total_crow_count": 15,
     "mvi_queue_count": 1,
     "wave_status": {
       "status": "running",
@@ -144,6 +154,7 @@ Optional object describing council approval status:
   "current_state": "completed",
   "state": {
     "crow_count": 20,
+    "total_crow_count": 20,
     "mvi_queue_count": 0,
     "wave_status": {
       "status": "idle"
@@ -166,7 +177,7 @@ Computed properties on `ProjectState` provide formatted strings for UI display:
 - `crowCompletionLabel`: e.g., "12 of 15 Crows completed"
 - `mviQueueLabel`: e.g., "2 awaiting founder review"
 - `waveStatusLabel`: e.g., "Running • 2h 30m elapsed" or "Idle"
-- `councilSummary`: e.g., "Council: 4 approve, 1 security flag"
+- `councilSummary`: e.g., "Council: 4 approve, 1 security flag" (returns nil if all counts are zero)
 
 ## Backend Implementation
 
