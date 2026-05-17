@@ -7,6 +7,7 @@ Two entry points:
 
 from __future__ import annotations
 
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
@@ -66,6 +67,8 @@ from murder.state_machine import (
     determine_next,
 )
 from murder.vault_client import has_secret, list_required_secrets
+
+logger = logging.getLogger(__name__)
 
 
 def react_to_mvi_queued(

@@ -1,5 +1,6 @@
 """Project Hub route — aggregated view for the Project Hub screen."""
 
+import logging
 from typing import Annotated, Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,6 +9,8 @@ from src.auth.dependencies import get_tenant
 from src.auth.tenant import TenantContext
 from src.db.client import TenantDB
 from src.db.project_state import compute_current_state
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["hub"])
 
@@ -31,11 +34,12 @@ async def get_project_hub(  # noqa: C901
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Compute current state
+    # Compute current state with specific exception handling
     try:
         current_state = compute_current_state(project_id, db)
-    except Exception:
-        # If state computation fails, default to draft
+    except (ValueError, RuntimeError) as e:
+        # If state computation fails, default to draft with logging
+        logger.warning(f"Failed to compute current_state for project {project_id}: {e}")
         current_state = "draft"
 
     # Get all items under the project (includes DOC#, S#wave, etc.)
