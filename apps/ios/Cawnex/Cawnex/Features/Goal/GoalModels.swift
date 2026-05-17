@@ -9,6 +9,10 @@ enum MVIStatus: String, Equatable, Hashable {
     case ready = "Ready"
     case executing = "Executing"
     case shipped = "Shipped"
+    // The engine gave up: reviewer-blocked + fixer cap hit, or a crow type
+    // exhausted its retry budget. Distinct from `.rejected`, which means a
+    // human or the council actively declined the MVI.
+    case failed = "Failed"
     case rejected = "Rejected"
 
     var label: String { rawValue }
@@ -20,7 +24,7 @@ enum MVIStatus: String, Equatable, Hashable {
         case .ready: CawnexColors.info
         case .executing: CawnexColors.warning
         case .shipped: CawnexColors.success
-        case .rejected: CawnexColors.destructive
+        case .failed, .rejected: CawnexColors.destructive
         }
     }
 
@@ -31,6 +35,7 @@ enum MVIStatus: String, Equatable, Hashable {
         case .ready: "checkmark.shield"
         case .executing: "bolt.fill"
         case .shipped: "shippingbox.fill"
+        case .failed: "exclamationmark.triangle.fill"
         case .rejected: "xmark.circle.fill"
         }
     }
@@ -46,7 +51,7 @@ enum MVIStatus: String, Equatable, Hashable {
             ]
         case .executing: []
         case .shipped: []
-        case .rejected:
+        case .failed, .rejected:
             [StatusTransition(label: "Reopen", icon: "arrow.counterclockwise", target: .draft, style: .secondary)]
         }
     }

@@ -280,6 +280,9 @@ struct WaveExecutionScreen: View {
     }
 
     private func mviStatusChip(_ status: String) -> some View {
+        // `failed` (engine ran out of fix attempts) and `rejected` (human or
+        // council declined) are distinct outcomes — render them differently
+        // so the founder can tell what actually happened to the MVI.
         let (label, color): (String, Color) = switch status {
         case "draft": ("Draft", CawnexColors.mutedForeground)
         case "queued": ("Queued", CawnexColors.mutedForeground)
@@ -287,6 +290,7 @@ struct WaveExecutionScreen: View {
         case "ready_to_ship": ("Ready to Ship", CawnexColors.success)
         case "shipped": ("Shipped", CawnexColors.success)
         case "failed": ("Failed", CawnexColors.destructive)
+        case "rejected": ("Rejected", CawnexColors.destructive)
         case "cancelled": ("Cancelled", CawnexColors.mutedForeground)
         default: (status, CawnexColors.mutedForeground)
         }

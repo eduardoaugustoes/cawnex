@@ -100,7 +100,10 @@ final class APIMVIService: MVIService {
         case "ready", "ready_to_ship": .ready
         case "executing": .executing
         case "shipped": .shipped
-        case "rejected", "failed", "cancelled": .rejected
+        // `failed` (engine gave up) ≠ `rejected` (human/council declined).
+        // Keep them distinct so the UI can read the right cause.
+        case "failed", "cancelled": .failed
+        case "rejected": .rejected
         default: .draft
         }
     }

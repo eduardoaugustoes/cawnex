@@ -74,7 +74,10 @@ extension APIGoalService {
         case "ready", "ready_to_ship": return .ready
         case "executing", "running", "planning", "queued": return .executing
         case "shipped", "completed": return .shipped
-        case "rejected", "failed", "cancelled": return .rejected
+        // `failed` (engine gave up) ≠ `rejected` (human/council declined).
+        // Keep them distinct so the UI can read the right cause.
+        case "failed", "cancelled": return .failed
+        case "rejected": return .rejected
         default: return .draft
         }
     }
