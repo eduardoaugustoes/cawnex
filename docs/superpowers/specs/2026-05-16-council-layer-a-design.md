@@ -240,12 +240,12 @@ The packet is stored on `CouncilSession.context` so we have a full audit trail o
 
 ## Components & file layout
 
-### New: `apps/integrator/`
+### New: `lambdas/worker/src/worker/integrator/` (subpackage of Worker)
 
-Lives alongside other crow kinds in the Worker. No new container image — runs inside the existing Worker. Imported by the Worker's handler when `crow_kind=integrator`.
+Lives alongside other crow kinds inside the Worker package. No new container image — runs inside the existing Worker via dispatch on `crow_kind=integrator`. Tests live alongside other worker tests at `lambdas/worker/tests/`.
 
 ```
-apps/integrator/
+lambdas/worker/src/worker/integrator/
 ├── __init__.py
 ├── handler.py           # Entry: load wave context, dispatch to phases
 ├── worktree.py          # git worktree setup/cleanup per PR
@@ -256,35 +256,38 @@ apps/integrator/
 │   ├── typecheck.py     # mypy runner, parse output
 │   ├── tests.py         # pytest runner, parse output
 │   └── runner.py        # orchestrates checks, builds CheckResult
-├── findings.py          # IntegratorFindings dataclass + DDB write
-└── tests/
-    ├── test_worktree.py
-    ├── test_integration.py
-    ├── test_checks_lint.py
-    ├── test_checks_typecheck.py
-    ├── test_checks_tests.py
-    └── test_findings.py
+└── findings.py          # IntegratorFindings dataclass + DDB write
+
+lambdas/worker/tests/integrator/
+├── test_worktree.py
+├── test_integration.py
+├── test_checks_lint.py
+├── test_checks_typecheck.py
+├── test_checks_tests.py
+└── test_findings.py
 ```
 
-### New: `apps/council/`
+### Rewritten in place: `lambdas/council/src/council/` (Fargate-host package)
 
-Standalone Fargate service. Own Dockerfile, own requirements.txt, own deployment.
+The existing Lambda code is **rewritten in place** to become the Fargate package — same import path (`council.*`) so existing tests continue to work where they port. New `apps/council/` directory holds only the Fargate entrypoint shim + Dockerfile, mirroring the Worker's `apps/worker/` shim pattern.
 
 ```
 apps/council/
 ├── Dockerfile
 ├── requirements.txt
-├── main.py              # Fargate entrypoint — poll loop (mirror apps/worker/main.py)
-├── handler.py           # Entry per session: load packet, run advisors, write decision
-├── orchestrator.py      # PORTED from lambdas/council/orchestrator.py
-│                        # Round management; replace ThreadPoolExecutor → asyncio.gather
-├── synthesis.py         # PORTED unchanged
-├── reflection.py        # PORTED unchanged
-├── memory_store.py      # PORTED; DDB read-only on Fargate (no writes except MEM#)
-├── models.py            # PORTED + extended (AdvisorVote new fields)
-├── enums.py             # PORTED unchanged
-├── config.py            # ADAPTED: Fargate env vars, model = haiku-4.5
-├── advisors/
+└── main.py              # Fargate entrypoint — poll loop (mirror apps/worker/main.py)
+
+lambdas/council/src/council/
+├── __init__.py
+├── handler.py           # REWRITTEN: poll loop adapter (was Lambda event handler)
+├── orchestrator.py      # MODIFIED: replace ThreadPoolExecutor → asyncio.gather
+├── synthesis.py         # UNCHANGED (PORTED)
+├── reflection.py        # UNCHANGED (PORTED)
+├── memory_store.py      # MODIFIED: DDB read-only on Fargate (no writes except MEM#)
+├── models.py            # MODIFIED: AdvisorVote gets investigation_trace + cited_evidence
+├── enums.py             # MODIFIED: rename advisor names (see below)
+├── config.py            # MODIFIED: Fargate env vars, model = haiku-4.5
+├── advisors/                       # NEW subpackage replacing old advisors.py
 │   ├── __init__.py
 │   ├── base.py          # Base advisor: tool-use loop, streaming, caps
 │   ├── security.py      # Security-specific system prompt + tool palette
@@ -300,29 +303,32 @@ apps/council/
 │       ├── performance.md
 │       ├── ux.md
 │       └── cost.md
-├── tools/
+├── tools/                          # NEW subpackage
 │   ├── __init__.py
 │   ├── filesystem.py    # read_file, list_directory, grep
 │   ├── git.py           # git_log_for_file, get_pr_diff, read_integration_file
 │   ├── github.py        # get_pr_metadata (REST API, no clone)
 │   ├── palette.py       # per-advisor scoping + dispatch
 │   └── trace.py         # Build investigation_trace as tools are called
-├── packet.py            # Build rich packet from wave_id + IntegratorFindings
-├── claude_client.py     # Anthropic streaming + tool-use loop
-└── tests/
-    ├── test_orchestrator.py    # PORTED
-    ├── test_synthesis.py       # PORTED
-    ├── test_reflection.py      # PORTED
-    ├── test_memory_store.py    # PORTED
-    ├── test_models.py          # PORTED + extended
-    ├── test_advisors_base.py
-    ├── test_advisors_security.py   # plus per-advisor variants
-    ├── test_tools_filesystem.py
-    ├── test_tools_git.py
-    ├── test_tools_palette.py       # scoping enforcement
-    ├── test_packet.py
-    └── test_claude_client.py
+├── packet.py            # NEW: build rich packet from wave_id + IntegratorFindings
+└── claude_client.py     # MODIFIED: Anthropic streaming + tool-use loop (was _claude_client.py)
+
+lambdas/council/tests/  # Existing tests modified in place where possible
+├── test_orchestrator.py    # MODIFIED: ThreadPoolExecutor mocks → asyncio mocks
+├── test_synthesis.py       # UNCHANGED
+├── test_reflection.py      # UNCHANGED
+├── test_memory_store.py    # UNCHANGED
+├── test_models.py          # MODIFIED: assert new AdvisorVote fields
+├── test_advisors_base.py   # NEW
+├── test_advisors_security.py   # NEW (plus per-advisor variants)
+├── test_tools_filesystem.py    # NEW
+├── test_tools_git.py           # NEW
+├── test_tools_palette.py       # NEW: scoping enforcement
+├── test_packet.py              # NEW
+└── test_claude_client.py       # NEW
 ```
+
+**Advisor enum rename** (M2 task): the existing `AdvisorType` enum at `lambdas/council/src/council/enums.py` is rewritten from `SECURITY, QUALITY, PERFORMANCE, MARKET, MATURITY, CLARITY` (wave-planning-shaped) to `SECURITY, ARCHITECTURE, CLARITY, PERFORMANCE, UX, COST` (wave-review-shaped). `VETO_ADVISORS` stays `{SECURITY, CLARITY}`. The existing prompt files at `lambdas/council/prompts/advisors/*.md` are renamed and rewritten for the new lenses. Existing tests that reference QUALITY/MARKET/MATURITY get updated as part of the M2 rename task.
 
 ### Modified: `lambdas/murder/src/murder/reactor.py`
 
