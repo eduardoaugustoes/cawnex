@@ -85,3 +85,40 @@ class TestRunCouncilSession:
 
         assert len(result.rounds) <= 3
         assert result.decision.action == DecisionAction.REJECT
+
+
+# --- Async orchestrator tests ---
+
+import pytest as _pytest
+from unittest.mock import patch as _patch
+
+from council.orchestrator import run_council_session_async
+
+
+@_pytest.mark.asyncio
+async def test_run_council_session_async_calls_all_6_advisors_in_parallel() -> None:
+    from council.models import AdvisorVote as _AdvisorVote
+    from council.enums import AdvisorType as _AdvisorType, VoteType as _VoteType
+
+    async def fake_advisor(advisor, packet, context):  # type: ignore[no-untyped-def]
+        return _AdvisorVote(
+            advisor=advisor,
+            vote=_VoteType.APPROVE,
+            scores={},
+            reasoning="ok",
+            confidence=0.8,
+        )
+
+    with _patch("council.orchestrator.run_advisor", side_effect=fake_advisor):
+        result = await run_council_session_async(
+            packet={"wave_id": "w1"},
+            context={
+                "repo_path": "/r",
+                "worktree_paths": {},
+                "integration_path": "/i",
+                "repo": "org/r",
+                "github_token": "t",
+            },
+        )
+
+    assert len(result.rounds[0].votes) == 6
