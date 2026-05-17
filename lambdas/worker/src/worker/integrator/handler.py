@@ -140,7 +140,11 @@ def run_integrator(
     findings.rework_reasons = reasons
 
     _finalize_and_write(blackboard, findings, start)
-    _cleanup(repo_path, worktree_paths, integration_path)
+    # Council reads worktree_paths + integration_worktree from these findings.
+    # Keep them on EFS when handing off to council; the council pipeline
+    # (or the wave-delivered/cancelled reactor path) cleans up later.
+    if overall != "ready_for_council":
+        _cleanup(repo_path, worktree_paths, integration_path)
 
 
 def _finalize_and_write(
@@ -154,6 +158,13 @@ def _finalize_and_write(
 def _cleanup(
     repo_path: str, worktree_paths: dict[int, str], integration_path: str
 ) -> None:
+    """Remove PR worktrees and the integration worktree.
+
+    Called on failure paths and on `needs_rework`. The `ready_for_council`
+    path skips this so council advisors can read the post-merge state via
+    EFS; cleanup of those worktrees happens later (when the wave is
+    delivered or cancelled).
+    """
     for path in worktree_paths.values():
         remove_worktree(repo_path, path)
     remove_worktree(repo_path, integration_path)
