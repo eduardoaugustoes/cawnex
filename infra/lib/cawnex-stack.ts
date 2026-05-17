@@ -287,6 +287,8 @@ export class CawnexStack extends cdk.Stack {
         TABLE_NAME: tableName,
         STAGE: stage,
         ANTHROPIC_MODEL: "claude-sonnet-4-20250514",
+        ECS_CLUSTER_NAME: `cawnex-${stage}`,
+        COUNCIL_SERVICE_NAME: `cawnex-council-${stage}`,
       },
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
@@ -296,6 +298,14 @@ export class CawnexStack extends cdk.Stack {
     table.grantReadWriteData(murderFn);
     table.grantStreamRead(murderFn);
     eventsTable.grantReadWriteData(murderFn);
+    murderFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["ecs:UpdateService"],
+        resources: [
+          `arn:aws:ecs:${this.region}:${this.account}:service/cawnex-${stage}/cawnex-council-${stage}`,
+        ],
+      })
+    );
 
     murderFn.addEventSource(
       new lambdaEventSources.DynamoEventSource(table, {
@@ -919,6 +929,7 @@ export class CawnexStack extends cdk.Stack {
         TABLE_NAME: tableName,
         ECS_CLUSTER_NAME: `cawnex-${stage}`,
         ECS_SERVICE_NAME: `cawnex-worker-${stage}`,
+        COUNCIL_SERVICE_NAME: `cawnex-council-${stage}`,
         STAGE: stage,
       },
       logRetention: logs.RetentionDays.ONE_MONTH,
@@ -928,7 +939,10 @@ export class CawnexStack extends cdk.Stack {
     scalerFn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["ecs:UpdateService", "ecs:DescribeServices"],
-        resources: [`arn:aws:ecs:${this.region}:${this.account}:service/cawnex-${stage}/cawnex-worker-${stage}`],
+        resources: [
+          `arn:aws:ecs:${this.region}:${this.account}:service/cawnex-${stage}/cawnex-worker-${stage}`,
+          `arn:aws:ecs:${this.region}:${this.account}:service/cawnex-${stage}/cawnex-council-${stage}`,
+        ],
       })
     );
 

@@ -7,9 +7,12 @@ Two entry points:
 
 from __future__ import annotations
 
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any
+
+import boto3
 
 from murder.blackboard import Blackboard
 from murder.checks import run_deterministic_checks
@@ -1019,6 +1022,32 @@ def _trigger_council_review(
     )
 
 
+def _scale_up_council(logger: StructuredLogger) -> None:
+    """Bump Council Fargate desiredCount to 1 so it picks up the pending session.
+
+    No-op when ECS env vars aren't set (local tests). Failures log loud but never
+    raise — the COUNCIL# row is already written; the scaler will reconcile.
+    """
+    cluster = os.environ.get("ECS_CLUSTER_NAME", "")
+    service = os.environ.get("COUNCIL_SERVICE_NAME", "")
+    if not cluster or not service:
+        return
+    try:
+        boto3.client("ecs").update_service(
+            cluster=cluster,
+            service=service,
+            desiredCount=1,
+        )
+        logger.event("council_scaled_up", service=service)
+    except Exception as e:  # noqa: BLE001 -- loud but non-fatal
+        logger.warning(
+            "council_scale_up_failed",
+            service=service,
+            error_class=type(e).__name__,
+            error_message=str(e)[:200],
+        )
+
+
 def react_to_integration_complete(
     blackboard: Blackboard,
     findings: dict[str, Any],
@@ -1050,6 +1079,8 @@ def react_to_integration_complete(
                 "entityType": "CouncilSession",
             }
         )
+
+        _scale_up_council(logger)
 
         logger.event(
             "council_session_created",
