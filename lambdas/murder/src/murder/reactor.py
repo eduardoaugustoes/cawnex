@@ -409,6 +409,9 @@ def _handle_mvi_ready(
     # Check if all MVIs in the wave are terminal — transition wave to review
     _maybe_transition_wave(blackboard, pk, wave_id, logger)
 
+    # If wave reached review with all MVIs ready_to_ship, kick off the Integrator.
+    _maybe_start_integrator(blackboard, pk, wave_id, logger)
+
 
 def _handle_fail_mvi(
     blackboard: Blackboard,
@@ -1013,6 +1016,78 @@ def _trigger_council_review(
         wave_id=wave_id,
         session_id=session_id,
         auto_mode=auto_mode,
+    )
+
+
+def _maybe_start_integrator(
+    blackboard: Blackboard,
+    pk: str,
+    wave_id: str,
+    logger: StructuredLogger,
+) -> None:
+    """If all MVIs in the wave are ready_to_ship, transition wave to integrating
+    and write an integrator task for the Worker.
+
+    Safe to call repeatedly: bails out if the wave is not in REVIEW, if any MVI
+    is not ready, or if no PR numbers are recorded.
+    """
+    wave_sk = build_sk(wave_id=wave_id)
+    wave_item = blackboard.read(pk, wave_sk)
+    if not wave_item or wave_item.get("status") != WaveStatus.REVIEW.value:
+        return
+
+    mvi_prefix = f"S#{wave_id}#m"
+    mvis = [
+        m
+        for m in blackboard.query(pk, mvi_prefix)
+        if m.get("level") == "murder"
+    ]
+    if not mvis:
+        return
+
+    not_ready = [m for m in mvis if m.get("status") != MVIStatus.READY_TO_SHIP.value]
+    if not_ready:
+        return
+
+    pr_to_mvi: dict[str, str] = {}
+    for mvi in mvis:
+        pr_number = mvi.get("pr_number")
+        mvi_id = mvi.get("mvi_id") or mvi["SK"].split("#m")[-1].split("#")[0]
+        if pr_number is not None:
+            pr_to_mvi[str(pr_number)] = mvi_id
+
+    if not pr_to_mvi:
+        return
+
+    blackboard.update(pk, wave_sk, {"status": WaveStatus.INTEGRATING.value})
+
+    project = blackboard.read(pk, "META")
+    repo_path = (
+        project.get("repo_path", "") if project else ""
+    ) or f"/mnt/repos{pk.replace('P#', '/T/')}/repo"
+
+    blackboard.write_item(
+        {
+            "PK": pk,
+            "SK": f"S#{wave_id}/integrator-task",
+            "level": "wave",
+            "entityType": "CrowTask",
+            "crow_kind": "integrator",
+            "wave_id": wave_id,
+            "project_id": pk.replace("P#", ""),
+            "repo_path": repo_path,
+            "pr_to_mvi": pr_to_mvi,
+            "status": "pending",
+            "GSI1PK": "DISPATCH#pending",
+            "GSI1SK": f"{datetime.now(timezone.utc).isoformat()}#integrator#{wave_id}",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+
+    logger.event(
+        "integrator_dispatched",
+        wave_id=wave_id,
+        pr_count=len(pr_to_mvi),
     )
 
 

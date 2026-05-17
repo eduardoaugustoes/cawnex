@@ -838,3 +838,102 @@ class TestReactToMVITerminal:
         wave_after = blackboard.read(build_pk("t1", "p1"), build_sk(wave_id="w01"))
         assert wave_after is not None
         assert wave_after["status"] == "delivered"
+
+
+class TestHandleWaveReviewReady:
+    def test_all_mvis_ready_writes_integrator_task_and_transitions_wave(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w1",
+                "level": "wave",
+                "status": "review",
+                "wave_id": "w1",
+            }
+        )
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w1#m_1",
+                "level": "murder",
+                "status": "ready_to_ship",
+                "pr_number": 42,
+                "mvi_id": "_1",
+            }
+        )
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w1#m_2",
+                "level": "murder",
+                "status": "ready_to_ship",
+                "pr_number": 43,
+                "mvi_id": "_2",
+            }
+        )
+
+        from murder.reactor import _maybe_start_integrator
+
+        _maybe_start_integrator(
+            blackboard=blackboard,
+            pk="P#p1",
+            wave_id="w1",
+            logger=logger,
+        )
+
+        wave = blackboard.read("P#p1", "S#w1")
+        assert wave is not None
+        assert wave["status"] == "integrating"
+
+        task = blackboard.read("P#p1", "S#w1/integrator-task")
+        assert task is not None
+        assert task["crow_kind"] == "integrator"
+        assert task["pr_to_mvi"] == {"42": "_1", "43": "_2"}
+
+    def test_not_all_mvis_ready_does_nothing(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w2",
+                "level": "wave",
+                "status": "review",
+                "wave_id": "w2",
+            }
+        )
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w2#m_1",
+                "level": "murder",
+                "status": "ready_to_ship",
+                "pr_number": 42,
+                "mvi_id": "_1",
+            }
+        )
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w2#m_2",
+                "level": "murder",
+                "status": "executing",
+                "mvi_id": "_2",
+            }
+        )
+
+        from murder.reactor import _maybe_start_integrator
+
+        _maybe_start_integrator(
+            blackboard=blackboard,
+            pk="P#p1",
+            wave_id="w2",
+            logger=logger,
+        )
+
+        wave = blackboard.read("P#p1", "S#w2")
+        assert wave is not None
+        assert wave["status"] == "review"
+        assert blackboard.read("P#p1", "S#w2/integrator-task") is None
