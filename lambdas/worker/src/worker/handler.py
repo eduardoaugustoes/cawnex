@@ -9,12 +9,34 @@ import boto3
 from worker.blackboard import Blackboard
 from worker.config import EVENT_TTL_DAYS, EVENTS_TABLE_NAME, MEMORY_INJECTION_ENABLED, TABLE_NAME, ExecutionConfig
 from worker.enums import CrowStatus, CrowType
+from worker.integrator.handler import run_integrator
 from worker.keys import build_pk, build_sk
 from worker.events import build_crow_completed_event, build_crow_failed_event
 from worker.executor import execute
 from worker.keys import parse_item_keys
 from worker.logging import StructuredLogger
 from worker.models import Cost, CrowSnapshot
+
+
+def dispatch_crow(task: dict[str, Any], blackboard: Any) -> None:
+    """Route a pending task to the correct crow runner based on crow_kind.
+
+    Wave-level crows (currently: integrator) follow a different shape than
+    per-MVI crows and bypass the standard executor.
+    """
+    if task.get("crow_kind") == "integrator":
+        pr_to_mvi_raw = task.get("pr_to_mvi", {})
+        return run_integrator(
+            blackboard=blackboard,
+            project_id=task["project_id"],
+            wave_id=task["wave_id"],
+            repo_path=task["repo_path"],
+            pr_to_mvi={int(k): v for k, v in pr_to_mvi_raw.items()},
+        )
+    raise ValueError(
+        f"dispatch_crow does not handle crow_kind={task.get('crow_kind')!r}; "
+        "per-MVI crows are processed inline in lambda_handler"
+    )
 
 
 def _memory_entries(crows: list[dict[str, Any]]) -> list[dict]:
@@ -66,6 +88,25 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     for item in pending:
         pk = item["PK"]
         sk = item["SK"]
+
+        if item.get("crow_kind") == "integrator":
+            claimed = blackboard.conditional_status_update(pk, sk, "pending", "running")
+            if not claimed:
+                continue
+            try:
+                dispatch_crow(task=item, blackboard=blackboard)
+                processed += 1
+            except Exception as e:  # noqa: BLE001 -- loud-fail at dispatcher boundary
+                logger.warning(
+                    "integrator_dispatch_failed",
+                    pk=pk,
+                    sk=sk,
+                    error_class=type(e).__name__,
+                    error_message=str(e)[:200],
+                )
+                errors += 1
+            continue
+
         keys = parse_item_keys(item)
         if not keys:
             logger.warning("unparseable_keys", pk=pk, sk=sk)
