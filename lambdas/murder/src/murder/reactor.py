@@ -1019,6 +1019,81 @@ def _trigger_council_review(
     )
 
 
+def react_to_integration_complete(
+    blackboard: Blackboard,
+    findings: dict[str, Any],
+    logger: StructuredLogger,
+) -> None:
+    """Route on IntegratorFindings.overall: ready_for_council or needs_rework."""
+    pk = findings["PK"]
+    wave_id = findings["wave_id"]
+    overall = findings["overall"]
+    wave_sk = build_sk(wave_id=wave_id)
+
+    if overall == "ready_for_council":
+        blackboard.update(
+            pk, wave_sk, {"status": WaveStatus.UNDER_COUNCIL_REVIEW.value}
+        )
+
+        session_id = f"wr_{wave_id}_{uuid.uuid4().hex[:8]}"
+        blackboard.write_item(
+            {
+                "PK": pk,
+                "SK": f"COUNCIL#{session_id}",
+                "level": "council",
+                "status": "pending",
+                "type": "wave_review",
+                "wave_id": wave_id,
+                "integration_sk": findings["SK"],
+                "auto_mode": "off",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "entityType": "CouncilSession",
+            }
+        )
+
+        logger.event(
+            "council_session_created",
+            wave_id=wave_id,
+            session_id=session_id,
+        )
+        return
+
+    if overall == "needs_rework":
+        blackboard.update(pk, wave_sk, {"status": WaveStatus.EXECUTING.value})
+
+        affected_mvi_ids: set[str] = set()
+        for conflict in findings.get("merge_conflicts", []) or []:
+            if conflict.get("mvi_a"):
+                affected_mvi_ids.add(conflict["mvi_a"])
+            if conflict.get("mvi_b"):
+                affected_mvi_ids.add(conflict["mvi_b"])
+
+        for mvi_id in affected_mvi_ids:
+            mvi_sk = build_sk(wave_id=wave_id, mvi_id=mvi_id)
+            blackboard.update(
+                pk,
+                mvi_sk,
+                {
+                    "status": MVIStatus.EXECUTING.value,
+                    "rework_reason": "merge conflict",
+                },
+            )
+
+        logger.event(
+            "wave_needs_rework",
+            wave_id=wave_id,
+            affected_mvi_count=len(affected_mvi_ids),
+            reasons=findings.get("rework_reasons", []),
+        )
+        return
+
+    logger.event(
+        "integration_complete_unknown_overall",
+        wave_id=wave_id,
+        overall=overall,
+    )
+
+
 def _maybe_start_integrator(
     blackboard: Blackboard,
     pk: str,

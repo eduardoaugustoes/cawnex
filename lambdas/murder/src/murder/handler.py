@@ -15,9 +15,10 @@ from murder.config import EVENTS_TABLE_NAME, TABLE_NAME
 from murder.logging import StructuredLogger
 from murder.reactor import (
     react_to_crow_completion,
-    react_to_mvi_terminal,
     react_to_human_task_completed,
+    react_to_integration_complete,
     react_to_mvi_queued,
+    react_to_mvi_terminal,
     react_to_wave_steered,
 )
 from murder.stream import deserialize_stream_record
@@ -79,6 +80,9 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
                 processed += 1
             elif level == "wave" and status == "steered":
                 react_to_wave_steered(blackboard, item, logger)
+                processed += 1
+            elif item.get("SK", "").startswith("INTEGRATION#") and event_name == "INSERT":
+                react_to_integration_complete(blackboard, item, logger)
                 processed += 1
             else:
                 skipped += 1

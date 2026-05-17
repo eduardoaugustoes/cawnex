@@ -937,3 +937,115 @@ class TestHandleWaveReviewReady:
         assert wave is not None
         assert wave["status"] == "review"
         assert blackboard.read("P#p1", "S#w2/integrator-task") is None
+
+
+class TestHandleIntegrationComplete:
+    def test_ready_for_council_writes_council_task_and_transitions_wave(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w1",
+                "level": "wave",
+                "status": "integrating",
+                "wave_id": "w1",
+                "auto_mode": "on",
+            }
+        )
+
+        findings = {
+            "PK": "P#p1",
+            "SK": "INTEGRATION#w1",
+            "wave_id": "w1",
+            "overall": "ready_for_council",
+            "merge_status": "ok",
+            "rework_reasons": [],
+        }
+
+        from murder.reactor import react_to_integration_complete
+
+        react_to_integration_complete(
+            blackboard=blackboard,
+            findings=findings,
+            logger=logger,
+        )
+
+        wave = blackboard.read("P#p1", "S#w1")
+        assert wave is not None
+        assert wave["status"] == "under_council_review"
+
+        sessions = blackboard.query("P#p1", "COUNCIL#")
+        assert len(sessions) == 1
+        assert sessions[0]["status"] == "pending"
+        assert sessions[0]["wave_id"] == "w1"
+        assert sessions[0]["integration_sk"] == "INTEGRATION#w1"
+
+    def test_needs_rework_dispatches_fixers_per_affected_mvi(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w1",
+                "level": "wave",
+                "status": "integrating",
+                "wave_id": "w1",
+            }
+        )
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w1#m_1",
+                "level": "murder",
+                "status": "ready_to_ship",
+                "mvi_id": "_1",
+            }
+        )
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w1#m_2",
+                "level": "murder",
+                "status": "ready_to_ship",
+                "mvi_id": "_2",
+            }
+        )
+
+        findings = {
+            "PK": "P#p1",
+            "SK": "INTEGRATION#w1",
+            "wave_id": "w1",
+            "overall": "needs_rework",
+            "merge_status": "conflict",
+            "rework_reasons": [
+                "merge conflict between PR #42 and PR #43 (1 files)"
+            ],
+            "merge_conflicts": [
+                {
+                    "pr_a": 42,
+                    "pr_b": 43,
+                    "mvi_a": "_1",
+                    "mvi_b": "_2",
+                    "files": ["foo.py"],
+                    "hunks": [],
+                }
+            ],
+        }
+
+        from murder.reactor import react_to_integration_complete
+
+        react_to_integration_complete(
+            blackboard=blackboard,
+            findings=findings,
+            logger=logger,
+        )
+
+        wave = blackboard.read("P#p1", "S#w1")
+        assert wave is not None
+        assert wave["status"] == "executing"
+
+        mvi_1 = blackboard.read("P#p1", "S#w1#m_1")
+        mvi_2 = blackboard.read("P#p1", "S#w1#m_2")
+        assert mvi_1 is not None and mvi_1["status"] == "executing"
+        assert mvi_2 is not None and mvi_2["status"] == "executing"
