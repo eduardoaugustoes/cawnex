@@ -27,6 +27,10 @@ def aws_creds() -> Iterator[None]:
     os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "testing")
     os.environ.setdefault("AWS_SESSION_TOKEN", "testing")
     os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
+    os.environ.setdefault(
+        "AWS_ENDPOINT_URL_DYNAMODB",
+        os.environ.get("DYNAMODB_ENDPOINT", "http://localhost:8000"),
+    )
     yield
 
 
