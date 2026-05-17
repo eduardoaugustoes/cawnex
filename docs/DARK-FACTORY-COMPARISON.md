@@ -13,7 +13,7 @@ This doc compares Cawnex against the convergent dark-factory pattern those five 
 
 From Shardul's talk:
 
-> *"Zero humans write code, zero humans review code. Coinbase, Ramp, Stripe, Anthropic, and StrongDM all came to the same pattern."*
+> _"Zero humans write code, zero humans review code. Coinbase, Ramp, Stripe, Anthropic, and StrongDM all came to the same pattern."_
 
 Five companies that don't talk to each other built the same architecture:
 
@@ -30,15 +30,15 @@ Plus the framing: **verification is back pressure** — tests aren't "did it wor
 
 ## How Cawnex scores
 
-| Element | Grade | Why |
-|---|---|---|
-| Orchestrator (durable, stateless agents) | **B-** | Murder + Council shape is right, but no DAG-level parallelism *within* an MVI |
-| Per-agent isolation (sandbox + worktree) | **C** | Stateless Worker, but no sandbox-per-crow; single Fargate task runs crows serially |
-| Multi-tier verification | **D+** | Reviewer crow runs; Council designed-not-running; no deterministic test gate on crow output |
-| Adversarial verification | **B** | Reviewer crow is adversarial-by-design; Steer chat (spec'd, not built) doubles down |
-| Rework loop (not retry) | **B+** | Fixer + `_find_fix_history` threading is the right shape |
-| Cost-routed dispatch | **F** | Single hardcoded model (`claude-haiku-4-5-20251001`) across all crow types |
-| Crashing-is-a-feature reliability | **C** | Right architecture, wrong cycle time (hourly Checker for stale-claim recovery) |
+| Element                                  | Grade  | Why                                                                                         |
+| ---------------------------------------- | ------ | ------------------------------------------------------------------------------------------- |
+| Orchestrator (durable, stateless agents) | **B-** | Murder + Council shape is right, but no DAG-level parallelism _within_ an MVI               |
+| Per-agent isolation (sandbox + worktree) | **C**  | Stateless Worker, but no sandbox-per-crow; single Fargate task runs crows serially          |
+| Multi-tier verification                  | **D+** | Reviewer crow runs; Council designed-not-running; no deterministic test gate on crow output |
+| Adversarial verification                 | **B**  | Reviewer crow is adversarial-by-design; Steer chat (spec'd, not built) doubles down         |
+| Rework loop (not retry)                  | **B+** | Fixer + `_find_fix_history` threading is the right shape                                    |
+| Cost-routed dispatch                     | **F**  | Single hardcoded model (`claude-haiku-4-5-20251001`) across all crow types                  |
+| Crashing-is-a-feature reliability        | **C**  | Right architecture, wrong cycle time (hourly Checker for stale-claim recovery)              |
 
 **Overall: between L2 and L4 — closer to L2.** The shape is dark-factory-shaped. The execution is small-and-supervised.
 
@@ -56,9 +56,9 @@ What this gets us: a crash in the Worker doesn't lose the wave. Murder reconstru
 
 ### 2. Reviewer + Fixer as adversarial pair (strong match)
 
-Shardul calls for *two* adversarial agents per task: a **plan adversary** (reviews the orchestrator's DAG before tasks dispatch) and a **code adversary** (reviews the coder's output). Cawnex has the code adversary — the Reviewer crow — with rework via Fixer + fix-history threading. The plan-adversary slot is empty; Council is designed for it but hasn't been exercised on a real wave yet.
+Shardul calls for _two_ adversarial agents per task: a **plan adversary** (reviews the orchestrator's DAG before tasks dispatch) and a **code adversary** (reviews the coder's output). Cawnex has the code adversary — the Reviewer crow — with rework via Fixer + fix-history threading. The plan-adversary slot is empty; Council is designed for it but hasn't been exercised on a real wave yet.
 
-> *"The system is designed so the coder agent expects rejection."* — Shardul
+> _"The system is designed so the coder agent expects rejection."_ — Shardul
 
 The Reviewer crow's `outcome.approved=False` triggers a Fixer assignment in `react_to_crow_completion`. Identical pattern.
 
@@ -70,9 +70,9 @@ The right abstraction is there; the parallelism isn't. Today an 8-task planner o
 
 ### 4. Approval gates at four altitudes (medium match — unique to Cawnex)
 
-Most dark factories collapse to one human gate (PR merge). Cawnex has four: Milestone, Goal, MVI, PR. That's actually *more* human-in-the-loop than the convergent five, by design — which is appropriate for "founders, not engineering orgs."
+Most dark factories collapse to one human gate (PR merge). Cawnex has four: Milestone, Goal, MVI, PR. That's actually _more_ human-in-the-loop than the convergent five, by design — which is appropriate for "founders, not engineering orgs."
 
-Tradeoff: Cawnex is **deliberately L3, not L4**. The convergent five trust their verification gates enough to let the bot merge to main. Cawnex trusts its verification gates enough to let the founder *one tap*, then merge.
+Tradeoff: Cawnex is **deliberately L3, not L4**. The convergent five trust their verification gates enough to let the bot merge to main. Cawnex trusts its verification gates enough to let the founder _one tap_, then merge.
 
 This also maps cleanly to Patrick Debois's CDLC framework (see [`BACKGROUND-AGENTS-LEARNINGS.md`](BACKGROUND-AGENTS-LEARNINGS.md) §2). Cawnex's four gates are the **"Enable"** stage of context-engineering — the human-harness layer. The convergent five mostly collapsed Enable into "PR merge"; Cawnex spreads it across four altitudes because the user is a founder learning their own product, not an engineering org executing on settled strategy.
 
@@ -92,7 +92,7 @@ What would push Cawnex from L2-shaped to L4-shaped, ordered by impact:
 
 The single biggest gap.
 
-> *"Traditional tier verification — unit tests, property tests, mutation tests, lint. LLMs are trained on these, they understand the signal."* — Shardul
+> _"Traditional tier verification — unit tests, property tests, mutation tests, lint. LLMs are trained on these, they understand the signal."_ — Shardul
 
 Today: implementer ships → CI runs after merge → if it fails, the next session's pre-commit hook catches it (as happened with PR #16's lint issues, fixed in `c5c2915`).
 
@@ -107,25 +107,26 @@ For Cawnex specifically: this is `black --check` + `flake8` + `mypy` + `pytest` 
 Today every crow type hardcodes `claude-haiku-4-5-20251001`. That's $1/M input across the board.
 
 Stripe (the convergent five's most-mature) routes per task:
+
 - Trivial transforms (rename, type addition) → cheap model
 - Complex synthesis (new feature, multi-file design) → frontier model
 - Adversarial review → cheap model (the gate value is in independence, not depth)
 
 For Cawnex: planner = Sonnet 4.6 (worth the cost on harder decompositions); implementer = Haiku for trivial / Sonnet for complex (decision based on planner's task count or context token count); reviewer = Haiku; fixer = Sonnet (always — they're handling Reviewer's pushback, hard problems by definition); Council votes = Haiku majority + Opus for tie-breaker.
 
-**Beyond cost.** The convergent pattern isn't just "save money on easy work." It's **escalate to a stronger model when the easier model fails.** The Fixer crow specifically should be Sonnet because by the time we're invoking it, the Haiku implementer has already produced something the Reviewer rejected. The rework loop's value comes from *different* compute, not just *retried* compute.
+**Beyond cost.** The convergent pattern isn't just "save money on easy work." It's **escalate to a stronger model when the easier model fails.** The Fixer crow specifically should be Sonnet because by the time we're invoking it, the Haiku implementer has already produced something the Reviewer rejected. The rework loop's value comes from _different_ compute, not just _retried_ compute.
 
 Wiring is straightforward — `lambdas/worker/src/worker/config.py:MODEL_CONTEXT_WINDOWS` already knows about all three models. The selection logic doesn't exist yet.
 
 ### 3. Council actually voting on real PRs
 
-The Council spec exists. Six advisors with Security + Clarity vetoes. None has run on a dogfood wave. Adding `react_to_mvi_ready_to_ship` → trigger Council → Council either approves auto-merge or escalates to founder would be the single biggest jump in *autonomy*. Today the founder is the only gate above the Reviewer.
+The Council spec exists. Six advisors with Security + Clarity vetoes. None has run on a dogfood wave. Adding `react_to_mvi_ready_to_ship` → trigger Council → Council either approves auto-merge or escalates to founder would be the single biggest jump in _autonomy_. Today the founder is the only gate above the Reviewer.
 
 This is L4 territory: "let the bot merge if Council unanimously approves and no advisor used a veto." The convergent five all do this. Cawnex is one Lambda invocation away from offering it as an opt-in.
 
 ### 4. Per-crow sandbox
 
-> *"Each crow gets its own EFS subdirectory. Two crows on the same MVI can run in parallel without stepping on each other."*
+> _"Each crow gets its own EFS subdirectory. Two crows on the same MVI can run in parallel without stepping on each other."_
 
 Today: one Worker task, one `/mnt/repos/T/{tenant}` mount. Crows run serially in the same Python process. Two parallel crows would share state.
 
@@ -135,7 +136,7 @@ Dark factory: each crow execution gets a per-run worktree (via `git worktree add
 
 Worker crash mid-crow → crow row stays `claimed=true` → Checker Lambda sweeps it on **hourly** cron. That's not "crashing is a feature" — that's "crashing is a 60-minute incident."
 
-> *"Reliability through statelessness, not durability. Agents are cattle. The orchestrator is the pet."* — Shardul
+> _"Reliability through statelessness, not durability. Agents are cattle. The orchestrator is the pet."_ — Shardul
 
 Fix: claim TTL via DDB conditional puts. Worker writes `claim_expires_at = now + 5min` on claim; renews it every 60s while alive; if the Worker dies, the next polling Worker sees the expired claim and takes over. No Checker Lambda involvement. Sub-minute recovery.
 
@@ -151,9 +152,9 @@ Cawnex's four gates (Milestone, Goal, MVI, PR) exist because the target user is 
 
 This is the design tension Shardul calls out:
 
-> *"You're no longer writing code, you're composing the factory that writes the code for you. You go from an engineer who super focuses on code to an engineer who focuses on how the system verifies and fact-checks that the code is correct."*
+> _"You're no longer writing code, you're composing the factory that writes the code for you. You go from an engineer who super focuses on code to an engineer who focuses on how the system verifies and fact-checks that the code is correct."_
 
-For Stripe, "composing the factory" is one person's full-time job per ~50 engineers it serves. For Cawnex, "composing the factory" *is the founder's job by definition* — and the four gates are how that composition gets done day-to-day.
+For Stripe, "composing the factory" is one person's full-time job per ~50 engineers it serves. For Cawnex, "composing the factory" _is the founder's job by definition_ — and the four gates are how that composition gets done day-to-day.
 
 So Cawnex is closer to **L3 by design**, not **L4 by limitation**. The right comparison isn't "Cawnex is missing what Stripe has." It's "Cawnex's L3 with four-altitude steering is a different shape than Stripe's L4 with one-altitude merge gate, for different users."
 
@@ -187,4 +188,4 @@ Items (1), (2), and (5) together would move Cawnex from L2-shaped to L3.5. Items
 
 **Cawnex is dark-factory-shaped at the orchestrator and event-log layers, half-built at the verification and isolation layers, and deliberately different at the human-in-the-loop layer.** The work that turns it into a factory is the verification gate, not the orchestrator — and that work is closer than it looks.
 
-**Updated takeaway (after the broader corpus read):** the dark-factory shape is necessary but not sufficient. What separates *successful* dark-factory teams from their architectural twins is **how well they teach the AI about their codebase** — Stripe's translation layers, Cloudflare's codecs, Genentech's measured skill evolution. Cawnex's user is a founder; their job is becoming the AI's onboarding director. That's a product surface Cawnex doesn't yet expose. See [`BACKGROUND-AGENTS-LEARNINGS.md`](BACKGROUND-AGENTS-LEARNINGS.md) for that framing.
+**Updated takeaway (after the broader corpus read):** the dark-factory shape is necessary but not sufficient. What separates _successful_ dark-factory teams from their architectural twins is **how well they teach the AI about their codebase** — Stripe's translation layers, Cloudflare's codecs, Genentech's measured skill evolution. Cawnex's user is a founder; their job is becoming the AI's onboarding director. That's a product surface Cawnex doesn't yet expose. See [`BACKGROUND-AGENTS-LEARNINGS.md`](BACKGROUND-AGENTS-LEARNINGS.md) for that framing.

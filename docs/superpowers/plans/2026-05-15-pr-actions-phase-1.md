@@ -7,6 +7,7 @@
 **Architecture:** Two new POST routes on the API Lambda (`/prs/{n}/merge`, `/prs/{n}/reject`). Each route uses GitHub's REST API (PUT `/pulls/{n}/merge` and PATCH `/pulls/{n}` + POST `/issues/{n}/comments`) — no `gh` CLI binary, no Lambda layer surgery. After GitHub succeeds, update the MVI snapshot in DDB; the Murder reactor's existing `_maybe_transition_wave` hook (triggered by DDB Streams on the snapshot) handles the wave-terminal check automatically. iOS gets two new method handlers on `PRReviewViewModel`, confirmation sheets, and error surfaces.
 
 **Tech Stack:**
+
 - Backend: Python 3.12, FastAPI, urllib (existing pattern in `apps/api/src/github.py`), boto3
 - Auth: existing Cognito JWT via `get_tenant` dependency
 - Infra: existing API Lambda — only change is reading `GITHUB_TOKEN` from Secrets Manager (already exists at `cawnex/${stage}/github-token`)
@@ -22,6 +23,7 @@
 ## File Structure
 
 **New files:**
+
 - `apps/api/src/routes/pr_actions.py` — the two new routes
 - `apps/api/src/github_mutations.py` — GitHub REST API write-side wrapper (merge, close, comment)
 - `apps/api/tests/test_pr_actions.py` — route tests
@@ -31,6 +33,7 @@
 - `apps/ios/Cawnex/Cawnex/Features/PR/MergeConfirmSheet.swift` — minimal confirmation sheet
 
 **Modified files:**
+
 - `apps/api/src/main.py` — register `pr_actions.router`
 - `apps/api/src/github.py:30-50` — generalize `_github_api` to accept JSON body for non-GET methods (the existing helper is GET-only)
 - `infra/lib/cawnex-stack.ts` — grant API Lambda read on `cawnex/${stage}/github-token` secret + inject `GITHUB_TOKEN` env var
@@ -45,12 +48,14 @@
 The existing `apps/api/src/github.py` only supports GET. We need PUT (merge), PATCH (close), POST (comment). Building a small write-side wrapper rather than mutating the read-side keeps the read code stable.
 
 **Files:**
+
 - Create: `apps/api/src/github_mutations.py`
 - Test: `apps/api/tests/test_github_mutations.py`
 
 - [ ] **Step 1: Write the failing test**
 
 `apps/api/tests/test_github_mutations.py`:
+
 ```python
 """Tests for the GitHub write-side wrapper."""
 
@@ -158,6 +163,7 @@ def test_missing_github_token_raises() -> None:
 ```bash
 cd /Users/eaugusto/cawnex/apps/api && ./venv/bin/pytest tests/test_github_mutations.py -v
 ```
+
 Expected: `ModuleNotFoundError: No module named 'src.github_mutations'`.
 
 - [ ] **Step 3: Implement `apps/api/src/github_mutations.py`**
@@ -291,6 +297,7 @@ def delete_branch(repo: str, branch: str) -> dict[str, Any]:
 ```bash
 cd /Users/eaugusto/cawnex/apps/api && ./venv/bin/pytest tests/test_github_mutations.py -v
 ```
+
 Expected: 6 passed.
 
 - [ ] **Step 5: Commit**
@@ -307,6 +314,7 @@ git commit -m "feat(api): GitHub write-side wrapper for merge/close/comment/dele
 Before wiring real merge/close, get the route plumbing in place: auth, route registration, MVI lookup, 409 on not-ready. This gives us a place to plug GitHub calls in Task 3.
 
 **Files:**
+
 - Create: `apps/api/src/routes/pr_actions.py`
 - Create: `apps/api/tests/test_pr_actions.py`
 - Modify: `apps/api/src/main.py`
@@ -314,6 +322,7 @@ Before wiring real merge/close, get the route plumbing in place: auth, route reg
 - [ ] **Step 1: Write the failing test**
 
 `apps/api/tests/test_pr_actions.py`:
+
 ```python
 """Tests for PR action routes (merge, reject)."""
 
@@ -406,6 +415,7 @@ def test_reject_requires_reason(mock_boto3: Mock) -> None:
 ```bash
 cd /Users/eaugusto/cawnex/apps/api && ./venv/bin/pytest tests/test_pr_actions.py -v
 ```
+
 Expected: 404 on all routes (route not registered).
 
 - [ ] **Step 3: Implement `apps/api/src/routes/pr_actions.py`**
@@ -577,6 +587,7 @@ The exact line to insert depends on existing import order. Find the block where 
 ```bash
 cd /Users/eaugusto/cawnex/apps/api && ./venv/bin/pytest tests/test_pr_actions.py -v
 ```
+
 Expected: 3 passed (the 409/404/422 assertions).
 
 - [ ] **Step 6: Commit**
@@ -593,6 +604,7 @@ git commit -m "feat(api): scaffold POST /prs/{n}/merge + /reject routes with aut
 Replace the 501 stub in `approve_and_merge` with the real flow.
 
 **Files:**
+
 - Modify: `apps/api/src/routes/pr_actions.py`
 - Modify: `apps/api/tests/test_pr_actions.py`
 
@@ -689,6 +701,7 @@ def test_merge_idempotent_when_already_shipped(
 ```bash
 cd /Users/eaugusto/cawnex/apps/api && ./venv/bin/pytest tests/test_pr_actions.py::test_merge_happy_path_updates_mvi_and_returns_sha -v
 ```
+
 Expected: FAIL with 501 (the stub).
 
 - [ ] **Step 3: Wire the route**
@@ -780,6 +793,7 @@ Note: this assumes `TenantDB` exposes `update_project_item` with the same signat
 ```bash
 cd /Users/eaugusto/cawnex/apps/api && ./venv/bin/pytest tests/test_pr_actions.py -v
 ```
+
 Expected: 6 passed (3 from Task 2 + 3 new).
 
 - [ ] **Step 5: Commit**
@@ -796,6 +810,7 @@ git commit -m "feat(api): wire merge_pr + DDB MVI shipped update on POST /prs/{n
 Symmetric to merge, but PATCH `/pulls/{n}` to close + POST a comment with the reason.
 
 **Files:**
+
 - Modify: `apps/api/src/routes/pr_actions.py`
 - Modify: `apps/api/tests/test_pr_actions.py`
 
@@ -883,6 +898,7 @@ def test_reject_continues_when_comment_fails(
 ```bash
 cd /Users/eaugusto/cawnex/apps/api && ./venv/bin/pytest tests/test_pr_actions.py::test_reject_posts_comment_then_closes_then_updates_mvi -v
 ```
+
 Expected: FAIL with 501.
 
 - [ ] **Step 3: Wire the route**
@@ -969,6 +985,7 @@ async def reject_pr(
 ```bash
 cd /Users/eaugusto/cawnex/apps/api && ./venv/bin/pytest tests/test_pr_actions.py -v
 ```
+
 Expected: 8 passed (3 from Task 2 + 3 from Task 3 + 2 new).
 
 - [ ] **Step 5: Commit**
@@ -985,6 +1002,7 @@ git commit -m "feat(api): wire reject route — close PR + comment + DDB MVI rej
 Without this, the deployed Lambda will see `GITHUB_TOKEN=""` and every call will 0-status-error.
 
 **Files:**
+
 - Modify: `infra/lib/cawnex-stack.ts`
 
 - [ ] **Step 1: Find where `githubTokenSecret` is declared**
@@ -1134,8 +1152,14 @@ curl -sS -X POST \
 ```
 
 Expected response:
+
 ```json
-{"merged":true,"sha":"<git_sha>","mvi_status":"shipped","wave_status":""}
+{
+  "merged": true,
+  "sha": "<git_sha>",
+  "mvi_status": "shipped",
+  "wave_status": ""
+}
 ```
 
 - [ ] **Step 5: Verify GitHub side**
@@ -1143,6 +1167,7 @@ Expected response:
 ```bash
 gh pr view $SMOKE_PR --repo eduardoaugustoes/cawnex --json state,mergedAt
 ```
+
 Expected: `{"state": "MERGED", "mergedAt": "<recent timestamp>"}`.
 
 - [ ] **Step 6: Verify DDB side**
@@ -1152,6 +1177,7 @@ aws dynamodb get-item --table-name cawnex-dev --region us-east-1 \
   --key "{\"PK\":{\"S\":\"T#$TENANT#P#$PROJECT\"},\"SK\":{\"S\":\"S#$WAVE#m$MVI\"}}" \
   --query "Item.[status.S,shipped_at.S,merge_sha.S]" --output text
 ```
+
 Expected: `shipped <ISO timestamp> <sha>`.
 
 - [ ] **Step 7: Cleanup smoke artifacts**
@@ -1174,6 +1200,7 @@ git revert HEAD --no-edit && git push origin main
 ## Task 7: iOS PRActions service + ViewModel methods
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Core/Network/APIPRActionsService.swift`
 - Modify: `apps/ios/Cawnex/Cawnex/App/ServiceFactory.swift`
 - Modify: `apps/ios/Cawnex/Cawnex/Features/PR/PRReviewViewModel.swift`
@@ -1372,6 +1399,7 @@ git commit -m "feat(ios): APIPRActionsService + ViewModel merge/reject methods"
 ## Task 8: iOS — wire the buttons + add sheets
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Features/PR/RejectSheet.swift`
 - Create: `apps/ios/Cawnex/Cawnex/Features/PR/MergeConfirmSheet.swift`
 - Modify: `apps/ios/Cawnex/Cawnex/Features/PR/PRReviewScreen.swift`
@@ -1706,6 +1734,7 @@ Note: this references `dismiss` (`@Environment(\.dismiss) private var dismiss`) 
 - [ ] **Step 4: Add the new files to the Xcode project**
 
 Like Phase 1's earlier SSE work, the 2 new files need to be added via Xcode's "Add Files to Cawnex…" dialog before they'll compile. Repeat:
+
 - `RejectSheet.swift`
 - `MergeConfirmSheet.swift`
 - `APIPRActionsService.swift`
@@ -1734,6 +1763,7 @@ cd /Users/eaugusto/cawnex && git push origin main
 ```bash
 gh run list --repo eduardoaugustoes/cawnex --limit 1
 ```
+
 Wait for the most recent run to show `success`. If anything fails (Python Quality or CDK synth), fix and re-push.
 
 - [ ] **Step 3: User rebuilds iOS app**
@@ -1743,6 +1773,7 @@ The new files (`APIPRActionsService.swift`, `RejectSheet.swift`, `MergeConfirmSh
 - [ ] **Step 4: End-to-end test against PR #16 (or a fresh test PR)**
 
 In the iOS app:
+
 1. Navigate to Project Hub → Waves → wave w1778872378963 → MVI mvi2 → tap the PR
 2. PR Review screen shows reviewer's verdict (already implemented)
 3. Tap **Approve & Merge** → confirmation sheet appears
@@ -1755,6 +1786,7 @@ In the iOS app:
 - [ ] **Step 5: Test the Reject path**
 
 Create a fresh throwaway PR (same as Task 6 step 1), seed a fake MVI pointing at it (Task 6 step 2), then:
+
 1. Open the PR in iOS (will need to navigate to it via the synthetic MVI)
 2. Tap **Reject** → sheet appears
 3. Type "smoke test reject reason" → tap **Reject**

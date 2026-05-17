@@ -357,36 +357,36 @@ Worker IAM already has DDB RW on main table — no change needed to support `INT
 
 From the audit:
 
-| Module | Verdict | Notes |
-|---|---|---|
-| `handler.py` | SCRAP | DDB-Stream-event-driven Lambda entry; Fargate uses poll loop. |
-| `orchestrator.py` | PORT | Replace `ThreadPoolExecutor` → `asyncio.gather`. |
-| `advisors.py` | REFERENCE | Big rewrite — needs streaming + tool-use loop + scoped palette. |
-| `synthesis.py` | PORT | Pure deterministic; drops in unchanged. |
-| `reflection.py` | PORT | Pure function; drops in unchanged. |
-| `memory_store.py` | PORT | DDB schema stable. |
-| `overrides.py` | PORT (with care) | `request_round` trigger path changes for Fargate. |
-| `actions.py` | SCRAP | Wave-execution semantics don't map to Layer A. |
-| `models.py` | PORT + EXTEND | Add `investigation_trace`, `cited_evidence` to AdvisorVote. |
-| `enums.py` | PORT | Rename `SessionType.WAVE_REVIEW` if needed. |
-| `config.py` | REFERENCE | Lambda-specific env vars replaced. Switch model to haiku-4.5. |
-| `_blackboard.py` | REFERENCE | Recreate as read-only on Fargate. |
-| `_claude_client.py` | REFERENCE | Rewrite around `messages.stream(...)` + tool-use loop. |
-| `keys.py` | SCRAP | New SK shape. |
-| `__init__.py` | SCRAP | Empty. |
+| Module              | Verdict          | Notes                                                           |
+| ------------------- | ---------------- | --------------------------------------------------------------- |
+| `handler.py`        | SCRAP            | DDB-Stream-event-driven Lambda entry; Fargate uses poll loop.   |
+| `orchestrator.py`   | PORT             | Replace `ThreadPoolExecutor` → `asyncio.gather`.                |
+| `advisors.py`       | REFERENCE        | Big rewrite — needs streaming + tool-use loop + scoped palette. |
+| `synthesis.py`      | PORT             | Pure deterministic; drops in unchanged.                         |
+| `reflection.py`     | PORT             | Pure function; drops in unchanged.                              |
+| `memory_store.py`   | PORT             | DDB schema stable.                                              |
+| `overrides.py`      | PORT (with care) | `request_round` trigger path changes for Fargate.               |
+| `actions.py`        | SCRAP            | Wave-execution semantics don't map to Layer A.                  |
+| `models.py`         | PORT + EXTEND    | Add `investigation_trace`, `cited_evidence` to AdvisorVote.     |
+| `enums.py`          | PORT             | Rename `SessionType.WAVE_REVIEW` if needed.                     |
+| `config.py`         | REFERENCE        | Lambda-specific env vars replaced. Switch model to haiku-4.5.   |
+| `_blackboard.py`    | REFERENCE        | Recreate as read-only on Fargate.                               |
+| `_claude_client.py` | REFERENCE        | Rewrite around `messages.stream(...)` + tool-use loop.          |
+| `keys.py`           | SCRAP            | New SK shape.                                                   |
+| `__init__.py`       | SCRAP            | Empty.                                                          |
 
 ## Per-advisor tool palettes
 
 Each role gets the tools its investigation actually needs, scoped where appropriate.
 
-| Advisor | Tools | Path scope |
-|---|---|---|
-| Security | read_file, grep, list_directory, git_log_for_file, get_pr_diff, read_integration_file, get_pr_metadata | All paths |
-| Architecture | read_file, grep, list_directory, git_log_for_file, get_pr_diff, read_integration_file, get_pr_metadata | All paths |
-| Clarity | read_file, grep, get_pr_diff, read_integration_file, get_pr_metadata | All paths |
-| Performance | read_file, grep, git_log_for_file, get_pr_diff, read_integration_file, get_pr_metadata | All paths |
-| UX | read_file, grep, get_pr_diff, read_integration_file, get_pr_metadata | **Scoped to `apps/ios/...` and string/asset files only.** Calls outside scope return structured error. |
-| Cost | read_file, grep, list_directory, get_pr_diff, read_integration_file, get_pr_metadata | **Scoped to `infra/...` only.** Calls outside scope return structured error. |
+| Advisor      | Tools                                                                                                  | Path scope                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Security     | read_file, grep, list_directory, git_log_for_file, get_pr_diff, read_integration_file, get_pr_metadata | All paths                                                                                              |
+| Architecture | read_file, grep, list_directory, git_log_for_file, get_pr_diff, read_integration_file, get_pr_metadata | All paths                                                                                              |
+| Clarity      | read_file, grep, get_pr_diff, read_integration_file, get_pr_metadata                                   | All paths                                                                                              |
+| Performance  | read_file, grep, git_log_for_file, get_pr_diff, read_integration_file, get_pr_metadata                 | All paths                                                                                              |
+| UX           | read_file, grep, get_pr_diff, read_integration_file, get_pr_metadata                                   | **Scoped to `apps/ios/...` and string/asset files only.** Calls outside scope return structured error. |
+| Cost         | read_file, grep, list_directory, get_pr_diff, read_integration_file, get_pr_metadata                   | **Scoped to `infra/...` only.** Calls outside scope return structured error.                           |
 
 **Hard caps per advisor:** 15 tool calls, 180s wall-clock. Hitting either cap produces an `abstain` vote with concerns capturing what was investigated.
 
@@ -642,7 +642,7 @@ Outcome: a Council session that's been written by the reactor can be picked up, 
 - New `tools/` package (filesystem, git, github, palette, trace)
 - New `claude_client.py` with streaming + tool-use loop
 - CDK: new TaskDefinition, Service, IAM role, SG, EFS read-only access point
-- Council scaler (mirror Worker scaler) for COUNCIL#* INSERT
+- Council scaler (mirror Worker scaler) for COUNCIL#\* INSERT
 - Loud-failure: `council_pipeline_error` for advisor and synthesis failures
 - Integration tests: `test_happy_path`, `test_advisor_timeout`, `test_security_veto`
 - ~5-6 days
@@ -673,7 +673,7 @@ Outcome: Council decision → wave transitions to under_human_review. Old Counci
 
 - Cawnex's first L4 cell: the rework loop (element 4 in the dark-factory matrix) graduates from L3 to L4 because needs_rework dispatches automatically based on deterministic + adversarial signal.
 - Verification gate (element 3) graduates from L1 to L3 — not as a Worker-side gate, but as a wave-level integrator gate.
-- The 4-altitude approval gates start *actually* operating at multiple altitudes. Wave-level decisions get a Council signal before they reach the founder, even if the founder still merges.
+- The 4-altitude approval gates start _actually_ operating at multiple altitudes. Wave-level decisions get a Council signal before they reach the founder, even if the founder still merges.
 - The Council Lambda — deployed-but-silent for months — finally activates and earns its CDK presence.
 
 ## What this does NOT do

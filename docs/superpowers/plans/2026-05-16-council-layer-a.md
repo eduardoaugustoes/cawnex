@@ -21,6 +21,7 @@
 ### Task 1: Add new wave statuses to the enum
 
 **Files:**
+
 - Modify: `lambdas/murder/src/murder/enums.py`
 - Test: `lambdas/murder/tests/test_enums.py`
 
@@ -72,6 +73,7 @@ git commit -m "feat(murder): add integrating, needs_rework, under_council_review
 ### Task 2: IntegratorFindings dataclass
 
 **Files:**
+
 - Create: `lambdas/worker/src/worker/integrator/__init__.py`
 - Create: `lambdas/worker/src/worker/integrator/findings.py`
 - Create: `lambdas/worker/tests/integrator/__init__.py`
@@ -244,6 +246,7 @@ git commit -m "feat(integrator): add IntegratorFindings dataclass + serializatio
 ### Task 3: Per-PR worktree setup
 
 **Files:**
+
 - Create: `lambdas/worker/src/worker/integrator/worktree.py`
 - Test: `lambdas/worker/tests/integrator/test_worktree.py`
 
@@ -385,6 +388,7 @@ git commit -m "feat(integrator): add per-PR worktree setup + idempotent cleanup"
 ### Task 4: Integration merge
 
 **Files:**
+
 - Create: `lambdas/worker/src/worker/integrator/integration.py`
 - Test: `lambdas/worker/tests/integrator/test_integration.py`
 
@@ -574,6 +578,7 @@ git commit -m "feat(integrator): integration merge with MVI-routed conflict capt
 ### Task 5: Deterministic check runners (lint)
 
 **Files:**
+
 - Create: `lambdas/worker/src/worker/integrator/checks/__init__.py`
 - Create: `lambdas/worker/src/worker/integrator/checks/lint.py`
 - Test: `lambdas/worker/tests/integrator/test_checks_lint.py`
@@ -727,6 +732,7 @@ git commit -m "feat(integrator): lint check runner with timeout + skip-when-miss
 ### Task 6: Deterministic check runners (typecheck)
 
 **Files:**
+
 - Create: `lambdas/worker/src/worker/integrator/checks/typecheck.py`
 - Test: `lambdas/worker/tests/integrator/test_checks_typecheck.py`
 
@@ -846,6 +852,7 @@ git commit -m "feat(integrator): typecheck runner (mypy) with first-5-errors cap
 ### Task 7: Deterministic check runners (tests)
 
 **Files:**
+
 - Create: `lambdas/worker/src/worker/integrator/checks/tests.py`
 - Test: `lambdas/worker/tests/integrator/test_checks_tests.py`
 
@@ -965,6 +972,7 @@ git commit -m "feat(integrator): pytest runner with first-5-failures capture"
 ### Task 8: Check orchestration runner
 
 **Files:**
+
 - Create: `lambdas/worker/src/worker/integrator/checks/runner.py`
 - Test: `lambdas/worker/tests/integrator/test_checks_runner.py`
 
@@ -1084,6 +1092,7 @@ git commit -m "feat(integrator): check orchestration + overall-verdict aggregati
 ### Task 9: Loud-failure event helper
 
 **Files:**
+
 - Create: `lambdas/worker/src/worker/integrator/events.py`
 - Test: `lambdas/worker/tests/integrator/test_events.py`
 
@@ -1202,6 +1211,7 @@ git commit -m "feat(integrator): loud-failure pipeline_error emission helper"
 ### Task 10: Integrator handler — wire all phases together
 
 **Files:**
+
 - Create: `lambdas/worker/src/worker/integrator/handler.py`
 - Test: `lambdas/worker/tests/integrator/test_handler.py`
 
@@ -1465,6 +1475,7 @@ git commit -m "feat(integrator): wire phases A/B/C + loud-failure handling in ha
 ### Task 11: Worker dispatch on crow_kind=integrator
 
 **Files:**
+
 - Modify: `lambdas/worker/src/worker/handler.py`
 - Modify: `lambdas/worker/tests/test_handler.py` (or add a new test file if none)
 
@@ -1537,6 +1548,7 @@ git commit -m "feat(worker): dispatch crow_kind=integrator to integrator subpack
 ### Task 12: Murder reactor — handle wave ready for review
 
 **Files:**
+
 - Modify: `lambdas/murder/src/murder/reactor.py`
 - Modify: `lambdas/murder/tests/test_reactor.py` (add new test class)
 
@@ -1698,6 +1710,7 @@ git commit -m "feat(murder): dispatch integrator when all MVIs reach ready_to_sh
 ### Task 13: Murder reactor — handle integration complete
 
 **Files:**
+
 - Modify: `lambdas/murder/src/murder/reactor.py`
 - Modify: `lambdas/murder/src/murder/handler.py` (Stream dispatch wiring)
 - Modify: `lambdas/murder/tests/test_reactor.py`
@@ -1895,6 +1908,7 @@ git commit -m "feat(murder): route INTEGRATION# results to council or fixer disp
 ### Task 14: M1 integration test — end-to-end against moto DDB
 
 **Files:**
+
 - Create: `tests/integration/test_stage4_m1.py` (new directory if missing)
 
 - [ ] **Step 1: Set up integration test directory + conftest**
@@ -2049,6 +2063,7 @@ If you maintain a CHANGELOG or feature flag, mark M1 complete. Otherwise no-op.
 ### Task 15: Rename AdvisorType enum to wave-review lenses
 
 **Files:**
+
 - Modify: `lambdas/council/src/council/enums.py`
 - Modify: `lambdas/council/tests/test_models.py` (and any other test using old names)
 - Modify: `docs/design/council-protocol.md`
@@ -2107,6 +2122,7 @@ VETO_ADVISORS = {AdvisorType.SECURITY, AdvisorType.CLARITY}
 - [ ] **Step 5: Update existing test files for the rename**
 
 For every test referencing `AdvisorType.QUALITY`, `AdvisorType.MARKET`, `AdvisorType.MATURITY`:
+
 - `AdvisorType.QUALITY` → `AdvisorType.ARCHITECTURE`
 - `AdvisorType.MARKET` → `AdvisorType.COST`
 - `AdvisorType.MATURITY` → `AdvisorType.UX`
@@ -2149,6 +2165,7 @@ git commit -m "refactor(council): rename advisor enum to wave-review lenses (Arc
 ### Task 16: Extend AdvisorVote with investigation_trace + cited_evidence
 
 **Files:**
+
 - Modify: `lambdas/council/src/council/models.py`
 - Modify: `lambdas/council/tests/test_models.py`
 
@@ -2290,6 +2307,7 @@ git commit -m "feat(council): add investigation_trace + cited_evidence to Adviso
 ### Task 17: Tool implementations — filesystem (read_file, grep, list_directory)
 
 **Files:**
+
 - Create: `lambdas/council/src/council/tools/__init__.py`
 - Create: `lambdas/council/src/council/tools/filesystem.py`
 - Create: `lambdas/council/tests/test_tools_filesystem.py`
@@ -2443,6 +2461,7 @@ git commit -m "feat(council): filesystem tools (read_file, grep, list_directory)
 ### Task 18: Tool implementations — git + github
 
 **Files:**
+
 - Create: `lambdas/council/src/council/tools/git.py`
 - Create: `lambdas/council/src/council/tools/github.py`
 - Create: `lambdas/council/tests/test_tools_git.py`
@@ -2626,6 +2645,7 @@ git commit -m "feat(council): git + github metadata investigation tools"
 ### Task 19: Per-advisor tool palette + scoping enforcement
 
 **Files:**
+
 - Create: `lambdas/council/src/council/tools/palette.py`
 - Create: `lambdas/council/tests/test_tools_palette.py`
 
@@ -2888,6 +2908,7 @@ git commit -m "feat(council): per-advisor tool palette + path-scoping enforcemen
 ### Task 20: Investigation trace builder
 
 **Files:**
+
 - Create: `lambdas/council/src/council/tools/trace.py`
 - Create: `lambdas/council/tests/test_tools_trace.py`
 
@@ -2983,6 +3004,7 @@ git commit -m "feat(council): TraceBuilder for investigation_trace records"
 ### Task 21: Anthropic streaming + tool-use client
 
 **Files:**
+
 - Modify: `lambdas/council/src/council/_claude_client.py` → rename to `claude_client.py`
 - Create: `lambdas/council/tests/test_claude_client.py`
 
@@ -3275,6 +3297,7 @@ git commit -m "feat(council): async streaming + tool-use loop with cap enforceme
 ### Task 22: Advisor base + per-advisor implementations
 
 **Files:**
+
 - Create: `lambdas/council/src/council/advisors/__init__.py`
 - Create: `lambdas/council/src/council/advisors/base.py`
 - Create: `lambdas/council/src/council/advisors/security.py` (+ 5 more for each advisor)
@@ -3347,6 +3370,7 @@ mkdir -p lambdas/council/src/council/advisors/prompts
 
 ```markdown
 <!-- lambdas/council/src/council/advisors/prompts/security.md -->
+
 You are the Security advisor on a Council reviewing a completed wave of changes.
 You have veto power: if you vote BLOCK, the wave is rejected.
 
@@ -3505,6 +3529,7 @@ git commit -m "feat(council): advisor base loop + 6 prompt files + cap-to-abstai
 ### Task 23: Rewrite orchestrator with asyncio.gather
 
 **Files:**
+
 - Modify: `lambdas/council/src/council/orchestrator.py`
 - Modify: `lambdas/council/tests/test_orchestrator.py`
 
@@ -3650,6 +3675,7 @@ git commit -m "feat(council): asyncio.gather-based parallel advisor runner with 
 ### Task 24: Council session handler — load packet, run advisors, write decision
 
 **Files:**
+
 - Modify: `lambdas/council/src/council/handler.py`
 - Create: `lambdas/council/tests/test_handler_fargate.py`
 
@@ -3888,6 +3914,7 @@ git commit -m "feat(council): Fargate session handler with loud-failure pipeline
 ### Task 25: Council Fargate entrypoint shim + Dockerfile
 
 **Files:**
+
 - Create: `apps/council/main.py`
 - Create: `apps/council/Dockerfile`
 - Create: `apps/council/requirements.txt`
@@ -4011,6 +4038,7 @@ git commit -m "feat(council): Fargate poll-loop entrypoint + Dockerfile"
 ### Task 26: CDK — add Council Fargate service (new task definition, IAM, SG)
 
 **Files:**
+
 - Modify: `infra/lib/cawnex-stack.ts`
 
 - [ ] **Step 1: Sketch the CDK changes**
@@ -4028,15 +4056,17 @@ const councilTaskRole = new iam.Role(this, "CouncilTaskRole", {
 });
 mainTable.grantReadData(councilTaskRole);
 eventsTable.grantReadWriteData(councilTaskRole);
-councilTaskRole.addToPolicy(new iam.PolicyStatement({
-  actions: ["dynamodb:UpdateItem"],
-  resources: [mainTable.tableArn],
-  conditions: {
-    "ForAllValues:StringLike": {
-      "dynamodb:LeadingKeys": ["COUNCIL#*", "MEM#*"],
+councilTaskRole.addToPolicy(
+  new iam.PolicyStatement({
+    actions: ["dynamodb:UpdateItem"],
+    resources: [mainTable.tableArn],
+    conditions: {
+      "ForAllValues:StringLike": {
+        "dynamodb:LeadingKeys": ["COUNCIL#*", "MEM#*"],
+      },
     },
-  },
-}));
+  })
+);
 anthropicSecret.grantRead(councilTaskRole);
 
 const councilSG = new ec2.SecurityGroup(this, "CouncilServiceSG", {
@@ -4056,17 +4086,19 @@ const councilTaskDef = new ecs.FargateTaskDefinition(this, "CouncilTaskDef", {
   cpu: 512,
   memoryLimitMiB: 1024,
   taskRole: councilTaskRole,
-  volumes: [{
-    name: "repos",
-    efsVolumeConfiguration: {
-      fileSystemId: repoFs.fileSystemId,
-      transitEncryption: "ENABLED",
-      authorizationConfig: {
-        accessPointId: councilAccessPoint.accessPointId,
-        iam: "ENABLED",
+  volumes: [
+    {
+      name: "repos",
+      efsVolumeConfiguration: {
+        fileSystemId: repoFs.fileSystemId,
+        transitEncryption: "ENABLED",
+        authorizationConfig: {
+          accessPointId: councilAccessPoint.accessPointId,
+          iam: "ENABLED",
+        },
       },
     },
-  }],
+  ],
 });
 
 const councilContainer = councilTaskDef.addContainer("council", {
@@ -4096,7 +4128,7 @@ const councilService = new ecs.FargateService(this, "CouncilService", {
   serviceName: `cawnex-council-${props.stage}`,
   cluster,
   taskDefinition: councilTaskDef,
-  desiredCount: 0,  // scaled by reactor on COUNCIL# inserts
+  desiredCount: 0, // scaled by reactor on COUNCIL# inserts
   assignPublicIp: props.stage !== "prod",
   securityGroups: [councilSG],
 });
@@ -4130,6 +4162,7 @@ git commit -m "feat(infra): add Council Fargate service (separate task, read-onl
 ### Task 27: Council scaler — bump desiredCount on COUNCIL# INSERT
 
 **Files:**
+
 - Modify: `infra/lib/cawnex-stack.ts`
 - Modify: `lambdas/worker-scaler/src/handler.py` (extend existing scaler)
 
@@ -4187,6 +4220,7 @@ Expected: no errors.
 ### Task 28: Murder reactor `_handle_council_complete`
 
 **Files:**
+
 - Modify: `lambdas/murder/src/murder/reactor.py`
 - Modify: `lambdas/murder/src/murder/handler.py`
 - Modify: `lambdas/murder/tests/test_reactor.py`
@@ -4274,6 +4308,7 @@ git commit -m "feat(murder): transition wave to under_human_review on council co
 ### Task 29: Delete legacy Council Lambda from CDK
 
 **Files:**
+
 - Modify: `infra/lib/cawnex-stack.ts`
 
 - [ ] **Step 1: Find the Council Lambda block in CDK**
@@ -4317,6 +4352,7 @@ git commit -m "chore(infra): remove legacy Council Lambda (replaced by Fargate)"
 - [ ] **Step 1: Prepare a controlled synthetic wave in dev**
 
 In a dev project:
+
 1. Create 2 trivial MVIs (e.g. add a comment to one file each, in different files to avoid conflict).
 2. Manually advance the wave through executing → review by writing ready_to_ship statuses on both MVIs.
 
@@ -4386,31 +4422,31 @@ If any step fails: do NOT mark Layer A done. Open issues for what failed and ite
 
 The plan covers each Layer A spec section:
 
-| Spec section | Plan tasks |
-|---|---|
-| Wave state machine extension | Task 1, 12, 13, 28 |
-| IntegratorFindings data model | Task 2 |
-| Integrator phases A/B/C | Tasks 3, 4, 5, 6, 7, 8, 10 |
-| Loud-failure rule | Task 9 (events helper), used in Tasks 10, 24 |
-| Worker dispatch on integrator | Task 11 |
-| Murder reactor — wave ready | Task 12 |
-| Murder reactor — integration complete | Task 13 |
-| Murder reactor — council complete | Task 28 |
-| Advisor enum rename | Task 15 |
-| AdvisorVote extension (trace + evidence) | Task 16 |
-| Tool implementations | Tasks 17, 18 |
-| Tool palette + scoping | Task 19 |
-| Trace builder | Task 20 |
-| Anthropic streaming + tool-use loop | Task 21 |
-| Per-advisor implementations | Task 22 |
-| asyncio.gather orchestrator | Task 23 |
-| Council session handler | Task 24 |
-| Council Fargate entrypoint | Task 25 |
-| CDK — Council Fargate service | Task 26 |
-| Council scaler | Task 27 |
-| Delete legacy Council Lambda | Task 29 |
-| Smoke test | Task 30 |
-| M1 integration test | Task 14 |
+| Spec section                             | Plan tasks                                   |
+| ---------------------------------------- | -------------------------------------------- |
+| Wave state machine extension             | Task 1, 12, 13, 28                           |
+| IntegratorFindings data model            | Task 2                                       |
+| Integrator phases A/B/C                  | Tasks 3, 4, 5, 6, 7, 8, 10                   |
+| Loud-failure rule                        | Task 9 (events helper), used in Tasks 10, 24 |
+| Worker dispatch on integrator            | Task 11                                      |
+| Murder reactor — wave ready              | Task 12                                      |
+| Murder reactor — integration complete    | Task 13                                      |
+| Murder reactor — council complete        | Task 28                                      |
+| Advisor enum rename                      | Task 15                                      |
+| AdvisorVote extension (trace + evidence) | Task 16                                      |
+| Tool implementations                     | Tasks 17, 18                                 |
+| Tool palette + scoping                   | Task 19                                      |
+| Trace builder                            | Task 20                                      |
+| Anthropic streaming + tool-use loop      | Task 21                                      |
+| Per-advisor implementations              | Task 22                                      |
+| asyncio.gather orchestrator              | Task 23                                      |
+| Council session handler                  | Task 24                                      |
+| Council Fargate entrypoint               | Task 25                                      |
+| CDK — Council Fargate service            | Task 26                                      |
+| Council scaler                           | Task 27                                      |
+| Delete legacy Council Lambda             | Task 29                                      |
+| Smoke test                               | Task 30                                      |
+| M1 integration test                      | Task 14                                      |
 
 No spec section is unimplemented.
 

@@ -17,6 +17,7 @@ The fixes are grouped by what they unblock. Fix #1 unblocks every future run. Fi
 **Why now:** Run 1 attempt 1 died because the Cawnex project was created without a `repo` value. The project root record had `repo: NULL`; Wave inherited `""`; Murder crashed on contract violation with no UI signal. Required two manual interventions: a DDB `update-item` to patch the project record, and a wave cancel to abandon the dead run. Every new Cawnex project today will repeat this.
 
 **Where:**
+
 - API: `apps/api/src/routes/projects.py` — the create-project endpoint must reject 422 on missing/empty `repo`.
 - Validate the repo string is `owner/repo` shape (regex `^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$`) — empty + bad shapes both fail.
 - iOS: `Features/Project/...` create-project screen must present a "GitHub repository (owner/repo)" field marked required with inline validation matching the API's regex.
@@ -47,6 +48,7 @@ The fixes are grouped by what they unblock. Fix #1 unblocks every future run. Fi
 Also: when Murder's contract validator rejects a write, the stream record will retry forever by default. Configure the event-source-mapping with a finite `MaximumRetryAttempts` (e.g. 3) and a DLQ.
 
 **Acceptance:**
+
 1. Force a contract violation (e.g. POST a queued MVI with `repo: ""` directly to DDB). Within 5s, the iOS Wave Execution live feed shows a red event `"MVI failed: repo is required"`.
 2. The MVI item transitions to `status: failed` after first failure; Murder doesn't retry indefinitely.
 3. CloudWatch shows a single error log, not a crash-loop stream.
@@ -56,6 +58,7 @@ Also: when Murder's contract validator rejects a write, the stream record will r
 ## Fix 4 — Cost math: derive prices from deployed model, capture cache tokens, persist model field
 
 **Why now:** Run 1's Wave Execution UI showed budget `$0.886 / $20.00` spent. Actual Anthropic Console billing for the same window: ~$0.30. Cawnex over-reports ~3× because:
+
 - `worker/config.py:29-30` hardcodes Sonnet-4 prices (3 / 15 microdollars per token in/out)
 - Deployed model is Haiku 4.5 (`cawnex-stack.ts:518` `ANTHROPIC_MODEL` override) at ~1× / 5× microdollars
 - `worker/claude.py:85-86` captures only `input_tokens` + `output_tokens`; throws away `cache_creation_input_tokens` and `cache_read_input_tokens`
@@ -64,6 +67,7 @@ Also: when Murder's contract validator rejects a write, the stream record will r
 Trust collapses if the budget dashboard lies — and it already lies.
 
 **Where:**
+
 1. `worker/claude.py:ClaudeResult` add `cache_creation: int` and `cache_read: int` fields; populate from `response.usage.cache_creation_input_tokens or 0` / `cache_read_input_tokens or 0`.
 2. `worker/models.py:Cost` add `model: str` and `cache_creation`/`cache_read` token counts.
 3. `worker/cost.py:calculate_credits(usage, model)` accept a model id; look up prices from a per-model table.
@@ -81,32 +85,37 @@ Trust collapses if the budget dashboard lies — and it already lies.
 6. iOS Wave Execution screen optional: if `cache_*` > 0, surface "saved $X via cache hits" next to the spent line.
 
 **Acceptance:**
+
 1. Run a smoke crow on Haiku 4.5. The crow's `cost.credits` matches `tokens_in × 1 + tokens_out × 5` (or whatever the actual current Haiku price table is), not the Sonnet number.
 2. `cost` record in DDB has a `model` field with the value used.
 3. Comparing wave.budget.spent against the Anthropic Console for the same window agrees within 5%.
 4. If `ANTHROPIC_MODEL` env is changed without code change, prices follow the model automatically.
 
-**Out of scope:** Enabling prompt caching itself (separate decision). This fix just makes the accounting *correct* when caching is enabled.
+**Out of scope:** Enabling prompt caching itself (separate decision). This fix just makes the accounting _correct_ when caching is enabled.
 
 ---
 
 ## Fix 5 — Planner and implementer must actually read the spec when listed in `context_files`
 
 **Why now:** The MVI directive included `Spec: docs/superpowers/specs/2026-05-13-project-state-readout-design.md`. The planner correctly added the spec path to task 1's `context_files`. But:
+
 - Planner's `gather_planner_context` walks the file tree and reads only the first 30 alphabetical files (`context.py:40`). The spec lives at `docs/superpowers/specs/2026-05-13-...md` — alphabetically late. Planner never read spec content.
-- Implementer's `gather_implementer_context` is *supposed* to read every file in `files_to_read` + `files_to_modify`. The aggregated top-level `context_files` did include the spec. But the total `context_gathered` chars logged was only 9,673 — the 18KB spec almost certainly was not in that buffer. Implementer hallucinated DB methods that don't exist, `ProjectState` values that don't match Cawnex's data model, and deleted `TenantDB`.
+- Implementer's `gather_implementer_context` is _supposed_ to read every file in `files_to_read` + `files_to_modify`. The aggregated top-level `context_files` did include the spec. But the total `context_gathered` chars logged was only 9,673 — the 18KB spec almost certainly was not in that buffer. Implementer hallucinated DB methods that don't exist, `ProjectState` values that don't match Cawnex's data model, and deleted `TenantDB`.
 
 **Diagnosis tasks:**
+
 1. Reproduce by running a smoke test crow that lists a known spec path in `context_files` and log every file path `_read_file_safe` returns non-None for. Confirm whether the spec path is actually being attempted and what it returns.
-2. Check: does `executor.py:223 _gather_context` for IMPLEMENTER receive the *top-level* `instructions_data["context_files"]` correctly? (`executor.py:217-221` parses `instructions` JSON — verify the planner's payload structure round-trips.)
+2. Check: does `executor.py:223 _gather_context` for IMPLEMENTER receive the _top-level_ `instructions_data["context_files"]` correctly? (`executor.py:217-221` parses `instructions` JSON — verify the planner's payload structure round-trips.)
 3. Check `_read_file_safe` for silent failures other than size: encoding issues, path resolution, worktree-relative-path bugs.
 
 **Fix tasks:**
-1. Both `gather_planner_context` and `gather_implementer_context` must *always* read any markdown file under `docs/superpowers/specs/` plus any path explicitly named in the directive. Add a heuristic: if the directive text contains `Spec: <path>` or `spec: <path>`, the path is added to `files_to_read` regardless of what the planner said.
+
+1. Both `gather_planner_context` and `gather_implementer_context` must _always_ read any markdown file under `docs/superpowers/specs/` plus any path explicitly named in the directive. Add a heuristic: if the directive text contains `Spec: <path>` or `spec: <path>`, the path is added to `files_to_read` regardless of what the planner said.
 2. Planner gets a separate context-gathering pass that prioritizes files mentioned in the directive — those should land in the first 30, not random alphabetical files.
 3. Log `files_read` (the list of actual paths read) in the `context_gathered` event so we can verify post-hoc what was in the prompt.
 
 **Acceptance:**
+
 1. Smoke test: run a planner crow with directive `Refactor X. Spec: docs/superpowers/specs/SOMESPEC.md`. The planner's logged `files_read` includes the spec path. Total `chars` ≥ size of spec.
 2. The corresponding implementer's logged `files_read` includes the spec path.
 3. Re-run the project-state-readout MVI manually with these fixes; the planner's outcome.tasks must reference at least 2 specific identifiers from the actual spec (not generic invented ones like `ProjectState.PLANNING`).
@@ -115,11 +124,12 @@ Trust collapses if the budget dashboard lies — and it already lies.
 
 ## Fix 6 — Reviewer must receive spec + planner outcome in its context
 
-**Why now:** The reviewer surprised us positively — git diff alone was enough to catch "TenantDB deleted." But the reviewer rejected for *structural* destruction; it couldn't judge *semantic* correctness against the spec because the spec wasn't in its prompt. Reviewer's `gather_reviewer_context` gives only git diff + ≤10 changed-file contents.
+**Why now:** The reviewer surprised us positively — git diff alone was enough to catch "TenantDB deleted." But the reviewer rejected for _structural_ destruction; it couldn't judge _semantic_ correctness against the spec because the spec wasn't in its prompt. Reviewer's `gather_reviewer_context` gives only git diff + ≤10 changed-file contents.
 
 If a future implementer produces structurally-clean but semantically-wrong code (e.g. adds a `state` field but computes it from wrong source data), the reviewer will rubber-stamp.
 
 **Where:**
+
 1. `worker/context.py:gather_reviewer_context` accept the planner's `outcome.tasks` and the directive-cited spec path; read both into the prompt.
 2. `murder/src/murder/context_builder.py:_build_reviewer_instructions` (the function exists, currently only injects `planner_outcome` tasks list) must also embed the spec path under a `## Spec` heading so the reviewer can verify acceptance criteria against it.
 
@@ -132,12 +142,14 @@ If a future implementer produces structurally-clean but semantically-wrong code 
 **Why now:** The SSE Lambda at `lambdas/sse/handler.py` is deployed, wired to a Lambda Function URL, validates Cognito JWTs, and polls the events table at 1s intervals streaming SSE chunks. It is **orphaned**: zero iOS consumer. iOS `WaveExecutionViewModel.swift:69` runs a `Timer.scheduledTimer(withTimeInterval: 3.0)` REST poll, which Apple suspends on background. Founder must leave and return to the screen to see new state. The "LIVE" badge is a lie.
 
 **Where:**
+
 1. New iOS service `Features/Waves/SSEWaveEventStream.swift` consuming `URLSession.shared.bytes(for:)` against the SSE Lambda Function URL. Parse SSE-framed events; emit to the existing event-list observable.
 2. `WaveExecutionViewModel` start the SSE subscription in `load()` instead of the Timer poll. Keep Timer as fallback when SSE returns non-200 or disconnects.
 3. Handle Lambda's 14-minute SSE duration cap (`sse/handler.py:23 MAX_DURATION`) — when stream ends client-side, reconnect.
 4. Surface a real disconnected indicator when SSE is not connected (badge stays grey instead of "LIVE").
 
 **Acceptance:**
+
 1. Activate a wave. Live feed updates appear in iOS within ≤2s of being written to the events table.
 2. Background the app for 30s; foreground it. Events that arrived during background appear immediately on foregrounding (SSE reconnect catches up).
 3. Cut network mid-wave. Badge changes from "LIVE" to a reconnecting indicator. When network returns, badge returns to LIVE and missed events appear.
@@ -151,10 +163,12 @@ If a future implementer produces structurally-clean but semantically-wrong code 
 **Why now:** Before run 1 attempt 2's wave, the Worker was poll-cycling for 15+ minutes on a `cr_plan_01` from project `caioo-653d43` showing as `DISPATCH#pending` in GSI1 but returning `already claimed` on conditional update. Probably a partial-failure leftover. Every 10 seconds wastes a Fargate poll + a DDB query. Permanent noise.
 
 **Where:**
+
 1. Audit `worker/blackboard.py:conditional_status_update` and `executor.py` writes — when transitioning `pending → running` and then `running → completed/failed`, ensure the GSI1 attributes (`GSI1PK = "DISPATCH#pending"`) are cleared from the item. PutItem with the completed snapshot at `worker/handler.py:140` should already drop GSI1PK if the new item doesn't set it — verify.
 2. One-shot cleanup: scan GSI1 for entries where the underlying item is no longer `pending`; clear them. Probably a 50-line ops script committed to `lambdas/worker/scripts/`.
 
 **Acceptance:**
+
 1. After a crow transitions to completed, GSI1 query `PK = DISPATCH#pending` no longer returns it.
 2. Run the cleanup script against dev — Worker poll's `pending_count` drops to 0 when no real work is queued.
 
@@ -165,7 +179,8 @@ If a future implementer produces structurally-clean but semantically-wrong code 
 **Why now:** `apps/ios/Cawnex/Cawnex/Core/Network/APIMVIService.swift:224 findWaveForMVI` only succeeds if the MVI is already inside a Wave. Tapping a backlog MVI throws `Could not find a wave containing this MVI` — a worse-than-useless error because the right action ("add this MVI to a wave") isn't reachable from that screen.
 
 **Where:**
-1. `Features/Backlog/...` MVI-list tap target should route to an MVI edit/preview screen scoped to the *backlog* item, not the wave Blackboard screen.
+
+1. `Features/Backlog/...` MVI-list tap target should route to an MVI edit/preview screen scoped to the _backlog_ item, not the wave Blackboard screen.
 2. That edit/preview screen should have a "Launch as Wave" button that deep-links into WaveLaunch pre-filling Goal + this MVI + a default directive of the MVI name.
 3. Alternative: the Blackboard screen, on `findWaveForMVI` failure, offers a "This MVI isn't in a wave yet — add to a new wave?" affordance instead of an error.
 
@@ -191,6 +206,7 @@ These were observed but lower priority than 1–9:
 ## Suggested ordering for the next run
 
 If we want one more dogfood attempt before broader rework, the minimum-viable bundle is **Fix 1 + Fix 2 + Fix 3 + Fix 5 + Fix 6**. That gives:
+
 - Project create won't accept a bad config (Fix 1)
 - Wave activate won't try to dispatch a bad config (Fix 2)
 - Failures are visible to the founder (Fix 3)

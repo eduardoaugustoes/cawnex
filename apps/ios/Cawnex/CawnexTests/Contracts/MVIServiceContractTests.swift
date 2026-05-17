@@ -16,14 +16,14 @@ struct MVIServiceContractTests {
     @Test func getBlackboardDetail_returnsMVIWithMatchingId() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         #expect(detail.mvi.id == "mvi1")
     }
 
     @Test func getBlackboardDetail_hasBreadcrumb() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         #expect(!detail.breadcrumb.isEmpty)
     }
 
@@ -32,7 +32,7 @@ struct MVIServiceContractTests {
     @Test func getBlackboardDetail_crowsHaveUniqueIds() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         let ids = detail.activeCrows.map(\.id)
         #expect(Set(ids).count == ids.count)
     }
@@ -40,7 +40,7 @@ struct MVIServiceContractTests {
     @Test func getBlackboardDetail_crowsHaveNamesAndModels() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         for crow in detail.activeCrows {
             #expect(!crow.name.isEmpty)
             #expect(!crow.model.isEmpty)
@@ -52,7 +52,7 @@ struct MVIServiceContractTests {
     @Test func getBlackboardDetail_tasksHaveUniqueIds() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         let ids = detail.tasks.map(\.id)
         #expect(Set(ids).count == ids.count)
         #expect(!detail.tasks.isEmpty)
@@ -61,7 +61,7 @@ struct MVIServiceContractTests {
     @Test func getBlackboardDetail_tasksHaveNames() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         for task in detail.tasks {
             #expect(!task.name.isEmpty)
         }
@@ -70,7 +70,7 @@ struct MVIServiceContractTests {
     @Test func getBlackboardDetail_completedTasksHavePRNumbers() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         for task in detail.tasks where task.status == .completed {
             #expect(task.prNumber != nil)
         }
@@ -81,7 +81,7 @@ struct MVIServiceContractTests {
     @Test func getBlackboardDetail_liveFeedHasUniqueIds() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         let ids = detail.liveFeed.map(\.id)
         #expect(Set(ids).count == ids.count)
         #expect(!detail.liveFeed.isEmpty)
@@ -90,7 +90,7 @@ struct MVIServiceContractTests {
     @Test func getBlackboardDetail_liveFeedEventsHaveContent() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         for event in detail.liveFeed {
             #expect(!event.timestamp.isEmpty)
             #expect(!event.message.isEmpty)
@@ -102,7 +102,7 @@ struct MVIServiceContractTests {
     @Test func getBlackboardDetail_mergeChecklistHasItems() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         #expect(!detail.mergeChecklist.isEmpty)
         for item in detail.mergeChecklist {
             #expect(!item.label.isEmpty)
@@ -112,7 +112,7 @@ struct MVIServiceContractTests {
     @Test func getBlackboardDetail_canShipReflectsChecklistAndTasks() async throws {
         let (service, store) = makeSUT()
         let projectId = try #require(store.projects.first?.id)
-        let detail = try await service.getBlackboardDetail(projectId: projectId, mviId: "mvi1")
+        let detail = try await service.getBlackboardDetail(projectId: projectId, waveId: nil, mviId: "mvi1")
         let allTasksComplete = detail.tasks.allSatisfy { $0.status == .completed }
         let allChecksPassed = detail.mergeChecklist.allSatisfy { $0.passed }
         #expect(detail.canShip == (allTasksComplete && allChecksPassed))

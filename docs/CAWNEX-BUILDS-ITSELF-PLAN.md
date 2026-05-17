@@ -17,17 +17,17 @@ Optimizations (parallelism, cost-routing, sandboxing, claim-TTL recovery) are de
 
 What a fully autonomous wave requires, and where each step actually sits:
 
-| Step | State | Gap |
-|---|---|---|
-| 1. Static context (Vision/Arch/Glossary/Design) | ✅ Exists | Frozen at project setup — never updated as the system evolves |
-| 2a. Planner emits plan | ✅ Planner crow runs | Outputs a flat list, not a graph; no spec-quality check up front |
-| 2b. **Plan adversary** | ❌ Doesn't exist | Bad plans go straight to expensive crow execution |
-| 3. Crow execution | ✅ Implementer → Reviewer → Fixer works | Run-6 shipped a real PR |
-| 4a. Reviewer crow | ✅ Adversarial-by-design | Works |
-| 4b. **Council vote** | ❌ Designed in `council-protocol.md`, never run | Every PR escalates to the founder; no auto-merge tier |
-| 4c. Founder gate | ✅ Approve/Reject buttons wired | Works |
-| 5. **Observability for humans** | ⚠️ SSE works, CloudWatch exists | But no human-readable timeline of what the crow actually did |
-| 6. **Learning loop** | ❌ Doesn't exist | Each wave starts cold; no memory of what failed last time |
+| Step                                            | State                                           | Gap                                                              |
+| ----------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
+| 1. Static context (Vision/Arch/Glossary/Design) | ✅ Exists                                       | Frozen at project setup — never updated as the system evolves    |
+| 2a. Planner emits plan                          | ✅ Planner crow runs                            | Outputs a flat list, not a graph; no spec-quality check up front |
+| 2b. **Plan adversary**                          | ❌ Doesn't exist                                | Bad plans go straight to expensive crow execution                |
+| 3. Crow execution                               | ✅ Implementer → Reviewer → Fixer works         | Run-6 shipped a real PR                                          |
+| 4a. Reviewer crow                               | ✅ Adversarial-by-design                        | Works                                                            |
+| 4b. **Council vote**                            | ❌ Designed in `council-protocol.md`, never run | Every PR escalates to the founder; no auto-merge tier            |
+| 4c. Founder gate                                | ✅ Approve/Reject buttons wired                 | Works                                                            |
+| 5. **Observability for humans**                 | ⚠️ SSE works, CloudWatch exists                 | But no human-readable timeline of what the crow actually did     |
+| 6. **Learning loop**                            | ❌ Doesn't exist                                | Each wave starts cold; no memory of what failed last time        |
 
 **Four missing links** (plan adversary, council, human-readable observability, learning loop) plus **one rotting link** (static context that drifts from reality).
 
@@ -35,7 +35,7 @@ What a fully autonomous wave requires, and where each step actually sits:
 
 Each stage is the minimum to unblock the next. Each ends with Cawnex doing more of itself than before.
 
-> **Note on build order:** The stages are listed below in the *dependency* order I originally proposed (1→5). The chosen *build* order is now Stage 4 first — see [Order of operations](#order-of-operations-updated-2026-05-16) below for the locked sequence and the reasoning for the re-order. Stages 1-3 and 5 remain in this document as future work whose ordering will be re-evaluated after Stage 4 ships.
+> **Note on build order:** The stages are listed below in the _dependency_ order I originally proposed (1→5). The chosen _build_ order is now Stage 4 first — see [Order of operations](#order-of-operations-updated-2026-05-16) below for the locked sequence and the reasoning for the re-order. Stages 1-3 and 5 remain in this document as future work whose ordering will be re-evaluated after Stage 4 ships.
 
 ---
 
@@ -45,7 +45,7 @@ Each stage is the minimum to unblock the next. Each ends with Cawnex doing more 
 
 **Stage 1:** After every shipped MVI, a small Monarch operation re-reads the diff + the existing docs, and proposes updates. The founder approves/rejects the doc-update like any other change (uses the existing four-altitude approval pattern).
 
-**Why first:** every subsequent crow run reads these docs. If they drift from reality, every plan/review/fix downstream is working from a lie. Cole Murray's "perpetual new hire" frame from `BACKGROUND-AGENTS-LEARNINGS.md` — documentation *is* agent onboarding.
+**Why first:** every subsequent crow run reads these docs. If they drift from reality, every plan/review/fix downstream is working from a lie. Cole Murray's "perpetual new hire" frame from `BACKGROUND-AGENTS-LEARNINGS.md` — documentation _is_ agent onboarding.
 
 **Result:** the system's understanding of itself stays current.
 
@@ -57,7 +57,7 @@ Each stage is the minimum to unblock the next. Each ends with Cawnex doing more 
 
 **Today:** Planner emits N tasks → Implementer immediately burns tokens. Run-1 through Run-5 (see `BACKGROUND-AGENTS-LEARNINGS.md` for the failure log) each cost real money before anyone caught the bad plan.
 
-**Stage 2:** Between Planner and Implementer, a Plan Adversary crow runs. Reads the plan + the (now-living) docs and asks: *Is this spec thin? Are there hidden dependencies? Will these tasks step on each other? What's missing?* Either approves, or rejects with structured feedback that goes back to Planner.
+**Stage 2:** Between Planner and Implementer, a Plan Adversary crow runs. Reads the plan + the (now-living) docs and asks: _Is this spec thin? Are there hidden dependencies? Will these tasks step on each other? What's missing?_ Either approves, or rejects with structured feedback that goes back to Planner.
 
 **Why second:** needs the docs from Stage 1 to do its job. And it's the highest-leverage gate — every bad plan caught here saves an Implementer + Reviewer + Fixer + Founder-attention cost downstream.
 
@@ -69,11 +69,11 @@ Each stage is the minimum to unblock the next. Each ends with Cawnex doing more 
 
 ### Stage 3 — Observability for humans
 
-**Today:** SSE pushes wave-state updates. CloudWatch has crow logs. But there's no human-readable timeline of *what the crow was thinking* at any point.
+**Today:** SSE pushes wave-state updates. CloudWatch has crow logs. But there's no human-readable timeline of _what the crow was thinking_ at any point.
 
 **Stage 3:** A Human Summarizer crow runs after every crow finishes, takes the structured outcome, and produces: 1-line headline + 3 key decisions + any concerns. Stored in DDB events table, streamed via SSE to a "Wave timeline" view in iOS. Lawrence Jones's separate-layer-for-humans pattern from the IO transcript.
 
-**Why third:** Stages 1+2 just added two more places things can go wrong. The founder needs to *see* them before they can trust them. Also unblocks faster prompt iteration (we can read what crows are actually doing without grepping CloudWatch).
+**Why third:** Stages 1+2 just added two more places things can go wrong. The founder needs to _see_ them before they can trust them. Also unblocks faster prompt iteration (we can read what crows are actually doing without grepping CloudWatch).
 
 **Result:** founder can watch Cawnex build, not just watch a progress bar.
 
@@ -81,13 +81,13 @@ Each stage is the minimum to unblock the next. Each ends with Cawnex doing more 
 
 ---
 
-### Stage 4 — Council *(LOCKED — chosen as the next stage)*
+### Stage 4 — Council _(LOCKED — chosen as the next stage)_
 
 **Today:** Every PR escalates to the founder via the four-altitude approval gates. The Council Lambda is spec'd in `docs/design/council-protocol.md` and deployed, but has never voted on a real wave. The founder gate is on every PR's critical path; Cawnex's velocity equals founder-tap velocity.
 
-**Why Stage 4 first (re-ordered from original 1→5 sequence):** Stages 1-3 *improve* the existing loop. Stage 4 *changes the loop's topology* — the founder stops being on every PR's critical path. It's also the stage that most directly demonstrates the dark-factory thesis (multi-perspective autonomy), it activates infrastructure that's already deployed but silent, and it unlocks the four-altitude gates the rest of the design depends on.
+**Why Stage 4 first (re-ordered from original 1→5 sequence):** Stages 1-3 _improve_ the existing loop. Stage 4 _changes the loop's topology_ — the founder stops being on every PR's critical path. It's also the stage that most directly demonstrates the dark-factory thesis (multi-perspective autonomy), it activates infrastructure that's already deployed but silent, and it unlocks the four-altitude gates the rest of the design depends on.
 
-**Stage 4 outcome:** 6 tool-equipped advisors vote independently on every PR. Reviewer's verdict, the diff, planner intent, MVI spec, and project docs go into a packet; each advisor then *investigates the codebase through their own lens* using scoped tools (read_file, grep, list_directory, git_log_for_file) against the EFS-mounted working tree. Security + Clarity have veto power per the existing council-protocol spec. Outcomes are stored as `CouncilDecision` rows with full `investigation_trace` for auditability.
+**Stage 4 outcome:** 6 tool-equipped advisors vote independently on every PR. Reviewer's verdict, the diff, planner intent, MVI spec, and project docs go into a packet; each advisor then _investigates the codebase through their own lens_ using scoped tools (read_file, grep, list_directory, git_log_for_file) against the EFS-mounted working tree. Security + Clarity have veto power per the existing council-protocol spec. Outcomes are stored as `CouncilDecision` rows with full `investigation_trace` for auditability.
 
 #### Locked architectural decisions
 
@@ -95,7 +95,7 @@ These were debated in a theoretical Council run on 2026-05-16 and are not re-lit
 
 1. **Tool-equipped, not packet-only.** Each advisor calls tools to investigate independently. Packet-only Council is theater — six advisors reading the same prose produce correlated votes, not multi-perspective review. Tools produce genuine diversity by letting each lens pursue its own line of investigation.
 
-2. **Dedicated `cawnex-council-${stage}` Fargate service (Option B).** Not the existing Worker (Option A). Council runs on a *new* Fargate task definition with a *separate* IAM role that has DDB read-only, EFS read-only, Anthropic key only — **no GitHub token, no S3 write, no ECS scaling permissions.** This was a Security-and-Architecture-vetoed decision against running Council in Worker:
+2. **Dedicated `cawnex-council-${stage}` Fargate service (Option B).** Not the existing Worker (Option A). Council runs on a _new_ Fargate task definition with a _separate_ IAM role that has DDB read-only, EFS read-only, Anthropic key only — **no GitHub token, no S3 write, no ECS scaling permissions.** This was a Security-and-Architecture-vetoed decision against running Council in Worker:
    - **Security veto:** credential co-residency with code that has `git push` rights is the wrong threat model. Council advisors read potentially-hostile PR content; they must not share a process with merge-capable secrets.
    - **Architecture veto:** Worker is single-responsibility ("execute one crow run, exit"). Overloading it with the 6-way Council fan-out makes the task a grab-bag and forces every Council change to redeploy Worker.
 
@@ -105,14 +105,14 @@ These were debated in a theoretical Council run on 2026-05-16 and are not re-lit
 
 5. **Per-advisor scoped tool palettes.** Not a flat "all advisors get all tools" — each role gets the tools its investigation actually needs, scoped by path where appropriate:
 
-   | Advisor | Tools | Scope notes |
-   |---|---|---|
-   | Security | read_file, grep, list_directory, git_log_for_file | All paths |
-   | Architecture | read_file, grep, list_directory, find_imports | All paths |
-   | Clarity | read_file, grep | All paths |
-   | Performance | read_file, grep, git_log_for_file | All paths |
-   | UX | read_file, grep | Scoped to `apps/ios/...` and string files |
-   | Cost | read_file, grep, list_directory | Scoped to `infra/...` |
+   | Advisor      | Tools                                             | Scope notes                               |
+   | ------------ | ------------------------------------------------- | ----------------------------------------- |
+   | Security     | read_file, grep, list_directory, git_log_for_file | All paths                                 |
+   | Architecture | read_file, grep, list_directory, find_imports     | All paths                                 |
+   | Clarity      | read_file, grep                                   | All paths                                 |
+   | Performance  | read_file, grep, git_log_for_file                 | All paths                                 |
+   | UX           | read_file, grep                                   | Scoped to `apps/ios/...` and string files |
+   | Cost         | read_file, grep, list_directory                   | Scoped to `infra/...`                     |
 
 6. **Hard caps:** 15 tool calls per advisor, 180s wall-clock per advisor. Hitting the cap is itself a finding — "this PR is too complex to evaluate in 15 calls" produces an abstain vote and a signal to escalate.
 
@@ -155,9 +155,9 @@ Layer A ships first; B and C iterate after we have data.
 - One-time engineering: ~7-8 days for Layer A
 - Ongoing operational tax: ~2 hrs/month for the new service's monitoring/deploys
 
-#### What Layer A does *not* depend on
+#### What Layer A does _not_ depend on
 
-Layer A ships value with just the Reviewer's verdict + diff + planner intent + MVI spec + project docs in the packet. It does *not* depend on:
+Layer A ships value with just the Reviewer's verdict + diff + planner intent + MVI spec + project docs in the packet. It does _not_ depend on:
 
 - Stage 1 (living context) — current frozen docs are good enough to start
 - Stage 2 (plan adversary) — Reviewer's blocking_issues are sufficient input signal
@@ -177,7 +177,7 @@ When Stages 1-3 ship, they enrich the packet and make Council votes higher-signa
 
 **Stage 5:** After every wave, a Monarch operation writes a structured "what we learned" snapshot — common mistakes, patterns that worked, prompts that misfired. Future planner/implementer/reviewer prompts read this. The system gets better at building itself the more it builds itself.
 
-**Why last:** needs Stages 1-4 because the learning is over *what the system actually did*, which requires structured outcomes (4) which require human-readable summaries (3) which require good plans (2) which require living context (1).
+**Why last:** needs Stages 1-4 because the learning is over _what the system actually did_, which requires structured outcomes (4) which require human-readable summaries (3) which require good plans (2) which require living context (1).
 
 **Result:** the dark-factory promise of "each cycle teaches the next."
 
@@ -189,21 +189,21 @@ When Stages 1-3 ship, they enrich the packet and make Council votes higher-signa
 
 These are real improvements, but they're optimizations of a loop that doesn't fully close yet. Defer until the staged plan is delivered.
 
-| Excluded work | Why deferred |
-|---|---|
-| Parallelization (DAG-level, parallel implementers) | Premature. The serial loop must close first. |
-| Cost-routed model dispatch (Sonnet/Haiku per crow type) | Optimization. Becomes obvious once the loop has observability. |
-| Per-crow worktrees (vs. tenant-shared) | Required only when we want parallel implementers. |
-| Claim-TTL → sub-minute recovery (vs. hourly Checker) | Operational. The hourly cron is fine until throughput matters. |
-| Deterministic verification gate (lint/test in Worker) | Real gap, but the audit gap. Plan-adversary is the bigger lever right now. |
-| Murder/Crow CI/CD pipeline fix (task #18) | Worker deploys by hand today; still works. Not blocking. |
-| GITHUB_TOKEN unsafeUnwrap → runtime fetch | Security cleanup, not loop-blocker. |
+| Excluded work                                           | Why deferred                                                               |
+| ------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Parallelization (DAG-level, parallel implementers)      | Premature. The serial loop must close first.                               |
+| Cost-routed model dispatch (Sonnet/Haiku per crow type) | Optimization. Becomes obvious once the loop has observability.             |
+| Per-crow worktrees (vs. tenant-shared)                  | Required only when we want parallel implementers.                          |
+| Claim-TTL → sub-minute recovery (vs. hourly Checker)    | Operational. The hourly cron is fine until throughput matters.             |
+| Deterministic verification gate (lint/test in Worker)   | Real gap, but the audit gap. Plan-adversary is the bigger lever right now. |
+| Murder/Crow CI/CD pipeline fix (task #18)               | Worker deploys by hand today; still works. Not blocking.                   |
+| GITHUB_TOKEN unsafeUnwrap → runtime fetch               | Security cleanup, not loop-blocker.                                        |
 
-## Order of operations *(updated 2026-05-16)*
+## Order of operations _(updated 2026-05-16)_
 
 **Locked next stage: Stage 4, Layer A.**
 
-The original plan put Stages 1-3 before Stage 4 because each stage produces signal that *enriches* Council inputs. That reasoning still holds for Layer C (graduated auto-merge), which benefits massively from richer packets. But Layer A — Council fires and stores decisions, founder still gates — ships meaningful value with just today's signal (Reviewer verdict + diff + planner intent + MVI spec + project docs), and it activates dead infrastructure that's already deployed.
+The original plan put Stages 1-3 before Stage 4 because each stage produces signal that _enriches_ Council inputs. That reasoning still holds for Layer C (graduated auto-merge), which benefits massively from richer packets. But Layer A — Council fires and stores decisions, founder still gates — ships meaningful value with just today's signal (Reviewer verdict + diff + planner intent + MVI spec + project docs), and it activates dead infrastructure that's already deployed.
 
 The locked sequence:
 

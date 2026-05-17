@@ -11,6 +11,7 @@
 **Spec:** [docs/superpowers/specs/2026-05-17-council-layer-b-design.md](../specs/2026-05-17-council-layer-b-design.md)
 
 **Pencil screens (already designed):**
+
 - `S35 — Wave Review (Council)` — node `IFIEa` at x:4887, y:7012 in `design/cawnex.pen`
 - `S35 — Wave Review (scrolled)` — node `uFYIA` at x:5430, y:7012
 - `S36 — Investigation Trace` — node `YIU3t` at x:5973, y:7012
@@ -25,6 +26,7 @@
 ### Task 1: Add canonical fixture JSON for a completed Council session
 
 **Files:**
+
 - Create: `apps/api/tests/fixtures/council_session_completed.json`
 
 This fixture is reused by the backend GET handler tests AND copied into the iOS test bundle in M2 — single source of truth.
@@ -71,11 +73,28 @@ mkdir -p apps/api/tests/fixtures
           "condition": null,
           "cost": { "tokens_in": 2100, "tokens_out": 480, "duration_ms": 0 },
           "cited_evidence": [
-            { "file_path": "apps/api/foo.py", "line_range": [42, 58], "pr_number": 42, "reason": "tenant_id filter present" }
+            {
+              "file_path": "apps/api/foo.py",
+              "line_range": [42, 58],
+              "pr_number": 42,
+              "reason": "tenant_id filter present"
+            }
           ],
           "investigation_trace": [
-            { "tool_name": "read_file", "args": { "path": "apps/api/foo.py" }, "result_summary": "def query()...", "duration_ms": 18, "error": null },
-            { "tool_name": "grep", "args": { "pattern": "tenant_id", "path": "apps/api" }, "result_summary": "12 matches", "duration_ms": 42, "error": null }
+            {
+              "tool_name": "read_file",
+              "args": { "path": "apps/api/foo.py" },
+              "result_summary": "def query()...",
+              "duration_ms": 18,
+              "error": null
+            },
+            {
+              "tool_name": "grep",
+              "args": { "pattern": "tenant_id", "path": "apps/api" },
+              "result_summary": "12 matches",
+              "duration_ms": 42,
+              "error": null
+            }
           ]
         },
         {
@@ -109,7 +128,12 @@ mkdir -p apps/api/tests/fixtures
           "condition": "Add btree index on users.tenant_id before scaling past 10K rows.",
           "cost": { "tokens_in": 2200, "tokens_out": 510, "duration_ms": 0 },
           "cited_evidence": [
-            { "file_path": "apps/api/signup_handler.py", "line_range": [88, 102], "pr_number": 43, "reason": "linear scan in hot path" }
+            {
+              "file_path": "apps/api/signup_handler.py",
+              "line_range": [88, 102],
+              "pr_number": 43,
+              "reason": "linear scan in hot path"
+            }
           ],
           "investigation_trace": []
         },
@@ -151,6 +175,7 @@ git commit -m "test(council): canonical fixture for a completed wave_review sess
 ### Task 2: Add canonical fixture JSON for a pending session
 
 **Files:**
+
 - Create: `apps/api/tests/fixtures/council_session_pending.json`
 
 - [ ] **Step 1: Create the fixture**
@@ -183,6 +208,7 @@ git commit -m "test(council): canonical fixture for a pending session"
 ### Task 3: Add canonical fixture JSON for an errored session
 
 **Files:**
+
 - Create: `apps/api/tests/fixtures/council_session_errored.json`
 
 - [ ] **Step 1: Create the fixture**
@@ -215,6 +241,7 @@ git commit -m "test(council): canonical fixture for an errored session"
 ### Task 4: Backend GET handler — happy path (200 with completed session)
 
 **Files:**
+
 - Modify: `apps/api/src/routes/council.py`
 - Create: `apps/api/tests/test_council_get_session.py`
 
@@ -329,6 +356,7 @@ git commit -m "feat(api): GET /projects/{p}/council/sessions/{s} — completed-s
 ### Task 5: Backend GET handler — pending + running + errored states
 
 **Files:**
+
 - Modify: `apps/api/tests/test_council_get_session.py`
 
 The handler already returns whatever's in DDB, so the test just verifies pending/running/errored fixtures round-trip cleanly.
@@ -389,6 +417,7 @@ git commit -m "test(api): GET council session covers pending + errored states"
 ### Task 6: Backend GET handler — 404 when missing
 
 **Files:**
+
 - Modify: `apps/api/tests/test_council_get_session.py`
 
 - [ ] **Step 1: Write the failing test**
@@ -422,6 +451,7 @@ git commit -m "test(api): GET council session returns 404 for missing SK"
 ### Task 7: Add `POST /waves/{wave_id}/approve` endpoint
 
 **Files:**
+
 - Modify: `apps/api/src/routes/waves.py`
 - Modify: `apps/api/tests/test_waves.py`
 
@@ -588,6 +618,7 @@ git commit -m "feat(api): POST /waves/{w}/approve — wave-level approve + per-P
 ### Task 8: M1 integration test against DDB Local
 
 **Files:**
+
 - Create: `tests/integration/test_stage4_b_wave_review.py`
 
 - [ ] **Step 1: Write the failing test**
@@ -662,6 +693,7 @@ cd apps/api && PYTHONPATH=src python3 -c "from src.main import app; print([r.pat
 ```
 
 Expected output includes:
+
 - `/projects/{project_id}/council/sessions/{session_id}`
 - `/projects/{project_id}/waves/{wave_id}/approve`
 
@@ -674,6 +706,7 @@ Expected output includes:
 ### Task 9: Add `AnyCodable` shim
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Core/Network/AnyCodable.swift`
 - Create: `apps/ios/Cawnex/CawnexTests/Core/Network/AnyCodableTests.swift`
 
@@ -827,6 +860,7 @@ git commit -m "feat(ios): AnyCodable shim for heterogeneous JSON values"
 ### Task 10: Domain models for Council Session
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Cawnex/Features/WaveReview/WaveReviewModels.swift`
 
 - [ ] **Step 1: Create the file with all domain models**
@@ -1072,6 +1106,7 @@ git commit -m "feat(ios): domain models for Council wave review"
 ### Task 11: Copy fixtures into iOS test bundle + decoding tests
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/CawnexTests/Contracts/Fixtures/council_session_completed.json`
 - Create: `apps/ios/Cawnex/CawnexTests/Contracts/Fixtures/council_session_pending.json`
 - Create: `apps/ios/Cawnex/CawnexTests/Contracts/Fixtures/council_session_errored.json`
@@ -1186,6 +1221,7 @@ git commit -m "test(ios): contract decoding tests for CouncilSession + fixtures"
 ### Task 12: Service protocol + InMemory implementation
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Cawnex/Features/WaveReview/WaveReviewService.swift`
 - Create: `apps/ios/Cawnex/Cawnex/Cawnex/Features/WaveReview/InMemoryWaveReviewService.swift`
 
@@ -1273,6 +1309,7 @@ git commit -m "feat(ios): WaveReviewService protocol + InMemory implementation"
 ### Task 13: API implementation calling the M1 endpoints
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Cawnex/Features/WaveReview/APIWaveReviewService.swift`
 
 - [ ] **Step 1: Inspect existing API service conventions**
@@ -1427,6 +1464,7 @@ git commit -m "feat(ios): APIWaveReviewService — GET session + POST approve/re
 ### Task 14: ViewModel with state transitions + polling
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Cawnex/Features/WaveReview/WaveReviewViewModel.swift`
 - Create: `apps/ios/Cawnex/Cawnex/CawnexTests/Features/WaveReview/WaveReviewViewModelTests.swift`
 
@@ -1645,6 +1683,7 @@ git commit -m "feat(ios): WaveReviewViewModel with state transitions + 5min poll
 ### Task 15: Component — CitedEvidenceRow
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Cawnex/Features/WaveReview/Components/CitedEvidenceRow.swift`
 
 - [ ] **Step 1: Implement the component**
@@ -1716,6 +1755,7 @@ git commit -m "feat(ios): CitedEvidenceRow component for advisor card evidence"
 ### Task 16: Component — AdvisorCard
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Cawnex/Features/WaveReview/Components/AdvisorCard.swift`
 
 Matches the Pencil S35 advisor card layout: icon wrap + name (+ VETO badge for security/clarity) + vote chip + reasoning + cited evidence inline + "View investigation" affordance.
@@ -1880,6 +1920,7 @@ git commit -m "feat(ios): AdvisorCard component with vote chip, inline evidence,
 ### Task 17: Component — CouncilHeaderCard
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Cawnex/Features/WaveReview/Components/CouncilHeaderCard.swift`
 
 Matches the Pencil S35 Council Decision Card: shield icon + action chip + reasoning + 4-up stats (advisors / tool calls / vetoes / tokens).
@@ -2017,6 +2058,7 @@ git commit -m "feat(ios): CouncilHeaderCard component for wave review screen"
 ### Task 18: WaveReviewScreen — top-level view
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Cawnex/Features/WaveReview/WaveReviewScreen.swift`
 
 Matches Pencil S35: status bar → nav back → scroll content (header card + decision card + section label + 6 advisor cards) → action bar.
@@ -2277,6 +2319,7 @@ git commit -m "feat(ios): WaveReviewScreen — top-level screen with action bar 
 ### Task 19: InvestigationTraceScreen — drill-in
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/Cawnex/Cawnex/Features/WaveReview/InvestigationTraceScreen.swift`
 
 Matches Pencil S36: status bar → nav back ("Security · Investigation") → advisor header + stats → tool-call timeline rows.
@@ -2483,6 +2526,7 @@ git commit -m "feat(ios): InvestigationTraceScreen — drill-in tool-call timeli
 ### Task 20: S32 MVI Blackboard touchup — Council Review Ready card
 
 **Files:**
+
 - Modify: `apps/ios/Cawnex/Cawnex/Cawnex/Features/MVI/MVIDetailScreen.swift`
 - Modify: `apps/ios/Cawnex/Cawnex/Cawnex/Features/MVI/MVIDetailViewModel.swift`
 
@@ -2620,6 +2664,7 @@ git commit -m "feat(ios): S32 MVI Blackboard — Council Review Ready entry-poin
 ### Task 21: Live feed banner for `council_decision` events
 
 **Files:**
+
 - Modify: existing live-feed consumer (find via `grep` for `WaveEvent` consumers)
 
 The SSE infrastructure (`WaveEventStreamService` + `WaveEvent` model) is already wired and passes `event_type` through generically. Layer B just needs a consumer that filters `eventType == "council_decision"` and surfaces a tappable banner.
@@ -2707,6 +2752,7 @@ git commit -m "feat(ios): live feed banner for council_decision SSE events"
 ### Task 22: UI test — happy path through InMemory service
 
 **Files:**
+
 - Create: `apps/ios/Cawnex/CawnexUITests/WaveReviewUITests.swift`
 
 - [ ] **Step 1: Add launch-argument hook in the app target**
@@ -2796,11 +2842,12 @@ git commit -m "test(ios-ui): WaveReview happy-path smoke through InMemory servic
 ### Task 23: Manual smoke-test runbook for Layer B
 
 **Files:**
+
 - Create: `docs/stage-4-layer-b-smoke-test.md`
 
 - [ ] **Step 1: Write the runbook**
 
-```markdown
+````markdown
 # Stage 4 Layer B — Smoke Test Procedure
 
 Runbook for verifying Layer B end-to-end against a dev deployment. Layer B is
@@ -2845,6 +2892,7 @@ Back to Wave Review. Tap "Approve & merge wave". Confirmation sheet
 appears with "Approve & Merge" CTA. Tap.
 
 Expected within ~10s:
+
 - Wave row in DDB transitions `under_human_review → delivered`
 - Both PRs on GitHub get merged (or the partial-merge error appears
   if a PR can't be merged)
@@ -2857,6 +2905,7 @@ aws dynamodb get-item --table-name cawnex-dev \
   --key '{"PK":{"S":"P#<projectId>"},"SK":{"S":"S#<waveId>"}}' \
   --query 'Item.status.S'
 ```
+````
 
 Expected: `"delivered"`.
 
@@ -2888,14 +2937,15 @@ git tag stage-4-layer-b-ga
 ```
 
 If any step failed, do NOT tag. Open issues and iterate.
-```
+
+````
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add docs/stage-4-layer-b-smoke-test.md
 git commit -m "docs(stage-4): manual smoke-test runbook for Layer B"
-```
+````
 
 ### M3 wrap-up
 
@@ -2931,32 +2981,32 @@ git commit --allow-empty -m "chore(stage-4): Layer B implementation complete (pe
 
 ## Spec coverage check
 
-| Spec section | Plan tasks |
-|---|---|
-| Domain models | Task 10 |
-| AnyCodable shim | Task 9 |
-| InMemory service | Task 12 |
-| API service | Task 13 |
-| ViewModel + polling timeout | Task 14 |
-| WaveReviewScreen | Task 18 |
-| InvestigationTraceScreen | Task 19 |
-| CouncilHeaderCard | Task 17 |
-| AdvisorCard | Task 16 |
-| CitedEvidenceRow | Task 15 |
-| GET endpoint | Tasks 4, 5, 6 |
-| Approve endpoint | Task 7 |
-| Reject (reuses cancel) | Task 13 (API service) |
-| SSE banner | Task 21 |
-| MVI Blackboard card | Task 20 |
-| Fixtures (canonical, shared) | Tasks 1, 2, 3, 11 |
-| Contract tests | Task 11 |
-| ViewModel tests | Task 14 |
-| Integration test | Task 8 |
-| UI tests | Task 22 |
-| Smoke runbook | Task 23 |
-| Polling timeout (5 min) | Task 14 |
-| Loud-failure for partial merge | Task 7 (502 response) |
-| Logging | Inline structured logs assumed via existing iOS Logger pattern (the spec doesn't require new logging infra; existing `Logger` calls land inline where state transitions happen) |
+| Spec section                   | Plan tasks                                                                                                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Domain models                  | Task 10                                                                                                                                                                         |
+| AnyCodable shim                | Task 9                                                                                                                                                                          |
+| InMemory service               | Task 12                                                                                                                                                                         |
+| API service                    | Task 13                                                                                                                                                                         |
+| ViewModel + polling timeout    | Task 14                                                                                                                                                                         |
+| WaveReviewScreen               | Task 18                                                                                                                                                                         |
+| InvestigationTraceScreen       | Task 19                                                                                                                                                                         |
+| CouncilHeaderCard              | Task 17                                                                                                                                                                         |
+| AdvisorCard                    | Task 16                                                                                                                                                                         |
+| CitedEvidenceRow               | Task 15                                                                                                                                                                         |
+| GET endpoint                   | Tasks 4, 5, 6                                                                                                                                                                   |
+| Approve endpoint               | Task 7                                                                                                                                                                          |
+| Reject (reuses cancel)         | Task 13 (API service)                                                                                                                                                           |
+| SSE banner                     | Task 21                                                                                                                                                                         |
+| MVI Blackboard card            | Task 20                                                                                                                                                                         |
+| Fixtures (canonical, shared)   | Tasks 1, 2, 3, 11                                                                                                                                                               |
+| Contract tests                 | Task 11                                                                                                                                                                         |
+| ViewModel tests                | Task 14                                                                                                                                                                         |
+| Integration test               | Task 8                                                                                                                                                                          |
+| UI tests                       | Task 22                                                                                                                                                                         |
+| Smoke runbook                  | Task 23                                                                                                                                                                         |
+| Polling timeout (5 min)        | Task 14                                                                                                                                                                         |
+| Loud-failure for partial merge | Task 7 (502 response)                                                                                                                                                           |
+| Logging                        | Inline structured logs assumed via existing iOS Logger pattern (the spec doesn't require new logging infra; existing `Logger` calls land inline where state transitions happen) |
 
 All spec sections have an implementing task.
 

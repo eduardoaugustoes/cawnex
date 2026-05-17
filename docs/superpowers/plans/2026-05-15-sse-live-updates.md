@@ -7,12 +7,14 @@
 **Architecture:** A dedicated Fargate task runs a FastAPI ASGI app that holds long-lived `text/event-stream` connections. DynamoDB Streams on the existing `cawnex-events-{stage}` table emits row-level changes to an EventBridge Pipe, which POSTs batches to the stream service. The service fans out to in-memory subscriber sets keyed by `wave_id`. iOS consumes the stream via `URLSession.bytes(for:)`. See `docs/superpowers/specs/2026-05-15-sse-live-updates-design.md`.
 
 **Tech Stack:**
+
 - Backend: Python 3.12, FastAPI, uvicorn (async ASGI), `boto3`, AWS Fargate (existing ECS cluster), Application Load Balancer, EventBridge Pipes, DynamoDB Streams
 - Infra: AWS CDK (TypeScript) — extends existing `cawnex-stack.ts`
 - iOS: Swift 5.10+, `URLSession.bytes(for:)`, `@MainActor`-isolated dispatch into existing `@Observable` view models
 - Wire format: standard SSE (RFC 9110 + `text/event-stream`)
 
 **Important pre-existing context:**
+
 - A stale, orphaned file exists at `lambdas/sse/handler.py` that attempted Lambda-based SSE with 1s DDB polling. It is **not deployed** (no CDK reference) and **not used by iOS** (no client exists). Phase 1 deletes it to avoid confusion.
 - Worker writes events via `Blackboard.put_event` to the `cawnex-events-{stage}` table. PK format: `T#{tenant}#P#{project}#W#{wave_id}`. SK format: `{ISO-timestamp}#{event_type}`. This is unchanged.
 
@@ -21,6 +23,7 @@
 ## File Structure (whole plan)
 
 **New files:**
+
 - `apps/stream/Dockerfile` — Python 3.12 base, pinned `linux/amd64`, uvicorn entrypoint
 - `apps/stream/main.py` — ASGI entrypoint (just imports `app` and runs uvicorn)
 - `apps/stream/requirements.txt` — `fastapi`, `uvicorn[standard]`, `boto3`, `pyjwt`, `cryptography`, `httpx` (for tests)
@@ -47,6 +50,7 @@
 - `apps/ios/Cawnex/Cawnex/Core/Network/WaveEventStreamService.swift` — domain wrapper (Phase 3)
 
 **Modified files:**
+
 - `infra/lib/cawnex-stack.ts` — enable DDB Streams on EventsTable, add stream service Fargate construct, ALB, EventBridge Pipe (Phase 1, 2)
 - `infra/package.json` — add `aws-cdk-lib` Pipe construct if not present (Phase 2)
 - `apps/ios/Cawnex/Cawnex/Features/Waves/WaveExecutionViewModel.swift` — replace `startPolling`/`stopPolling`/`pollTimer` with `subscribe`/`unsubscribe` (Phase 3)
@@ -57,6 +61,7 @@
 - `docs/ARCHITECTURE.md` — add SSE section (Phase 4)
 
 **Deleted files:**
+
 - `lambdas/sse/handler.py` — orphaned dead code from prior attempt (Phase 1, Task 1)
 
 ---
@@ -68,6 +73,7 @@ Goal: ship a stream service to dev that can be `curl`-tested with a real Cognito
 ### Task 1: Delete the orphaned SSE lambda
 
 **Files:**
+
 - Delete: `lambdas/sse/handler.py`
 - Delete: `lambdas/sse/` (directory becomes empty)
 
@@ -95,6 +101,7 @@ git commit -m "chore: remove orphaned lambdas/sse — never deployed, superseded
 ### Task 2: Scaffold the stream service project
 
 **Files:**
+
 - Create: `apps/stream/pyproject.toml`
 - Create: `apps/stream/requirements.txt`
 - Create: `apps/stream/src/stream/__init__.py`
@@ -175,6 +182,7 @@ def stub_env(monkeypatch: pytest.MonkeyPatch) -> None:
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && python3.12 -m venv venv && ./venv/bin/pip install -r requirements.txt
 ```
+
 Expected: clean install, no errors.
 
 - [ ] **Step 6: Commit**
@@ -189,12 +197,14 @@ git commit -m "feat(stream): scaffold stream service project structure"
 ### Task 3: Implement config loader (TDD)
 
 **Files:**
+
 - Create: `apps/stream/src/stream/config.py`
 - Test: `apps/stream/tests/test_config.py`
 
 - [ ] **Step 1: Write the failing test**
 
 `apps/stream/tests/test_config.py`:
+
 ```python
 """Tests for stream service config loading."""
 
@@ -244,6 +254,7 @@ def test_config_is_immutable() -> None:
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_config.py -v
 ```
+
 Expected: ImportError on `stream.config`.
 
 - [ ] **Step 3: Implement `apps/stream/src/stream/config.py`**
@@ -297,6 +308,7 @@ def load_config() -> Config:
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_config.py -v
 ```
+
 Expected: 3 passed.
 
 - [ ] **Step 5: Commit**
@@ -313,12 +325,14 @@ git commit -m "feat(stream): add immutable env-loaded config"
 The orphaned lambda skipped signature checks. We do not.
 
 **Files:**
+
 - Create: `apps/stream/src/stream/auth.py`
 - Test: `apps/stream/tests/test_auth.py`
 
 - [ ] **Step 1: Write the failing test**
 
 `apps/stream/tests/test_auth.py`:
+
 ```python
 """Tests for JWT validation against Cognito JWKS."""
 
@@ -493,6 +507,7 @@ def test_validate_token_rejects_kid_not_in_jwks(
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_auth.py -v
 ```
+
 Expected: ImportError on `stream.auth`.
 
 - [ ] **Step 3: Implement `apps/stream/src/stream/auth.py`**
@@ -605,6 +620,7 @@ def validate_token(
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_auth.py -v
 ```
+
 Expected: 7 passed.
 
 - [ ] **Step 5: Commit**
@@ -619,12 +635,14 @@ git commit -m "feat(stream): JWT validation with JWKS signature verification"
 ### Task 5: SSE frame encoder (TDD)
 
 **Files:**
+
 - Create: `apps/stream/src/stream/sse.py`
 - Test: `apps/stream/tests/test_sse.py`
 
 - [ ] **Step 1: Write the failing test**
 
 `apps/stream/tests/test_sse.py`:
+
 ```python
 """Tests for SSE frame encoding."""
 
@@ -674,6 +692,7 @@ def test_keepalive_is_comment_line() -> None:
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_sse.py -v
 ```
+
 Expected: ImportError.
 
 - [ ] **Step 3: Implement `apps/stream/src/stream/sse.py`**
@@ -719,6 +738,7 @@ def encode_event(
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_sse.py -v
 ```
+
 Expected: 4 passed.
 
 - [ ] **Step 5: Commit**
@@ -733,12 +753,14 @@ git commit -m "feat(stream): SSE frame encoder + keepalive"
 ### Task 6: In-memory subscriber map with fanout + backpressure (TDD)
 
 **Files:**
+
 - Create: `apps/stream/src/stream/subscribers.py`
 - Test: `apps/stream/tests/test_subscribers.py`
 
 - [ ] **Step 1: Write the failing test**
 
 `apps/stream/tests/test_subscribers.py`:
+
 ```python
 """Tests for the subscriber registry + fanout."""
 
@@ -829,6 +851,7 @@ async def test_register_is_idempotent(registry: SubscriberRegistry) -> None:
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_subscribers.py -v
 ```
+
 Expected: ImportError.
 
 - [ ] **Step 3: Implement `apps/stream/src/stream/subscribers.py`**
@@ -904,6 +927,7 @@ class SubscriberRegistry:
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_subscribers.py -v
 ```
+
 Expected: 7 passed.
 
 - [ ] **Step 5: Commit**
@@ -918,6 +942,7 @@ git commit -m "feat(stream): in-memory subscriber registry with backpressure"
 ### Task 7: Health route + FastAPI app skeleton
 
 **Files:**
+
 - Create: `apps/stream/src/stream/app.py`
 - Create: `apps/stream/src/stream/health.py`
 - Test: `apps/stream/tests/test_health.py`
@@ -925,6 +950,7 @@ git commit -m "feat(stream): in-memory subscriber registry with backpressure"
 - [ ] **Step 1: Write the failing test**
 
 `apps/stream/tests/test_health.py`:
+
 ```python
 """Tests for the health endpoint."""
 
@@ -948,6 +974,7 @@ def test_health_returns_200() -> None:
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_health.py -v
 ```
+
 Expected: ImportError on `stream.app`.
 
 - [ ] **Step 3: Implement `apps/stream/src/stream/health.py`**
@@ -996,6 +1023,7 @@ app = create_app()
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_health.py -v
 ```
+
 Expected: 1 passed.
 
 - [ ] **Step 6: Commit**
@@ -1010,6 +1038,7 @@ git commit -m "feat(stream): FastAPI app skeleton + health endpoint"
 ### Task 8: SSE stream endpoint with auth + keepalive (TDD)
 
 **Files:**
+
 - Create: `apps/stream/src/stream/routes_stream.py`
 - Test: `apps/stream/tests/test_routes_stream.py`
 - Modify: `apps/stream/src/stream/app.py`
@@ -1017,6 +1046,7 @@ git commit -m "feat(stream): FastAPI app skeleton + health endpoint"
 - [ ] **Step 1: Write the failing test**
 
 `apps/stream/tests/test_routes_stream.py`:
+
 ```python
 """Tests for the public SSE stream endpoint."""
 
@@ -1091,6 +1121,7 @@ def test_stream_emits_published_event() -> None:
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_routes_stream.py -v
 ```
+
 Expected: ImportError on `stream.routes_stream`.
 
 - [ ] **Step 3: Implement `apps/stream/src/stream/routes_stream.py`**
@@ -1182,6 +1213,7 @@ async def stream_wave_events(
 - [ ] **Step 4: Wire route into the app**
 
 Modify `apps/stream/src/stream/app.py`:
+
 ```python
 """FastAPI application factory for the stream service."""
 
@@ -1209,6 +1241,7 @@ app = create_app()
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_routes_stream.py -v
 ```
+
 Expected: 3 passed.
 
 - [ ] **Step 6: Commit**
@@ -1225,6 +1258,7 @@ git commit -m "feat(stream): SSE endpoint with JWT validation + keepalive"
 Note: the real EventBridge Pipe wiring lands in Phase 2. For Phase 1 we expose `POST /_pipe` guarded by a shared secret so we can `curl`-inject events end-to-end.
 
 **Files:**
+
 - Create: `apps/stream/src/stream/routes_pipe.py`
 - Test: `apps/stream/tests/test_routes_pipe.py`
 - Modify: `apps/stream/src/stream/app.py`
@@ -1232,6 +1266,7 @@ Note: the real EventBridge Pipe wiring lands in Phase 2. For Phase 1 we expose `
 - [ ] **Step 1: Write the failing test**
 
 `apps/stream/tests/test_routes_pipe.py`:
+
 ```python
 """Tests for the EventBridge Pipe ingestion endpoint."""
 
@@ -1310,6 +1345,7 @@ def test_pipe_skips_record_with_missing_pk(client: TestClient) -> None:
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_routes_pipe.py -v
 ```
+
 Expected: ImportError.
 
 - [ ] **Step 3: Implement `apps/stream/src/stream/routes_pipe.py`**
@@ -1403,6 +1439,7 @@ async def receive_pipe_batch(
 - [ ] **Step 4: Wire route into the app**
 
 Modify `apps/stream/src/stream/app.py`:
+
 ```python
 """FastAPI application factory for the stream service."""
 
@@ -1431,6 +1468,7 @@ app = create_app()
 ```bash
 cd /Users/eaugusto/cawnex/apps/stream && PYTHONPATH=src ./venv/bin/pytest tests/test_routes_pipe.py -v
 ```
+
 Expected: 5 passed.
 
 - [ ] **Step 6: Commit**
@@ -1445,6 +1483,7 @@ git commit -m "feat(stream): /_pipe ingestion endpoint with shared-secret auth"
 ### Task 10: Container entrypoint + Dockerfile
 
 **Files:**
+
 - Create: `apps/stream/main.py`
 - Create: `apps/stream/Dockerfile`
 
@@ -1507,6 +1546,7 @@ CMD ["python", "main.py"]
 ```bash
 cd /Users/eaugusto/cawnex && docker build -f apps/stream/Dockerfile -t cawnex-stream:local .
 ```
+
 Expected: image builds clean.
 
 - [ ] **Step 4: Smoke-run the container with env**
@@ -1522,6 +1562,7 @@ docker run --rm -p 8080:8080 \
 sleep 2
 curl -s http://localhost:8080/_health
 ```
+
 Expected: `{"status":"ok"}`. Then `docker stop` the container.
 
 - [ ] **Step 5: Commit**
@@ -1538,6 +1579,7 @@ git commit -m "feat(stream): container entrypoint + Dockerfile"
 Add a new Fargate service that runs the stream image. Public-facing ALB with HTTPS listener. Reuses the existing VPC and ECS cluster.
 
 **Files:**
+
 - Modify: `infra/lib/cawnex-stack.ts`
 
 - [ ] **Step 1: Read the existing worker section to mirror patterns**
@@ -1558,159 +1600,164 @@ import * as certmanager from "aws-cdk-lib/aws-certificatemanager";
 Find the line `// Worker ECS service — outbound internet for LLM APIs + GitHub` and the closing brace of the `_workerService` declaration. Immediately after that closing brace, insert:
 
 ```typescript
-    // ─────────────────────────────────────────────
-    // Stream Service — Fargate task hosting SSE endpoints
-    // ─────────────────────────────────────────────
-    const streamSg = new ec2.SecurityGroup(this, "StreamServiceSG", {
+// ─────────────────────────────────────────────
+// Stream Service — Fargate task hosting SSE endpoints
+// ─────────────────────────────────────────────
+const streamSg = new ec2.SecurityGroup(this, "StreamServiceSG", {
+  vpc,
+  description: "Stream service ECS task",
+  allowAllOutbound: true,
+});
+
+const streamTaskDef = new ecs.FargateTaskDefinition(this, "StreamTask", {
+  family: `cawnex-stream-${stage}`,
+  cpu: 256, // 0.25 vCPU — plenty for thousands of idle SSE connections
+  memoryLimitMiB: 512,
+});
+
+// Pipe secret for /_pipe authentication
+const pipeSecret = new secretsmanager.Secret(this, "StreamPipeSecret", {
+  secretName: `cawnex/${stage}/stream-pipe-secret`,
+  generateSecretString: {
+    passwordLength: 48,
+    excludePunctuation: true,
+  },
+});
+
+streamTaskDef.addContainer("stream", {
+  containerName: "stream",
+  image: ecs.ContainerImage.fromAsset("..", {
+    file: "apps/stream/Dockerfile",
+  }),
+  logging: ecs.LogDrivers.awsLogs({
+    streamPrefix: "stream",
+    logRetention: logs.RetentionDays.ONE_MONTH,
+  }),
+  environment: {
+    STAGE: stage,
+    TABLE_NAME: tableName,
+    EVENTS_TABLE_NAME: eventsTable.tableName,
+    USER_POOL_ID: userPoolId, // existing CfnParameter or import — see Step 4
+    AWS_REGION_NAME: this.region,
+  },
+  secrets: {
+    PIPE_SECRET: ecs.Secret.fromSecretsManager(pipeSecret),
+  },
+  portMappings: [{ containerPort: 8080 }],
+  healthCheck: {
+    command: ["CMD-SHELL", "curl -fsS http://localhost:8080/_health || exit 1"],
+    interval: cdk.Duration.seconds(30),
+    timeout: cdk.Duration.seconds(5),
+    retries: 3,
+    startPeriod: cdk.Duration.seconds(30),
+  },
+});
+
+table.grantReadData(streamTaskDef.taskRole);
+eventsTable.grantReadData(streamTaskDef.taskRole);
+
+const streamService = new ecs.FargateService(this, "StreamService", {
+  serviceName: `cawnex-stream-${stage}`,
+  cluster,
+  taskDefinition: streamTaskDef,
+  desiredCount: 1,
+  assignPublicIp: stage !== "prod",
+  securityGroups: [streamSg],
+  platformVersion: ecs.FargatePlatformVersion.LATEST,
+  capacityProviderStrategies: [
+    {
+      capacityProvider: "FARGATE_SPOT",
+      weight: stage === "prod" ? 0 : 1,
+    },
+    {
+      capacityProvider: "FARGATE",
+      weight: stage === "prod" ? 1 : 0,
+    },
+  ],
+});
+
+// ALB — public entrypoint for SSE
+const streamAlb = new elbv2.ApplicationLoadBalancer(this, "StreamALB", {
+  vpc,
+  internetFacing: true,
+  loadBalancerName: `cawnex-stream-${stage}`,
+  idleTimeout: cdk.Duration.seconds(120),
+});
+
+const streamListener = streamAlb.addListener("StreamListener", {
+  port: 80,
+  open: true,
+  defaultAction: elbv2.ListenerAction.fixedResponse(404, {
+    contentType: "text/plain",
+    messageBody: "not found",
+  }),
+});
+
+// Public clients hit the SSE endpoint
+streamListener.addAction("StreamRoute", {
+  priority: 10,
+  conditions: [
+    elbv2.ListenerCondition.pathPatterns(["/projects/*/waves/*/stream"]),
+  ],
+  action: elbv2.ListenerAction.forward([
+    new elbv2.ApplicationTargetGroup(this, "StreamTargets", {
       vpc,
-      description: "Stream service ECS task",
-      allowAllOutbound: true,
-    });
-
-    const streamTaskDef = new ecs.FargateTaskDefinition(this, "StreamTask", {
-      family: `cawnex-stream-${stage}`,
-      cpu: 256, // 0.25 vCPU — plenty for thousands of idle SSE connections
-      memoryLimitMiB: 512,
-    });
-
-    // Pipe secret for /_pipe authentication
-    const pipeSecret = new secretsmanager.Secret(this, "StreamPipeSecret", {
-      secretName: `cawnex/${stage}/stream-pipe-secret`,
-      generateSecretString: {
-        passwordLength: 48,
-        excludePunctuation: true,
-      },
-    });
-
-    streamTaskDef.addContainer("stream", {
-      containerName: "stream",
-      image: ecs.ContainerImage.fromAsset("..", {
-        file: "apps/stream/Dockerfile",
-      }),
-      logging: ecs.LogDrivers.awsLogs({
-        streamPrefix: "stream",
-        logRetention: logs.RetentionDays.ONE_MONTH,
-      }),
-      environment: {
-        STAGE: stage,
-        TABLE_NAME: tableName,
-        EVENTS_TABLE_NAME: eventsTable.tableName,
-        USER_POOL_ID: userPoolId, // existing CfnParameter or import — see Step 4
-        AWS_REGION_NAME: this.region,
-      },
-      secrets: {
-        PIPE_SECRET: ecs.Secret.fromSecretsManager(pipeSecret),
-      },
-      portMappings: [{ containerPort: 8080 }],
+      port: 8080,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      targetType: elbv2.TargetType.IP,
+      targets: [
+        streamService.loadBalancerTarget({
+          containerName: "stream",
+          containerPort: 8080,
+        }),
+      ],
       healthCheck: {
-        command: [
-          "CMD-SHELL",
-          "curl -fsS http://localhost:8080/_health || exit 1",
-        ],
+        path: "/_health",
+        healthyHttpCodes: "200",
         interval: cdk.Duration.seconds(30),
-        timeout: cdk.Duration.seconds(5),
-        retries: 3,
-        startPeriod: cdk.Duration.seconds(30),
       },
-    });
+      deregistrationDelay: cdk.Duration.seconds(15),
+    }),
+  ]),
+});
 
-    table.grantReadData(streamTaskDef.taskRole);
-    eventsTable.grantReadData(streamTaskDef.taskRole);
-
-    const streamService = new ecs.FargateService(this, "StreamService", {
-      serviceName: `cawnex-stream-${stage}`,
-      cluster,
-      taskDefinition: streamTaskDef,
-      desiredCount: 1,
-      assignPublicIp: stage !== "prod",
-      securityGroups: [streamSg],
-      platformVersion: ecs.FargatePlatformVersion.LATEST,
-      capacityProviderStrategies: [
-        {
-          capacityProvider: "FARGATE_SPOT",
-          weight: stage === "prod" ? 0 : 1,
-        },
-        {
-          capacityProvider: "FARGATE",
-          weight: stage === "prod" ? 1 : 0,
-        },
-      ],
-    });
-
-    // ALB — public entrypoint for SSE
-    const streamAlb = new elbv2.ApplicationLoadBalancer(this, "StreamALB", {
+// Pipe + health on separate target group, same service (Phase 1: same path forwards)
+streamListener.addAction("StreamPipeRoute", {
+  priority: 20,
+  conditions: [elbv2.ListenerCondition.pathPatterns(["/_pipe", "/_health"])],
+  action: elbv2.ListenerAction.forward([
+    new elbv2.ApplicationTargetGroup(this, "StreamPipeTargets", {
       vpc,
-      internetFacing: true,
-      loadBalancerName: `cawnex-stream-${stage}`,
-      idleTimeout: cdk.Duration.seconds(120),
-    });
-
-    const streamListener = streamAlb.addListener("StreamListener", {
-      port: 80,
-      open: true,
-      defaultAction: elbv2.ListenerAction.fixedResponse(404, {
-        contentType: "text/plain",
-        messageBody: "not found",
-      }),
-    });
-
-    // Public clients hit the SSE endpoint
-    streamListener.addAction("StreamRoute", {
-      priority: 10,
-      conditions: [
-        elbv2.ListenerCondition.pathPatterns(["/projects/*/waves/*/stream"]),
+      port: 8080,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      targetType: elbv2.TargetType.IP,
+      targets: [
+        streamService.loadBalancerTarget({
+          containerName: "stream",
+          containerPort: 8080,
+        }),
       ],
-      action: elbv2.ListenerAction.forward([
-        new elbv2.ApplicationTargetGroup(this, "StreamTargets", {
-          vpc,
-          port: 8080,
-          protocol: elbv2.ApplicationProtocol.HTTP,
-          targetType: elbv2.TargetType.IP,
-          targets: [streamService.loadBalancerTarget({
-            containerName: "stream",
-            containerPort: 8080,
-          })],
-          healthCheck: {
-            path: "/_health",
-            healthyHttpCodes: "200",
-            interval: cdk.Duration.seconds(30),
-          },
-          deregistrationDelay: cdk.Duration.seconds(15),
-        }),
-      ]),
-    });
+      healthCheck: { path: "/_health", healthyHttpCodes: "200" },
+    }),
+  ]),
+});
 
-    // Pipe + health on separate target group, same service (Phase 1: same path forwards)
-    streamListener.addAction("StreamPipeRoute", {
-      priority: 20,
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/_pipe", "/_health"])],
-      action: elbv2.ListenerAction.forward([
-        new elbv2.ApplicationTargetGroup(this, "StreamPipeTargets", {
-          vpc,
-          port: 8080,
-          protocol: elbv2.ApplicationProtocol.HTTP,
-          targetType: elbv2.TargetType.IP,
-          targets: [streamService.loadBalancerTarget({
-            containerName: "stream",
-            containerPort: 8080,
-          })],
-          healthCheck: { path: "/_health", healthyHttpCodes: "200" },
-        }),
-      ]),
-    });
+streamAlb.connections.allowTo(
+  streamSg,
+  ec2.Port.tcp(8080),
+  "ALB to stream tasks"
+);
+streamSg.connections.allowFrom(streamAlb, ec2.Port.tcp(8080), "from ALB");
 
-    streamAlb.connections.allowTo(streamSg, ec2.Port.tcp(8080), "ALB to stream tasks");
-    streamSg.connections.allowFrom(streamAlb, ec2.Port.tcp(8080), "from ALB");
+new cdk.CfnOutput(this, "StreamServiceURL", {
+  value: `http://${streamAlb.loadBalancerDnsName}`,
+  description: "Stream service ALB DNS",
+});
 
-    new cdk.CfnOutput(this, "StreamServiceURL", {
-      value: `http://${streamAlb.loadBalancerDnsName}`,
-      description: "Stream service ALB DNS",
-    });
-
-    new cdk.CfnOutput(this, "StreamPipeSecretArn", {
-      value: pipeSecret.secretArn,
-      description: "Secret holding the stream service PIPE_SECRET",
-    });
+new cdk.CfnOutput(this, "StreamPipeSecretArn", {
+  value: pipeSecret.secretArn,
+  description: "Secret holding the stream service PIPE_SECRET",
+});
 ```
 
 - [ ] **Step 4: Confirm `userPoolId` is available in scope**
@@ -1734,6 +1781,7 @@ if (!userPoolId) {
 ```bash
 cd /Users/eaugusto/cawnex/infra && rm -rf cdk.out && npx cdk synth Cawnex-dev > /dev/null
 ```
+
 Expected: no errors. The `cdk.out/Cawnex-dev.template.json` should contain `StreamService`, `StreamALB`, `StreamPipeSecret`.
 
 - [ ] **Step 6: Commit**
@@ -1752,6 +1800,7 @@ git commit -m "feat(infra): Fargate stream service with ALB for SSE"
 ```bash
 cd /Users/eaugusto/cawnex/infra && rm -rf cdk.out && npx cdk deploy Cawnex-dev --require-approval never
 ```
+
 Expected: stack updates, prints `StreamServiceURL` output.
 
 - [ ] **Step 2: Resolve the pipe secret value**
@@ -1764,6 +1813,7 @@ SECRET_ARN=$(aws cloudformation describe-stacks \
 PIPE_SECRET=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" --query SecretString --output text)
 echo "PIPE_SECRET length: ${#PIPE_SECRET}"
 ```
+
 Expected: length 48.
 
 - [ ] **Step 3: Hit `/_health` through the ALB**
@@ -1775,11 +1825,13 @@ ALB_URL=$(aws cloudformation describe-stacks \
   --output text)
 curl -fsS "$ALB_URL/_health"
 ```
+
 Expected: `{"status":"ok"}`.
 
 - [ ] **Step 4: Get a real Cognito JWT from a dev login (via iOS or CLI helper)**
 
 This depends on your dev workflow. Either:
+
 - Log into the iOS app on a simulator and copy `Authorization` from a recent API call's network log; or
 - Use the existing `apps/api` test helper to mint a token.
 
@@ -1793,16 +1845,19 @@ CURL_PID=$!
 sleep 30
 kill $CURL_PID 2>/dev/null
 ```
+
 Expected: within 25–30s, see `: keepalive` line appear in stdout.
 
 - [ ] **Step 6: Inject an event via `/_pipe` while the stream is open and confirm it arrives**
 
 In one terminal:
+
 ```bash
 curl -N -H "Authorization: Bearer $JWT" "$ALB_URL/projects/cawnex-e26784/waves/w-test-1/stream"
 ```
 
 In another:
+
 ```bash
 curl -fsS -X POST "$ALB_URL/_pipe" \
   -H "X-Pipe-Secret: $PIPE_SECRET" \
@@ -1818,8 +1873,10 @@ curl -fsS -X POST "$ALB_URL/_pipe" \
     "mvi_id": "m1"
   }]'
 ```
+
 Expected `/_pipe` reply: `{"published":1}`.
 Expected first terminal: an SSE frame appears like:
+
 ```
 id: 2026-05-15T20:00:00Z#crow_assigned
 event: wave_event

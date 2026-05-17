@@ -45,13 +45,13 @@ def compute_current_state(project_id: str, db: TenantDB) -> str:
 
 ### State definitions
 
-| State | Meaning | Detection rule |
-|---|---|---|
-| **`draft`** | Project exists, Monarch is generating docs (vision/architecture/glossary/design), no waves yet | At least one of the 4 docs at `SK: DOC#{doc_type}` is missing or `status != "complete"` |
-| **`active`** | Monarch finished, factory open, no waves created yet | All 4 docs complete, zero wave-root items (SK matches `S#{wave_id}` with no `#` after) |
-| **`running`** | At least one wave is executing right now | Any wave-root item with `status == "executing"` |
-| **`idle`** | Has wave history, currently nothing executing, not yet completed | At least one wave-root exists, none executing, and either some wave is non-terminal or no MVI has shipped |
-| **`completed`** | Every wave is terminal AND at least one MVI shipped | All wave-roots in `{delivered, cancelled}`, at least one MVI item at `S#{wave_id}#m{mvi_id}` with `status == "shipped"` |
+| State           | Meaning                                                                                        | Detection rule                                                                                                          |
+| --------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **`draft`**     | Project exists, Monarch is generating docs (vision/architecture/glossary/design), no waves yet | At least one of the 4 docs at `SK: DOC#{doc_type}` is missing or `status != "complete"`                                 |
+| **`active`**    | Monarch finished, factory open, no waves created yet                                           | All 4 docs complete, zero wave-root items (SK matches `S#{wave_id}` with no `#` after)                                  |
+| **`running`**   | At least one wave is executing right now                                                       | Any wave-root item with `status == "executing"`                                                                         |
+| **`idle`**      | Has wave history, currently nothing executing, not yet completed                               | At least one wave-root exists, none executing, and either some wave is non-terminal or no MVI has shipped               |
+| **`completed`** | Every wave is terminal AND at least one MVI shipped                                            | All wave-roots in `{delivered, cancelled}`, at least one MVI item at `S#{wave_id}#m{mvi_id}` with `status == "shipped"` |
 
 ### State transitions (informational only — backend doesn't manage these)
 
@@ -69,7 +69,7 @@ There is no `halted` state in this computation. Halting (separate spec) leaves t
 
 ### Why this state set
 
-- **No `paused` or `halted`** — paused/halted are transient operations, not persistent project states. A paused/halted project is *idle* by definition (nothing executing). The history of pause/halt lives in the event log where it belongs.
+- **No `paused` or `halted`** — paused/halted are transient operations, not persistent project states. A paused/halted project is _idle_ by definition (nothing executing). The history of pause/halt lives in the event log where it belongs.
 - **`active` exists** — distinguishes "set up but no work loaded" from "set up and has work history but nothing running right now." Useful for empty-state UX vs work-history UX.
 - **`completed` requires shipped work** — prevents fresh-but-empty projects from being labeled completed.
 - **Ordering matters** — `draft` shadows everything (during setup, we don't care about wave state). `running` shadows `idle` (executing wins over history). `completed` requires both conditions to avoid false positives.
@@ -87,21 +87,21 @@ The `current_state` field is added to every project response. The stored `status
   "project_id": "p_abc",
   "name": "Cawnex",
   "one_liner": "Multi-agent orchestration",
-  "status": "draft",          // ← stored field, unchanged, vestigial
-  "current_state": "running",  // ← NEW: computed each read
+  "status": "draft", // ← stored field, unchanged, vestigial
+  "current_state": "running", // ← NEW: computed each read
   "murders": ["dev"],
-  "created_at": "2026-05-13T..."
+  "created_at": "2026-05-13T...",
 }
 ```
 
 ### Endpoints affected
 
-| Endpoint | Change |
-|---|---|
-| `GET /projects` | Add `current_state` to each item |
-| `GET /projects/{project_id}` | Add `current_state` to response |
+| Endpoint                         | Change                                                                                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /projects`                  | Add `current_state` to each item                                                                                                           |
+| `GET /projects/{project_id}`     | Add `current_state` to response                                                                                                            |
 | `GET /projects/{project_id}/hub` | Add `current_state` to the project block (replaces today's `"status": project.get("status", "draft")` at `apps/api/src/routes/hub.py:120`) |
-| `POST /projects` | Add `current_state: "draft"` to creation response (always `draft` on creation since Monarch hasn't run) |
+| `POST /projects`                 | Add `current_state: "draft"` to creation response (always `draft` on creation since Monarch hasn't run)                                    |
 
 ### Endpoints NOT affected
 
@@ -273,21 +273,21 @@ Same change in `APIProjectHubService.swift` at line 41.
 
 ### Optional: tap-to-explain
 
-If the chip later needs tap behavior, the recommendation is **tap = explain** (show a tooltip/sheet with *why* the state is what it is, sourced from a `GET /projects/{id}/state-detail` endpoint). Out of scope for this spec. The chip ships as pure read-only for v1.
+If the chip later needs tap behavior, the recommendation is **tap = explain** (show a tooltip/sheet with _why_ the state is what it is, sourced from a `GET /projects/{id}/state-detail` endpoint). Out of scope for this spec. The chip ships as pure read-only for v1.
 
 ---
 
 ## Behavior Examples
 
-| Scenario | Stored `status` | Computed `current_state` | Chip shows |
-|---|---|---|---|
-| Project just created, Monarch generating docs | `draft` | `draft` | "Draft" (muted) |
-| Monarch finished, no wave created yet | `draft` | `active` | "Active" (primary) |
-| Wave executing | `draft` | `running` | "Running" (success green) |
-| Wave delivered, no new waves | `draft` | `idle` | "Idle" (warning amber) |
-| User halts project (separate spec) — waves cancelled, no execution | `draft` | `idle` | "Idle" (warning amber) |
-| All milestones shipped | `draft` | `completed` | "Completed" (success green) |
-| User unhalts and starts a new wave | `draft` | `running` | "Running" (success green) |
+| Scenario                                                           | Stored `status` | Computed `current_state` | Chip shows                  |
+| ------------------------------------------------------------------ | --------------- | ------------------------ | --------------------------- |
+| Project just created, Monarch generating docs                      | `draft`         | `draft`                  | "Draft" (muted)             |
+| Monarch finished, no wave created yet                              | `draft`         | `active`                 | "Active" (primary)          |
+| Wave executing                                                     | `draft`         | `running`                | "Running" (success green)   |
+| Wave delivered, no new waves                                       | `draft`         | `idle`                   | "Idle" (warning amber)      |
+| User halts project (separate spec) — waves cancelled, no execution | `draft`         | `idle`                   | "Idle" (warning amber)      |
+| All milestones shipped                                             | `draft`         | `completed`              | "Completed" (success green) |
+| User unhalts and starts a new wave                                 | `draft`         | `running`                | "Running" (success green)   |
 
 The user never has to do anything to make the chip correct. The system tells the truth.
 

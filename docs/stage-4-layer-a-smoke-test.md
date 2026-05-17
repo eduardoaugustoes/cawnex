@@ -14,6 +14,7 @@ the layer done — open an issue and iterate.
 ## Step 1 — Prepare a controlled synthetic wave
 
 In a dev project, create 2 trivial MVIs whose PRs cannot conflict:
+
 - MVI A: edit `README.md` (add a line)
 - MVI B: edit `CHANGELOG.md` (add a line)
 
@@ -35,6 +36,7 @@ aws logs tail /ecs/cawnex-worker-dev --follow
 ```
 
 Expected:
+
 - `crow_claimed` for the integrator-task
 - Worktrees created (`add_pr_worktree` succeeds for both PRs)
 - Integration merge: `merge_status=ok`
@@ -48,6 +50,7 @@ aws logs tail /ecs/cawnex-council-dev --follow
 ```
 
 Expected:
+
 - Service scaled up from desiredCount=0 to 1 after the COUNCIL# row was written
 - 6 advisor invocations happening in parallel (interleaved log lines)
 - Each advisor making 3–8 tool calls within 180 s
@@ -68,6 +71,7 @@ aws dynamodb get-item --table-name cawnex-dev \
 ```
 
 Expected:
+
 - `status=completed`
 - `decision` present (action/reasoning/confidence)
 - `rounds[0].votes` has 6 entries

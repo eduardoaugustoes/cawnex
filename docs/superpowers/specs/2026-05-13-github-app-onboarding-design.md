@@ -8,7 +8,7 @@
 
 Today, a new Cawnex project requires the founder to author 4 documents through a guided-chat flow on iOS: Vision (6 sections), Architecture (7 sections), Glossary (5 sections), Design (6 sections). That's 24 sequential questions, each with non-trivial answers. Authoring takes ~30-60 minutes per project on mobile, with no save-on-background, no resume-mid-section, and a silent input-length cap that truncates long answers.
 
-For founders with an existing repo (the common case — Cawnex's target audience already ships MVPs), most of the content for these 4 docs *already exists in the codebase*: README, ARCHITECTURE.md, package.json, CDK stacks, file structure, code conventions, ADRs. Asking the founder to manually re-author what's already in their repo is friction without value.
+For founders with an existing repo (the common case — Cawnex's target audience already ships MVPs), most of the content for these 4 docs _already exists in the codebase_: README, ARCHITECTURE.md, package.json, CDK stacks, file structure, code conventions, ADRs. Asking the founder to manually re-author what's already in their repo is friction without value.
 
 This spec adds a Cawnex GitHub App that, after one-time install on a repo, gives Cawnex repo-scoped read access. Monarch reads the repo and drafts the 4 setup docs autonomously. The founder reviews and edits the drafts instead of authoring from a blank chat.
 
@@ -25,7 +25,7 @@ Authored the 4 setup docs for the Cawnex-in-Cawnex project on 2026-05-13. Real f
 - **Most of the answers existed in the repo already.** README, ARCHITECTURE-V2.md, VISION.md, package.json, CDK stacks, the iOS DesignSystem/ folder all contained the canonical content. Re-authoring it manually was busywork.
 - **The doc-generation chat isn't pasteable in bulk.** Even canonical content from existing docs has to be answered question-by-question; can't paste a 4-doc bundle in one go.
 
-The cumulative finding: **for any founder with an existing repo, the 24-question onboarding is the wrong shape**. It treats the founder as the source of truth when the repo *is* the source of truth.
+The cumulative finding: **for any founder with an existing repo, the 24-question onboarding is the wrong shape**. It treats the founder as the source of truth when the repo _is_ the source of truth.
 
 For founders without an existing repo (greenfield projects), the guided chat is the right shape and stays. This spec is additive — it adds a path, doesn't replace one.
 
@@ -77,6 +77,7 @@ When the founder creates a new Project and selects a connected repo:
 ### Flow when no GitHub App / no repo
 
 The guided-chat flow stays unchanged for:
+
 - Greenfield projects (no repo yet)
 - Founders who decline to install the App
 - Repos the App can't access (private repos in another org, archived repos)
@@ -113,14 +114,17 @@ This is a strict superset of today's flow, not a replacement.
 ### Data model additions
 
 **Project root snapshot — new fields:**
+
 - `repo_owner: str` — GitHub org or user name.
 - `repo_installation_id: int` — GitHub App installation ID. Null if the repo isn't connected via App.
 - `repo_analyzed_at: str` — ISO timestamp of last repo analysis.
 
 **Tenant entry — new SK:**
+
 - `SK: GH_APP#installation#{installation_id}` — records which installations belong to which tenant. Used for tenant-scoping the App's per-installation access.
 
 **Document section — extended:**
+
 - `status: drafted | needs_input | manual | complete | pending`
 - `drafted_from: str | null` — optional reference to the source file path (e.g., "README.md") so the founder sees provenance.
 
@@ -128,11 +132,11 @@ This is a strict superset of today's flow, not a replacement.
 
 ## Security Considerations
 
-GitHub Apps with `Contents: read` have read access to *all* private code in installed repos. This is a significant trust escalation from the current model (where Cawnex only needs write access to specific branches the user explicitly authorizes for Crow PRs).
+GitHub Apps with `Contents: read` have read access to _all_ private code in installed repos. This is a significant trust escalation from the current model (where Cawnex only needs write access to specific branches the user explicitly authorizes for Crow PRs).
 
 **Mitigations:**
 
-- **Scope per repo, not per org.** Even if a founder installs the App on their entire org, Cawnex stores installations *per repo* and only ever fetches the specific repo a Project is connected to. The org-wide install is a convenience for the founder; Cawnex internally treats each repo as a separate scope.
+- **Scope per repo, not per org.** Even if a founder installs the App on their entire org, Cawnex stores installations _per repo_ and only ever fetches the specific repo a Project is connected to. The org-wide install is a convenience for the founder; Cawnex internally treats each repo as a separate scope.
 - **No persistent caching of repo content beyond doc drafting.** Once the 4 doc drafts are written to DDB, the fetched repo content is discarded. Re-analyzing a repo requires re-fetching (with an explicit "Re-analyze" action; no automatic re-pulls).
 - **Founder consent on each project.** Even with the App installed, connecting a repo to a specific Project requires an explicit tap in CreateProject. No background pulls.
 - **Audit log entry on every repo fetch.** New event type in the Events table: `repo_analyzed` with tenant_id, project_id, repo, files_fetched_count, timestamp.
@@ -186,13 +190,13 @@ If GitHub App is already installed, show a repo picker instead:
 
 Replace the current 4-doc card grid on the project hub with this state machine:
 
-| Project state | Document card shows |
-|---|---|
-| No repo connected, no docs started | "Not started" + guided-chat tap-to-start |
-| Repo connected, analysis running | "Analyzing repo..." + spinner |
+| Project state                                    | Document card shows                      |
+| ------------------------------------------------ | ---------------------------------------- |
+| No repo connected, no docs started               | "Not started" + guided-chat tap-to-start |
+| Repo connected, analysis running                 | "Analyzing repo..." + spinner            |
 | Repo connected, drafts ready, ⚠ sections present | "Drafts ready (3 need input)" with badge |
-| Repo connected, drafts ready, all clear | "Drafts ready — review & accept" |
-| Founder finalized | "Complete" |
+| Repo connected, drafts ready, all clear          | "Drafts ready — review & accept"         |
+| Founder finalized                                | "Complete"                               |
 
 Tapping a doc card with drafts opens `DocumentReviewScreen` (new) instead of the chat screen:
 
@@ -214,7 +218,7 @@ Explicit list so this spec doesn't drift:
 
 - ❌ **Auto-sync the docs when the repo evolves.** Founder explicitly re-analyzes.
 - ❌ **Multi-repo projects.** One project = one repo at launch.
-- ❌ **Pulling issues, PRs, discussions, wiki.** Read-only access to repo *contents* and *metadata* only, used for the 4 docs.
+- ❌ **Pulling issues, PRs, discussions, wiki.** Read-only access to repo _contents_ and _metadata_ only, used for the 4 docs.
 - ❌ **GitHub Enterprise / self-hosted GitHub.** GitHub.com only at launch.
 - ❌ **Other VCS providers.** No GitLab, Bitbucket, Codeberg. Roadmap if customer demand justifies.
 - ❌ **Bring-your-own-GitHub-App.** Cawnex hosts and registers the App; founders install ours, they don't bring their own.
@@ -242,12 +246,12 @@ Each step is independently mergeable. Step 7 is the dogfood validation.
 
 ## Why This Goes On the Cawnex Project's Own Backlog
 
-This is the same self-improvement pattern as the project-state-readout spec: Cawnex notices its own friction, files a spec, runs the spec through itself. The 24-question onboarding pain felt during this very session *is* the operating-log entry that justifies this work.
+This is the same self-improvement pattern as the project-state-readout spec: Cawnex notices its own friction, files a spec, runs the spec through itself. The 24-question onboarding pain felt during this very session _is_ the operating-log entry that justifies this work.
 
 When Cawnex executes this spec (after the readout spec ships and the factory is proven), the result is:
 
 - Future Cawnex projects (Calhou, navvo.ai, any new product Eduardo starts) onboard in 5-10 minutes instead of 30-60.
 - Founders who land on cawnex.com can install the App during their trial signup and have a working Cawnex project before their 7-day trial ends — without spending a meeting's worth of time answering chat questions.
-- The doc quality is *higher* in many cases, because the AI is grounded in actual repo content rather than the founder's recall from memory at midnight.
+- The doc quality is _higher_ in many cases, because the AI is grounded in actual repo content rather than the founder's recall from memory at midnight.
 
 The activation metric (Vision + Architecture + Goal + first MVI shipped in 7 days, from the Glossary doc) becomes meaningfully easier to hit when the first 30 minutes of friction collapses to 5.

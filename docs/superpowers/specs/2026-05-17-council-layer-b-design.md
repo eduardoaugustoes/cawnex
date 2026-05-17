@@ -320,11 +320,28 @@ Authorization: Bearer <cognito-jwt>
           "condition": null,
           "cost": { "tokens_in": 2100, "tokens_out": 480, "duration_ms": 0 },
           "cited_evidence": [
-            { "file_path": "apps/api/foo.py", "line_range": [42, 58], "pr_number": 42, "reason": "tenant_id filter present" }
+            {
+              "file_path": "apps/api/foo.py",
+              "line_range": [42, 58],
+              "pr_number": 42,
+              "reason": "tenant_id filter present"
+            }
           ],
           "investigation_trace": [
-            { "tool_name": "read_file", "args": { "path": "apps/api/foo.py" }, "result_summary": "def query()...", "duration_ms": 18, "error": null },
-            { "tool_name": "grep",      "args": { "pattern": "tenant_id", "path": "apps/api" }, "result_summary": "12 matches", "duration_ms": 42, "error": null }
+            {
+              "tool_name": "read_file",
+              "args": { "path": "apps/api/foo.py" },
+              "result_summary": "def query()...",
+              "duration_ms": 18,
+              "error": null
+            },
+            {
+              "tool_name": "grep",
+              "args": { "pattern": "tenant_id", "path": "apps/api" },
+              "result_summary": "12 matches",
+              "duration_ms": 42,
+              "error": null
+            }
           ]
         }
       ]
@@ -367,7 +384,7 @@ Notes:
 ### Session-level
 
 - **`status: pending` or `running`:** screen shows "Council is still investigating — N of 6 advisors voted" with progress derived from `rounds[0].votes.count`. iOS polls the GET endpoint every 5s while status is `running`. Polling auto-stops on `completed` / `errored`, **and has a hard 5-minute timeout** — if the session is still `pending` / `running` after 5 minutes the screen shows the same error card as the `errored` state ("Council pipeline appears stuck — founder must decide manually"), with Approve / Reject still enabled. The SSE banner that brought the founder here is the trigger; no manual refresh button.
-- **`status: errored`:** explicit error card: "Council failed — pipeline health: degraded. Founder must decide manually." Linked `council_pipeline_error` event rows (from the events table the Live feed already reads from) are fetched and rendered inline so the founder sees *what* failed. Approve / Reject buttons stay enabled — backend errors don't block the human gate.
+- **`status: errored`:** explicit error card: "Council failed — pipeline health: degraded. Founder must decide manually." Linked `council_pipeline_error` event rows (from the events table the Live feed already reads from) are fetched and rendered inline so the founder sees _what_ failed. Approve / Reject buttons stay enabled — backend errors don't block the human gate.
 - **HTTP 404 (session not found / deleted):** "This council session doesn't exist." + back button. No retry.
 - **Network failure on initial load:** error card + retry button. Same `NetworkError` display pattern as `PRReviewScreen`. No silent retries.
 - **Network failure on Approve / Reject:** toast-level error, button re-enabled, action is idempotent on the backend so re-tap is safe. UI never optimistically navigates away on Approve — waits for 2xx.

@@ -144,11 +144,11 @@ data: {...}
 
 ### Endpoints
 
-| Endpoint | Host | Purpose |
-|---|---|---|
-| `GET /projects/{pid}/waves/{wid}/stream` | Stream service | Public SSE endpoint for clients. Auth via `Authorization: Bearer` header (Cognito JWT, same as Lambda API). |
-| `POST /_pipe` | Stream service | Private endpoint for the EventBridge Pipe. Receives batched event records, fans them out to in-memory subscribers. Restricted to the Pipe's IAM role via ALB listener rule + auth header. |
-| `GET /_health` | Stream service | ALB target health check. |
+| Endpoint                                 | Host           | Purpose                                                                                                                                                                                   |
+| ---------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /projects/{pid}/waves/{wid}/stream` | Stream service | Public SSE endpoint for clients. Auth via `Authorization: Bearer` header (Cognito JWT, same as Lambda API).                                                                               |
+| `POST /_pipe`                            | Stream service | Private endpoint for the EventBridge Pipe. Receives batched event records, fans them out to in-memory subscribers. Restricted to the Pipe's IAM role via ALB listener rule + auth header. |
+| `GET /_health`                           | Stream service | ALB target health check.                                                                                                                                                                  |
 
 ### Subscription model
 
@@ -202,15 +202,15 @@ client-side: only events whose `mvi_id` matches its current MVI are kept.
 
 ## Failure modes & recovery
 
-| Failure | What happens | Recovery |
-|---|---|---|
-| Stream service crashes | All connected clients see a TCP close. | Clients auto-reconnect (URLSession does this for SSE; if not, our wrapper does). On reconnect, they send `Last-Event-ID` and get backfill. Max gap: 24h (events table is long-lived, but DDB Streams retains 24h — if we restart **and** lose a Pipe message **and** are down >24h, we'd lose some events. Mitigation: clients backfill from the events table directly via `Last-Event-ID`, not from the Pipe.) |
-| Pipe is throttled / behind | New events buffer in DDB Streams. | Pipe automatically retries. Within 24h, no data loss. Clients see latency spike. |
-| DDB Streams disabled by accident | No new events delivered to clients. | Clients see stale UI until reconnect; reconnect's backfill query reads the events table directly, so UI catches up — but no further push updates until Streams is re-enabled. Alarmable. |
-| iOS device sleeps, then wakes | URLSession suspends connection; on wake, OS resumes or closes. | Wrapper detects close, reconnects with `Last-Event-ID`. |
-| Client sends invalid JWT | 401 immediately, connection refused. | iOS surfaces auth error, kicks user to login. |
-| Client subscribes to wave they don't own | 403, connection refused. | Same surface as today's REST endpoints. |
-| ALB idle timeout (60s default) | Without keepalive, connection silently dies. | Keepalive every 25s prevents this. |
+| Failure                                  | What happens                                                   | Recovery                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stream service crashes                   | All connected clients see a TCP close.                         | Clients auto-reconnect (URLSession does this for SSE; if not, our wrapper does). On reconnect, they send `Last-Event-ID` and get backfill. Max gap: 24h (events table is long-lived, but DDB Streams retains 24h — if we restart **and** lose a Pipe message **and** are down >24h, we'd lose some events. Mitigation: clients backfill from the events table directly via `Last-Event-ID`, not from the Pipe.) |
+| Pipe is throttled / behind               | New events buffer in DDB Streams.                              | Pipe automatically retries. Within 24h, no data loss. Clients see latency spike.                                                                                                                                                                                                                                                                                                                                |
+| DDB Streams disabled by accident         | No new events delivered to clients.                            | Clients see stale UI until reconnect; reconnect's backfill query reads the events table directly, so UI catches up — but no further push updates until Streams is re-enabled. Alarmable.                                                                                                                                                                                                                        |
+| iOS device sleeps, then wakes            | URLSession suspends connection; on wake, OS resumes or closes. | Wrapper detects close, reconnects with `Last-Event-ID`.                                                                                                                                                                                                                                                                                                                                                         |
+| Client sends invalid JWT                 | 401 immediately, connection refused.                           | iOS surfaces auth error, kicks user to login.                                                                                                                                                                                                                                                                                                                                                                   |
+| Client subscribes to wave they don't own | 403, connection refused.                                       | Same surface as today's REST endpoints.                                                                                                                                                                                                                                                                                                                                                                         |
+| ALB idle timeout (60s default)           | Without keepalive, connection silently dies.                   | Keepalive every 25s prevents this.                                                                                                                                                                                                                                                                                                                                                                              |
 
 ## What this introduces vs. removes
 

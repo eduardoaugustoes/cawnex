@@ -82,11 +82,13 @@ A fourth action, **GitHub** (open in Safari), needs no backend.
 ### Pieces
 
 **Three new POST routes on API Lambda** under `apps/api/src/routes/pr_actions.py`:
+
 - `POST /projects/{pid}/waves/{wid}/mvis/{mid}/prs/{n}/merge`
 - `POST /projects/{pid}/waves/{wid}/mvis/{mid}/prs/{n}/reject`
 - `POST /projects/{pid}/waves/{wid}/mvis/{mid}/prs/{n}/steer/chats` + `/chats/{c}/messages`
 
 **A new `steer_chat` module** under `apps/api/src/steer/`:
+
 - `chat_session.py` — DDB session/message CRUD
 - `repo_clone.py` — `git clone --depth 1 --branch <pr_head_sha>` into `/tmp/steer-{chat_id}`
 - `tools.py` — `read_file`, `grep_files`, `glob_files`, `submit_response`
@@ -96,6 +98,7 @@ A fourth action, **GitHub** (open in Safari), needs no backend.
 **Stream service gains one new SSE event type**: `steer_message_delta`. The chat-id becomes part of the SSE topic so each chat is its own channel.
 
 **iOS** gets:
+
 - `Features/PR/PRReviewViewModel.swift` enriched with `merge()`, `reject(reason:)`, `openSteerChat()` methods
 - `Features/PR/Steer/SteerChatScreen.swift` — chat UI with streaming render, concerns sidebar, suggested-question chips
 - `Features/PR/Steer/SteerChatViewModel.swift` — chat state, message send, SSE consumer
@@ -108,17 +111,17 @@ A fourth action, **GitHub** (open in Safari), needs no backend.
 
 ### 1. Approve & Merge
 
-| Field | Value |
-|---|---|
-| Route | `POST /projects/{pid}/waves/{wid}/mvis/{mid}/prs/{n}/merge` |
-| Body | `{}` (empty; chat-summary attachment is auto-derived) |
+| Field    | Value                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------ |
+| Route    | `POST /projects/{pid}/waves/{wid}/mvis/{mid}/prs/{n}/merge`                                |
+| Body     | `{}` (empty; chat-summary attachment is auto-derived)                                      |
 | Response | `{merged: true, sha: "abc...", mvi_status: "shipped", wave_status: "review"\|"delivered"}` |
 
 **Flow:**
 
 1. Validate caller has access to project (`get_tenant` dep + `TenantDB.read` on the MVI snapshot).
 2. Confirm MVI is in `ready_to_ship`. Reject 409 otherwise — you can't approve an unready MVI.
-3. **If any Steer chat exists for this PR** with `status="active"` and at least one `assistant` message: build a "Convo summary" markdown block from the chat (see "Convo summary attached at merge" below) and post it via `gh pr comment` *before* merge.
+3. **If any Steer chat exists for this PR** with `status="active"` and at least one `assistant` message: build a "Convo summary" markdown block from the chat (see "Convo summary attached at merge" below) and post it via `gh pr comment` _before_ merge.
 4. Call `gh pr merge {n} --rebase --delete-branch --repo {owner}/{repo}`. On non-zero exit, return 409 with stderr.
 5. Update DDB MVI snapshot: `status: "shipped"`, `shipped_at: now()`, `merge_sha: <gh output>`.
 6. Write `mvi_shipped` event to events table.
@@ -129,11 +132,11 @@ A fourth action, **GitHub** (open in Safari), needs no backend.
 
 ### 2. Reject
 
-| Field | Value |
-|---|---|
-| Route | `POST /projects/{pid}/waves/{wid}/mvis/{mid}/prs/{n}/reject` |
-| Body | `{reason: string (max 2000 chars), close_branch: bool (default true)}` |
-| Response | `{rejected: true, mvi_status: "rejected"}` |
+| Field    | Value                                                                  |
+| -------- | ---------------------------------------------------------------------- |
+| Route    | `POST /projects/{pid}/waves/{wid}/mvis/{mid}/prs/{n}/reject`           |
+| Body     | `{reason: string (max 2000 chars), close_branch: bool (default true)}` |
+| Response | `{rejected: true, mvi_status: "rejected"}`                             |
 
 **Flow:**
 
@@ -152,7 +155,9 @@ A fourth action, **GitHub** (open in Safari), needs no backend.
 Two endpoints:
 
 #### `POST /projects/{pid}/waves/{wid}/mvis/{mid}/prs/{n}/steer/chats`
+
 Create a new chat session. Body empty. Returns:
+
 ```json
 {
   "chat_id": "c1778890123",
@@ -164,17 +169,20 @@ Create a new chat session. Body empty. Returns:
 Pre-loads chat context (PR diff, reviewer outcome, implementer snapshot, project docs) into the chat session record but does NOT call Anthropic yet. The first turn happens when the user sends a message.
 
 #### `POST /projects/{pid}/waves/{wid}/mvis/{mid}/prs/{n}/steer/chats/{chat_id}/messages`
+
 Send a user message. Body:
+
 ```json
-{"content": "string (max 4000 chars)"}
+{ "content": "string (max 4000 chars)" }
 ```
 
 Synchronously persists the user message, kicks off the Anthropic loop (token deltas stream out via SSE on `steer/{chat_id}`), and returns 200 once the loop completes:
+
 ```json
 {
   "user_message_id": "msg#0003",
   "assistant_message_id": "msg#0004",
-  "tokens": {"input": 18420, "output": 1255},
+  "tokens": { "input": 18420, "output": 1255 },
   "submitted_response": {
     "summary": "The reviewer missed that...",
     "severity": "concern",
@@ -201,6 +209,7 @@ client.messages.stream(
 ```
 
 When `submit_response` is called, persist:
+
 - The assistant message (role=assistant, content=concatenated text deltas, structured_response=tool_use input)
 - All tool_use / tool_result pairs (role=tool_use / tool_result, content=serialized)
 - Update chat's `tokens_used`
@@ -227,7 +236,7 @@ Three new SK patterns under existing project partition (`PK = T#{tenant}#P#{proj
   "created_by": "user-001",
   "created_at": "2026-05-15T22:00:00Z",
   "status": "active",
-  "tokens_used": {"input": 142000, "output": 8500},
+  "tokens_used": { "input": 142000, "output": 8500 },
   "expires_at": 1779494400,
   "concerns_total": 0
 }
@@ -292,7 +301,7 @@ The founder discussed this PR with Cawnex's adversarial Steer agent before mergi
 - `project_state.py:127` — bare `except Exception` swallows errors silently. The reviewer did not flag this.
 - `list_projects` — N+1 query, calls `compute_current_state` per project.
 
-**Conversation summary** *(3 turns, 18.4k input / 1.3k output tokens)*
+**Conversation summary** _(3 turns, 18.4k input / 1.3k output tokens)_
 
 > Q: What's the worst case if compute_current_state throws?
 > A: Currently all projects silently show `draft` with no log entry...
@@ -306,6 +315,7 @@ _Steer chats are read-only; the agent cannot modify code or post to GitHub mid-c
 ### Implementation
 
 `apps/api/src/steer/summary.py:build_pr_comment(chat_id) → str`. Reads all messages for the chat, formats by role:
+
 - User messages become `> Q: ...`
 - Assistant messages (the structured `submit_response`) become `> A: {summary[:300]}`
 - All `concerns` across all assistant messages are deduplicated and listed
@@ -314,47 +324,47 @@ _Steer chats are read-only; the agent cannot modify code or post to GitHub mid-c
 
 ### Behavior matrix
 
-| Scenario | Comment posted? |
-|---|---|
-| No Steer chat ever created | No |
-| Chat created, never sent a message | No |
-| Chat with 1+ assistant turns, then Approve & Merge | **Yes** |
-| Chat with 1+ assistant turns, then Reject | **Yes** (under the rejection reason) |
-| Multiple chats on same PR | Yes — the comment includes the **most recent** chat. Earlier chats are referenced as "N earlier chats — see Cawnex for full history." |
-| `gh pr comment` fails | Log + continue with merge/reject. The merge is the load-bearing action; the comment is decoration. Failure does not block. |
+| Scenario                                           | Comment posted?                                                                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| No Steer chat ever created                         | No                                                                                                                                    |
+| Chat created, never sent a message                 | No                                                                                                                                    |
+| Chat with 1+ assistant turns, then Approve & Merge | **Yes**                                                                                                                               |
+| Chat with 1+ assistant turns, then Reject          | **Yes** (under the rejection reason)                                                                                                  |
+| Multiple chats on same PR                          | Yes — the comment includes the **most recent** chat. Earlier chats are referenced as "N earlier chats — see Cawnex for full history." |
+| `gh pr comment` fails                              | Log + continue with merge/reject. The merge is the load-bearing action; the comment is decoration. Failure does not block.            |
 
 ---
 
 ## Failure modes
 
-| Failure | What happens | Behavior |
-|---|---|---|
-| **iOS disconnects mid-stream** | SSE closes; Lambda has no signal | Lambda finishes the turn, persists. iOS on resume queries `GET /chats/{c}/messages?after={seq}` and renders what arrived |
-| **User cancels intentionally** | `DELETE /chats/{c}/in_flight` (Phase 3) | Anthropic stream is cancelled mid-token. If `submit_response` already fired, message is complete. If mid-text, partial message persisted with `status: "cancelled"` |
-| **Anthropic API error mid-turn** | Lambda catches, persists system message with `error` field set | iOS renders error bubble. User retries |
-| **`gh pr merge` fails (conflicts, branch protection)** | Non-zero exit code | Return 409 with stderr. MVI stays `ready_to_ship` (no DDB mutation). iOS surfaces sheet: "Merge failed: {reason}. Open in GitHub to resolve manually" |
-| **`gh pr close` fails** | Same | 502 with error. MVI stays `ready_to_ship` |
-| **Tool call crashes** (e.g., read_file on nonexistent path) | Returns error string in `tool_result` | Model sees the error, recovers naturally |
-| **Chat exceeds 250k input tokens** | `POST .../messages` returns 402 before calling Anthropic | iOS: "Chat budget exhausted — open a new chat" |
-| **Lambda cold start + first clone** | ~10-12s first-turn latency | iOS shows "Investigating…" placeholder |
-| **PR head SHA drifted since chat started** (someone pushed) | First read after detect → re-clone | Chat-level event `pr_branch_updated` sent to SSE; iOS surfaces "PR was updated" banner |
-| **Multiple concurrent chats on same PR** | All allowed; each gets its own `chat_id` | iOS picker if `chat_count > 1`; default opens most recent |
-| **`gh pr comment` fails during merge summary attach** | Logged | Merge continues; warn the user post-merge: "PR merged. Summary comment failed to post — see logs" |
+| Failure                                                     | What happens                                                   | Behavior                                                                                                                                                            |
+| ----------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **iOS disconnects mid-stream**                              | SSE closes; Lambda has no signal                               | Lambda finishes the turn, persists. iOS on resume queries `GET /chats/{c}/messages?after={seq}` and renders what arrived                                            |
+| **User cancels intentionally**                              | `DELETE /chats/{c}/in_flight` (Phase 3)                        | Anthropic stream is cancelled mid-token. If `submit_response` already fired, message is complete. If mid-text, partial message persisted with `status: "cancelled"` |
+| **Anthropic API error mid-turn**                            | Lambda catches, persists system message with `error` field set | iOS renders error bubble. User retries                                                                                                                              |
+| **`gh pr merge` fails (conflicts, branch protection)**      | Non-zero exit code                                             | Return 409 with stderr. MVI stays `ready_to_ship` (no DDB mutation). iOS surfaces sheet: "Merge failed: {reason}. Open in GitHub to resolve manually"               |
+| **`gh pr close` fails**                                     | Same                                                           | 502 with error. MVI stays `ready_to_ship`                                                                                                                           |
+| **Tool call crashes** (e.g., read_file on nonexistent path) | Returns error string in `tool_result`                          | Model sees the error, recovers naturally                                                                                                                            |
+| **Chat exceeds 250k input tokens**                          | `POST .../messages` returns 402 before calling Anthropic       | iOS: "Chat budget exhausted — open a new chat"                                                                                                                      |
+| **Lambda cold start + first clone**                         | ~10-12s first-turn latency                                     | iOS shows "Investigating…" placeholder                                                                                                                              |
+| **PR head SHA drifted since chat started** (someone pushed) | First read after detect → re-clone                             | Chat-level event `pr_branch_updated` sent to SSE; iOS surfaces "PR was updated" banner                                                                              |
+| **Multiple concurrent chats on same PR**                    | All allowed; each gets its own `chat_id`                       | iOS picker if `chat_count > 1`; default opens most recent                                                                                                           |
+| **`gh pr comment` fails during merge summary attach**       | Logged                                                         | Merge continues; warn the user post-merge: "PR merged. Summary comment failed to post — see logs"                                                                   |
 
 ---
 
 ## Budgets and rate limits
 
-| Limit | Value | Env var |
-|---|---|---|
-| Per-chat input tokens | 250,000 | `STEER_CHAT_MAX_INPUT_TOKENS` |
-| Per-chat output tokens | 50,000 | `STEER_CHAT_MAX_OUTPUT_TOKENS` |
-| Per-turn output tokens | 8,000 | `STEER_TURN_MAX_OUTPUT_TOKENS` |
-| Tool calls per turn | 30 | `STEER_TURN_MAX_TOOL_CALLS` |
-| Active chats per user per project | 10 | `STEER_MAX_ACTIVE_CHATS_PER_PROJECT` |
-| Chat TTL after last message | 24h | `STEER_CHAT_TTL_HOURS` |
-| Message content max length (iOS-side) | 4,000 chars | iOS const |
-| PR comment body max length | 60kb (60_000 bytes) | constant |
+| Limit                                 | Value               | Env var                              |
+| ------------------------------------- | ------------------- | ------------------------------------ |
+| Per-chat input tokens                 | 250,000             | `STEER_CHAT_MAX_INPUT_TOKENS`        |
+| Per-chat output tokens                | 50,000              | `STEER_CHAT_MAX_OUTPUT_TOKENS`       |
+| Per-turn output tokens                | 8,000               | `STEER_TURN_MAX_OUTPUT_TOKENS`       |
+| Tool calls per turn                   | 30                  | `STEER_TURN_MAX_TOOL_CALLS`          |
+| Active chats per user per project     | 10                  | `STEER_MAX_ACTIVE_CHATS_PER_PROJECT` |
+| Chat TTL after last message           | 24h                 | `STEER_CHAT_TTL_HOURS`               |
+| Message content max length (iOS-side) | 4,000 chars         | iOS const                            |
+| PR comment body max length            | 60kb (60_000 bytes) | constant                             |
 
 All numbers calibrated for Haiku 4.5 (200k context window). With project docs (~30k tokens) + reviewer outcome (~3k) + implementer outcome (~5k) + chat history, a 250k input budget supports ~6-8 substantive turns.
 
@@ -408,11 +418,11 @@ Context loaded:
 
 ## Tools available to Steer
 
-| Tool | Schema | Bounds |
-|---|---|---|
-| `read_file` | `{path: string}` | Returns up to 50KB. Truncated with marker if larger. Path must resolve inside `/tmp/steer-{chat_id}` — path-escape guarded |
-| `grep_files` | `{pattern: string, path: string?}` | Ripgrep. Returns up to 100 matches |
-| `glob_files` | `{pattern: string}` | Returns up to 200 paths |
+| Tool              | Schema                                                                          | Bounds                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `read_file`       | `{path: string}`                                                                | Returns up to 50KB. Truncated with marker if larger. Path must resolve inside `/tmp/steer-{chat_id}` — path-escape guarded             |
+| `grep_files`      | `{pattern: string, path: string?}`                                              | Ripgrep. Returns up to 100 matches                                                                                                     |
+| `glob_files`      | `{pattern: string}`                                                             | Returns up to 200 paths                                                                                                                |
 | `submit_response` | `{summary: string, severity: "info"\|"concern"\|"blocker", concerns: string[]}` | **Terminator** — emit final structured response. `concerns` is the adversarial list of things-found (may be empty). `summary` is prose |
 
 Path-escape guard: every tool input path is resolved against the worktree root via `Path(root).joinpath(input_path).resolve()`; if the result is not inside `root`, the tool returns an error.
@@ -469,7 +479,7 @@ Smallest, ships first; immediately unblocks PR #16 and any future PRs.
 
 **Steer hosted on Worker (Fargate) instead of Lambda.** Worker would avoid Lambda's 15-min cap and the `/tmp` clone-on-cold-start. But Worker is currently zero-scaled when idle; first chat would trigger a ~60s Fargate cold start. Adds a new "Worker mode" (not executing waves but holding interactive chat). For v1, where PR review is a short-lived activity (minutes, not hours), Lambda is the right runtime. If usage explodes — many concurrent long chats — migrate to Worker; the chat session model in DDB is runtime-agnostic.
 
-**Steer triggers a Fixer crow on user request.** Originally considered, then removed. The reason: the Cawnex Steer agent is structurally a *verification* mechanism, not an *editing* mechanism. Conflating the two muddies the chat's purpose ("am I investigating or am I rewriting?") and creates an attack surface (a malicious prompt convincing Steer to push bad code). Keeping Steer read-only is a stronger architectural promise. Push-fix can be a separate future action.
+**Steer triggers a Fixer crow on user request.** Originally considered, then removed. The reason: the Cawnex Steer agent is structurally a _verification_ mechanism, not an _editing_ mechanism. Conflating the two muddies the chat's purpose ("am I investigating or am I rewriting?") and creates an attack surface (a malicious prompt convincing Steer to push bad code). Keeping Steer read-only is a stronger architectural promise. Push-fix can be a separate future action.
 
 **Approve & Merge as a single endpoint that auto-decides squash vs rebase based on commit count.** Considered briefly. Rejected for explicitness — every project should pick one strategy and stick to it. We chose `--rebase --delete-branch`.
 

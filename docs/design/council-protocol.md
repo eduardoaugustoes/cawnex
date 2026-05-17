@@ -25,8 +25,8 @@
 
 ## The Six Advisors
 
-| Advisor         | Lens                                 | Veto Power      | Example Concern                                    |
-| --------------- | ------------------------------------ | --------------- | -------------------------------------------------- |
+| Advisor          | Lens                                 | Veto Power      | Example Concern                                    |
+| ---------------- | ------------------------------------ | --------------- | -------------------------------------------------- |
 | **Security**     | Vulnerabilities, auth, data exposure | YES — can BLOCK | "No rate limiting on auth endpoint"                |
 | **Architecture** | Coupling, layering, patterns         | No              | "This introduces a circular dependency"            |
 | **Performance**  | Latency, cost, scalability           | No              | "N+1 query pattern detected"                       |

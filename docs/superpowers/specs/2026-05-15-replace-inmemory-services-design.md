@@ -7,30 +7,31 @@
 
 ## Current state — what's already real vs mock
 
-| Service | iOS impl exists | API impl exists | Wired in `ServiceFactory` |
-|---|---|---|---|
-| Project | ✅ | ✅ APIProjectService | ✅ (when apiClient present) |
-| Document | ✅ | ✅ APIDocumentService | ✅ |
-| ProjectHub | ✅ | ✅ APIProjectHubService | ✅ |
-| Backlog | ✅ | ✅ APIBacklogService | ✅ |
-| Goal | ✅ | ✅ APIGoalService | ✅ |
-| MVI | ✅ | ✅ APIMVIService | ✅ |
-| HumanTask | ✅ | ✅ APIHumanTaskService | ✅ |
-| Wave | ✅ | ✅ APIWaveService | ✅ |
-| Autopilot | ✅ | ✅ APIAutopilotService | ✅ |
-| **Task** | ✅ | ❌ | ❌ InMemoryTaskService always |
-| **PR** | ✅ | ❌ | ❌ InMemoryPRService always |
-| **Milestone** | ✅ | ❌ | ❌ InMemoryMilestoneService always |
-| **Murders** | ✅ | ❌ | ❌ InMemoryMurdersService always |
-| **Skills** | ✅ | ❌ | ❌ InMemorySkillsService always |
-| **Credits** | ✅ | ❌ | ❌ InMemoryCreditsService always |
-| **Notifications** | ✅ | ❌ | ❌ InMemoryNotificationService always |
+| Service           | iOS impl exists | API impl exists         | Wired in `ServiceFactory`             |
+| ----------------- | --------------- | ----------------------- | ------------------------------------- |
+| Project           | ✅              | ✅ APIProjectService    | ✅ (when apiClient present)           |
+| Document          | ✅              | ✅ APIDocumentService   | ✅                                    |
+| ProjectHub        | ✅              | ✅ APIProjectHubService | ✅                                    |
+| Backlog           | ✅              | ✅ APIBacklogService    | ✅                                    |
+| Goal              | ✅              | ✅ APIGoalService       | ✅                                    |
+| MVI               | ✅              | ✅ APIMVIService        | ✅                                    |
+| HumanTask         | ✅              | ✅ APIHumanTaskService  | ✅                                    |
+| Wave              | ✅              | ✅ APIWaveService       | ✅                                    |
+| Autopilot         | ✅              | ✅ APIAutopilotService  | ✅                                    |
+| **Task**          | ✅              | ❌                      | ❌ InMemoryTaskService always         |
+| **PR**            | ✅              | ❌                      | ❌ InMemoryPRService always           |
+| **Milestone**     | ✅              | ❌                      | ❌ InMemoryMilestoneService always    |
+| **Murders**       | ✅              | ❌                      | ❌ InMemoryMurdersService always      |
+| **Skills**        | ✅              | ❌                      | ❌ InMemorySkillsService always       |
+| **Credits**       | ✅              | ❌                      | ❌ InMemoryCreditsService always      |
+| **Notifications** | ✅              | ❌                      | ❌ InMemoryNotificationService always |
 
 7 to build. **PR #15** that we saw in iOS was hardcoded in `InMemoryTaskService` and has nothing to do with the actual GitHub PR that happens to share the same number.
 
 ## Field-by-field gap analysis
 
 For each service, three states per field:
+
 - **(R)eal** — backend already has it
 - **(D)erived** — backend has the raw data; new endpoint must compute/aggregate it
 - **(P)laceholder** — iOS expects it but we don't track it yet; new endpoint returns empty/null and iOS renders a placeholder per user preference
@@ -39,20 +40,20 @@ For each service, three states per field:
 
 iOS `TaskDetail` fields:
 
-| Field | Status | Source |
-|---|---|---|
-| `id` | D | Composite `wave_id:mvi_id:task_index` |
-| `name` | R | `cr_plan_01.outcome.tasks[i].name` |
-| `description` | R | `tasks[i].description` |
-| `status` | D | Inferred from whether any implementer crow has touched the files in `tasks[i].files_to_modify` |
-| `breadcrumb` | D | `"Milestone X › Goal Y › MVI Z › Task N"` — build from parent items |
-| `humanEstimate` | R | `tasks[i].estimated_hours` |
-| `aiCost` | D | Pro-rated share of implementer crow's cost (rough: `crow_cost / task_count`) |
-| `roi` | D | `humanEstimate / aiCost * humanRate` |
-| `assignedCrow` | R | `cr_impl_02.crow_type`, `crow_id`, model, behavior_state, cost.duration_ms, files_changed count |
-| `implementationSteps` | **P** | Return `[]`; iOS renders "No implementation steps recorded yet" placeholder |
-| `acceptanceCriteria` | **P** | Same — return `[]`, iOS shows placeholder |
-| `pr` | D | If `cr_impl_02.pr.number` exists, fetch live GitHub PR for title/branch/status/lines/files |
+| Field                 | Status | Source                                                                                          |
+| --------------------- | ------ | ----------------------------------------------------------------------------------------------- |
+| `id`                  | D      | Composite `wave_id:mvi_id:task_index`                                                           |
+| `name`                | R      | `cr_plan_01.outcome.tasks[i].name`                                                              |
+| `description`         | R      | `tasks[i].description`                                                                          |
+| `status`              | D      | Inferred from whether any implementer crow has touched the files in `tasks[i].files_to_modify`  |
+| `breadcrumb`          | D      | `"Milestone X › Goal Y › MVI Z › Task N"` — build from parent items                             |
+| `humanEstimate`       | R      | `tasks[i].estimated_hours`                                                                      |
+| `aiCost`              | D      | Pro-rated share of implementer crow's cost (rough: `crow_cost / task_count`)                    |
+| `roi`                 | D      | `humanEstimate / aiCost * humanRate`                                                            |
+| `assignedCrow`        | R      | `cr_impl_02.crow_type`, `crow_id`, model, behavior_state, cost.duration_ms, files_changed count |
+| `implementationSteps` | **P**  | Return `[]`; iOS renders "No implementation steps recorded yet" placeholder                     |
+| `acceptanceCriteria`  | **P**  | Same — return `[]`, iOS shows placeholder                                                       |
+| `pr`                  | D      | If `cr_impl_02.pr.number` exists, fetch live GitHub PR for title/branch/status/lines/files      |
 
 **Endpoint:** `GET /projects/{project_id}/tasks/{task_id}` where `task_id = "{wave_id}:{mvi_id}:{task_index}"`.
 
@@ -60,15 +61,15 @@ iOS `TaskDetail` fields:
 
 iOS `PRReviewDetail` fields:
 
-| Field | Status | Source |
-|---|---|---|
-| `title`, `branch`, `status`, `linesAdded`, `linesRemoved`, `filesChanged` | D | GitHub API: `GET /repos/{repo}/pulls/{n}` — cache 1h in DDB |
-| `breadcrumbMVI`, `breadcrumbTask` | D | Parent walk |
-| `creditsCost`, `aiMinutes` | D | Sum of all crows in the wave's cost |
-| `verdict` (Approved/Changes/Rejected, confidence, summary, findings) | R | Reviewer crow's `outcome.summary`, `outcome.blocking_issues`, `outcome.non_blocking_issues` |
-| `planSteps` | D | Map of planner.tasks → implementer.changes |
-| `suggestedQuestions` | **P** | Return `[]`, iOS shows placeholder |
-| `conversation` | **P** | Return `[]`, iOS shows placeholder |
+| Field                                                                     | Status | Source                                                                                      |
+| ------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------- |
+| `title`, `branch`, `status`, `linesAdded`, `linesRemoved`, `filesChanged` | D      | GitHub API: `GET /repos/{repo}/pulls/{n}` — cache 1h in DDB                                 |
+| `breadcrumbMVI`, `breadcrumbTask`                                         | D      | Parent walk                                                                                 |
+| `creditsCost`, `aiMinutes`                                                | D      | Sum of all crows in the wave's cost                                                         |
+| `verdict` (Approved/Changes/Rejected, confidence, summary, findings)      | R      | Reviewer crow's `outcome.summary`, `outcome.blocking_issues`, `outcome.non_blocking_issues` |
+| `planSteps`                                                               | D      | Map of planner.tasks → implementer.changes                                                  |
+| `suggestedQuestions`                                                      | **P**  | Return `[]`, iOS shows placeholder                                                          |
+| `conversation`                                                            | **P**  | Return `[]`, iOS shows placeholder                                                          |
 
 **Endpoint:** `GET /projects/{project_id}/waves/{wave_id}/mvis/{mvi_id}/prs/{pr_number}`.
 
@@ -78,12 +79,12 @@ iOS `PRReviewDetail` fields:
 
 `/milestones` route already exists and returns the milestone list. iOS detail view needs:
 
-| Field | Status | Source |
-|---|---|---|
-| Milestone (id, name, description, status) | R | Existing `/milestones` response |
-| Section blocks (Business Achievement, Success Criteria, etc.) | D | Currently text-flat in `description`; iOS expects structured sections. Parser? Or new field on schema? |
-| Chat messages | D | Reuse `autopilot.py` chat endpoint — already wires AI conversations |
-| Goals list with task summaries | D | Existing goal items aggregated |
+| Field                                                         | Status | Source                                                                                                 |
+| ------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------ |
+| Milestone (id, name, description, status)                     | R      | Existing `/milestones` response                                                                        |
+| Section blocks (Business Achievement, Success Criteria, etc.) | D      | Currently text-flat in `description`; iOS expects structured sections. Parser? Or new field on schema? |
+| Chat messages                                                 | D      | Reuse `autopilot.py` chat endpoint — already wires AI conversations                                    |
+| Goals list with task summaries                                | D      | Existing goal items aggregated                                                                         |
 
 **Endpoint:** Add `GET /milestones/{milestone_id}` to existing route file. Wire chat through existing `/autopilot/chat`.
 
@@ -107,13 +108,13 @@ Static catalog only. No DDB queries needed for v1.
 
 iOS `CreditsData` fields:
 
-| Field | Status | Source |
-|---|---|---|
-| `creditBalance` (remaining, total) | **P** | No user-level balance modeled yet. Return `null` or fixed `Decimal("0")`, iOS renders "Setup required" placeholder |
-| `projectBudgets` | R | Per-wave `budget.spent` summed by project |
-| `costBreakdown` | D | Same source, sliced by category (planner/implementer/reviewer) |
-| `crowCosts` | D | Sum `cost.credits` across all crow snapshots, group by `crow_type` |
-| `roiSummary` | D | Sum `humanEstimate` from all planner tasks; ROI = humanHours × hourlyRate / creditsSpent |
+| Field                              | Status | Source                                                                                                             |
+| ---------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
+| `creditBalance` (remaining, total) | **P**  | No user-level balance modeled yet. Return `null` or fixed `Decimal("0")`, iOS renders "Setup required" placeholder |
+| `projectBudgets`                   | R      | Per-wave `budget.spent` summed by project                                                                          |
+| `costBreakdown`                    | D      | Same source, sliced by category (planner/implementer/reviewer)                                                     |
+| `crowCosts`                        | D      | Sum `cost.credits` across all crow snapshots, group by `crow_type`                                                 |
+| `roiSummary`                       | D      | Sum `humanEstimate` from all planner tasks; ROI = humanHours × hourlyRate / creditsSpent                           |
 
 **Endpoint:** `GET /billing/usage?project_id={pid}` — aggregates from existing wave/crow data.
 
@@ -123,13 +124,13 @@ iOS `CreditsData` fields:
 
 iOS `NotificationsData` has two sections: `needsAction` and `recent`.
 
-**Data source:** the existing `cawnex-events-dev` events table has every wave/crow event. The notifications service is essentially a *projection* of that event log into user-facing notifications.
+**Data source:** the existing `cawnex-events-dev` events table has every wave/crow event. The notifications service is essentially a _projection_ of that event log into user-facing notifications.
 
-| Field | Status | Source |
-|---|---|---|
-| Wave-failed notifications | D | Filter events for `mvi_failed`, `wave_cancelled` |
-| MVI-shipped notifications | D | Filter for `mvi_ready` |
-| Task approvals | **P** | We don't have approval gates wired through events yet — return empty list, hide the section in iOS |
+| Field                     | Status | Source                                                                                             |
+| ------------------------- | ------ | -------------------------------------------------------------------------------------------------- |
+| Wave-failed notifications | D      | Filter events for `mvi_failed`, `wave_cancelled`                                                   |
+| MVI-shipped notifications | D      | Filter for `mvi_ready`                                                                             |
+| Task approvals            | **P**  | We don't have approval gates wired through events yet — return empty list, hide the section in iOS |
 
 **Endpoint:** `GET /notifications?project_id={pid}` — queries the events table with project-scoped filter, transforms event types into iOS notification shapes.
 
@@ -137,27 +138,27 @@ iOS `NotificationsData` has two sections: `needsAction` and `recent`.
 
 ## Endpoint additions summary
 
-| # | Method | Path | Returns | Priority |
-|---|---|---|---|---|
-| 1 | GET | `/projects/{pid}/tasks/{task_id}` | TaskDetail | P1 |
-| 2 | GET | `/projects/{pid}/waves/{wid}/mvis/{mid}/prs/{pr_n}` | PRReviewDetail | P1 |
-| 3 | GET | `/milestones/{milestone_id}` | MilestoneDetail | P2 |
-| 4 | GET | `/billing/usage` | CreditsData | P2 |
-| 5 | GET | `/murders` | MurdersData (static) | P3 |
-| 6 | GET | `/notifications` | NotificationsData | P3 |
-| 7 | — | (Skills — deferred indefinitely) | — | — |
+| #   | Method | Path                                                | Returns              | Priority |
+| --- | ------ | --------------------------------------------------- | -------------------- | -------- |
+| 1   | GET    | `/projects/{pid}/tasks/{task_id}`                   | TaskDetail           | P1       |
+| 2   | GET    | `/projects/{pid}/waves/{wid}/mvis/{mid}/prs/{pr_n}` | PRReviewDetail       | P1       |
+| 3   | GET    | `/milestones/{milestone_id}`                        | MilestoneDetail      | P2       |
+| 4   | GET    | `/billing/usage`                                    | CreditsData          | P2       |
+| 5   | GET    | `/murders`                                          | MurdersData (static) | P3       |
+| 6   | GET    | `/notifications`                                    | NotificationsData    | P3       |
+| 7   | —      | (Skills — deferred indefinitely)                    | —                    | —        |
 
 ## iOS changes summary
 
-| Service | New API impl | Wire in `ServiceFactory` | Placeholder UI changes |
-|---|---|---|---|
-| Task | `APITaskService` | wrap existing make | Hide implementationSteps + acceptanceCriteria sections when empty |
-| PR | `APIPRService` | wrap existing make | Hide suggestedQuestions + conversation when empty |
-| Milestone | `APIMilestoneService` | wrap existing make | Collapse structured sections to single "Overview" v1 |
-| Credits | `APICreditsService` | wrap existing make | Balance section shows "Setup required" |
-| Murders | `APIMurdersService` | wrap existing make | Live state shows "idle" badge |
-| Notifications | `APINotificationService` | wrap existing make | Hide "needs action" if empty |
-| Skills | — (deferred) | leave InMemorySkillsService OR hide tab | — |
+| Service       | New API impl             | Wire in `ServiceFactory`                | Placeholder UI changes                                            |
+| ------------- | ------------------------ | --------------------------------------- | ----------------------------------------------------------------- |
+| Task          | `APITaskService`         | wrap existing make                      | Hide implementationSteps + acceptanceCriteria sections when empty |
+| PR            | `APIPRService`           | wrap existing make                      | Hide suggestedQuestions + conversation when empty                 |
+| Milestone     | `APIMilestoneService`    | wrap existing make                      | Collapse structured sections to single "Overview" v1              |
+| Credits       | `APICreditsService`      | wrap existing make                      | Balance section shows "Setup required"                            |
+| Murders       | `APIMurdersService`      | wrap existing make                      | Live state shows "idle" badge                                     |
+| Notifications | `APINotificationService` | wrap existing make                      | Hide "needs action" if empty                                      |
+| Skills        | — (deferred)             | leave InMemorySkillsService OR hide tab | —                                                                 |
 
 All placeholder UI changes follow the user-stated preference: **"keep the sections, render placeholders"** — never silently drop a section the user might expect to see.
 
