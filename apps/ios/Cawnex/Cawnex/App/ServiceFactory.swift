@@ -88,6 +88,13 @@ struct ServiceFactory {
         return APIPRActionsService(client: apiClient)
     }
 
+    func makeWaveReviewService() -> any WaveReviewService {
+        if let apiClient {
+            return APIWaveReviewService(client: apiClient)
+        }
+        return InMemoryWaveReviewService(seed: [])
+    }
+
     func makeMurdersService() -> any MurdersService {
         if let apiClient {
             return APIMurdersService(client: apiClient)
