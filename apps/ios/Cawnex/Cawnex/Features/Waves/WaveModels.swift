@@ -9,6 +9,12 @@ enum WaveStatus: String, Equatable, CaseIterable, Hashable {
     case executing
     case paused
     case review
+    // Layer A wave-state extension — Council pipeline phases between
+    // `review` and `delivered`.
+    case integrating
+    case needsRework = "needs_rework"
+    case underCouncilReview = "under_council_review"
+    case underHumanReview = "under_human_review"
     case steered
     case delivered
     case cancelled
@@ -20,6 +26,10 @@ enum WaveStatus: String, Equatable, CaseIterable, Hashable {
         case .executing: "Executing"
         case .paused: "Paused"
         case .review: "Review"
+        case .integrating: "Integrating"
+        case .needsRework: "Needs Rework"
+        case .underCouncilReview: "Council Review"
+        case .underHumanReview: "Awaiting"
         case .steered: "Steered"
         case .delivered: "Delivered"
         case .cancelled: "Cancelled"
@@ -33,6 +43,10 @@ enum WaveStatus: String, Equatable, CaseIterable, Hashable {
         case .executing: CawnexColors.primary
         case .paused: CawnexColors.warning
         case .review: Color.orange
+        case .integrating: CawnexColors.primary
+        case .needsRework: CawnexColors.warning
+        case .underCouncilReview: CawnexColors.primary
+        case .underHumanReview: CawnexColors.warning
         case .steered: Color.orange
         case .delivered: CawnexColors.success
         case .cancelled: CawnexColors.destructive
@@ -46,6 +60,10 @@ enum WaveStatus: String, Equatable, CaseIterable, Hashable {
         case .executing: "play.fill"
         case .paused: "pause.fill"
         case .review: "eye"
+        case .integrating: "arrow.triangle.merge"
+        case .needsRework: "arrow.uturn.backward.circle"
+        case .underCouncilReview: "person.3"
+        case .underHumanReview: "hand.raised"
         case .steered: "arrow.triangle.turn.up.right.diamond"
         case .delivered: "checkmark.circle.fill"
         case .cancelled: "xmark.circle.fill"
@@ -56,8 +74,14 @@ enum WaveStatus: String, Equatable, CaseIterable, Hashable {
         self == .delivered || self == .cancelled
     }
 
+    /// Any non-terminal wave is "active" for list-grouping purposes —
+    /// includes planning, approved, executing, paused, review, steered,
+    /// AND the Layer A pipeline phases (integrating, needs_rework,
+    /// under_council_review, under_human_review). Without this, waves in
+    /// intermediate states fall into a UI limbo (not active, not terminal)
+    /// and are invisible on the Waves list screen.
     var isActive: Bool {
-        self == .executing || self == .paused
+        !isTerminal
     }
 }
 
