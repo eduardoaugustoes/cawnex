@@ -1,121 +1,75 @@
-"""Compute project's current_state from underlying entity truth."""
+"""Compute project state based on task progress."""
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Any, Dict, List
-
-if TYPE_CHECKING:
-    from src.db.client import TenantDB
-
-_DOC_TYPES = {"vision", "architecture", "glossary", "design"}
-_TERMINAL_WAVE_STATUSES = {"delivered", "cancelled"}
+from enum import Enum
+from typing import Optional
+from sqlalchemy.orm import Session
+from src.models import Project, Task
 
 
-def compute_current_state(project_id: str, db: TenantDB) -> str:
-    """Return the project's computed current state. First match wins.
+class ProjectState(str, Enum):
+    """Computed project state."""
+    PLANNING = "PLANNING"
+    IN_PROGRESS = "IN_PROGRESS"
+    REVIEW = "REVIEW"
+    COMPLETED = "COMPLETED"
+    PAUSED = "PAUSED"
 
-    Args:
-        project_id: Project identifier
-        db: TenantDB instance for querying project data
 
-    Returns:
-        One of: "draft", "active", "running", "idle", "completed"
+def compute_current_state(project_id: str, db: Session) -> ProjectState:
     """
-    if not _monarch_docs_complete(project_id, db):
-        return "draft"
-    if _has_executing_wave(project_id, db):
-        return "running"
-    waves = _list_waves(project_id, db)
-    if not waves:
-        return "active"
-    if _all_terminal(waves) and _has_shipped(project_id, db):
-        return "completed"
-    return "idle"
-
-
-def _monarch_docs_complete(project_id: str, db: TenantDB) -> bool:
-    """All 4 setup documents exist and are status=complete.
-
+    Compute the current state of a project based on its tasks and progress.
+    
+    Logic:
+    - PLANNING: No tasks started yet (all in draft/refined)
+    - IN_PROGRESS: At least one task active or being worked on
+    - REVIEW: All tasks done, awaiting final review
+    - COMPLETED: Project marked complete or all tasks finalized
+    - PAUSED: Project explicitly paused
+    
     Args:
-        project_id: Project identifier
-        db: TenantDB instance
-
+        project_id: The project ID
+        db: Database session
+        
     Returns:
-        True if all 4 required docs are complete, False otherwise
+        ProjectState enum value
     """
-    items = db.query_project(project_id=project_id, sk_prefix="DOC#")
-    complete_types = {
-        i.get("doc_type")
-        for i in items
-        if i.get("status") == "complete" and i.get("doc_type") is not None
-    }
-    return _DOC_TYPES.issubset(complete_types)
-
-
-def _has_executing_wave(project_id: str, db: TenantDB) -> bool:
-    """Any wave root with status=executing.
-
-    Args:
-        project_id: Project identifier
-        db: TenantDB instance
-
-    Returns:
-        True if any wave is executing, False otherwise
-    """
-    return any(w.get("status") == "executing" for w in _list_waves(project_id, db))
-
-
-def _list_waves(project_id: str, db: TenantDB) -> List[Dict[str, Any]]:
-    """Root wave snapshots only (excludes nested MVI items).
-
-    Args:
-        project_id: Project identifier
-        db: TenantDB instance
-
-    Returns:
-        List of wave root items (SK pattern S#{wave_id} with no # after)
-    """
-    items = db.query_project(project_id=project_id, sk_prefix="S#")
-    return [i for i in items if _is_wave_root(i.get("SK", ""))]
-
-
-def _is_wave_root(sk: str) -> bool:
-    """SK pattern S#{wave_id} is a wave root; S#{wave_id}#m{mvi_id} is not.
-
-    Args:
-        sk: Sort key to check
-
-    Returns:
-        True if sk is a wave root, False otherwise
-    """
-    parts = sk.split("#")
-    return len(parts) == 2 and parts[0] == "S" and parts[1] != ""
-
-
-def _all_terminal(waves: List[Dict[str, Any]]) -> bool:
-    """Every wave in a terminal status.
-
-    Args:
-        waves: List of wave items
-
-    Returns:
-        True if all waves are in terminal status, False otherwise
-    """
-    return all(w.get("status") in _TERMINAL_WAVE_STATUSES for w in waves)
-
-
-def _has_shipped(project_id: str, db: TenantDB) -> bool:
-    """Any MVI in shipped status anywhere on the project.
-
-    Args:
-        project_id: Project identifier
-        db: TenantDB instance
-
-    Returns:
-        True if any MVI has shipped, False otherwise
-    """
-    items = db.query_project(project_id=project_id, sk_prefix="S#")
-    for item in items:
-        if item.get("level") == "murder" and item.get("status") == "shipped":
-            return True
-    return False
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        return ProjectState.PLANNING
+    
+    # If project is explicitly paused, return PAUSED
+    if project.status == "paused":
+        return ProjectState.PAUSED
+    
+    # If project is completed, return COMPLETED
+    if project.status == "completed":
+        return ProjectState.COMPLETED
+    
+    # Query task counts
+    tasks = db.query(Task).filter(Task.project_id == project_id).all()
+    if not tasks:
+        return ProjectState.PLANNING
+    
+    total = len(tasks)
+    done_count = sum(1 for t in tasks if t.status == "done")
+    active_count = sum(1 for t in tasks if t.status == "active")
+    draft_refined_count = sum(1 for t in tasks if t.status in ("draft", "refined"))
+    
+    # All tasks done -> COMPLETED
+    if done_count == total:
+        return ProjectState.COMPLETED
+    
+    # All tasks in draft/refined -> PLANNING
+    if draft_refined_count == total:
+        return ProjectState.PLANNING
+    
+    # At least one active -> IN_PROGRESS
+    if active_count > 0:
+        return ProjectState.IN_PROGRESS
+    
+    # Some done, some not -> REVIEW (awaiting next action)
+    if done_count > 0:
+        return ProjectState.REVIEW
+    
+    # Default to IN_PROGRESS
+    return ProjectState.IN_PROGRESS
