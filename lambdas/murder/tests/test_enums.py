@@ -27,12 +27,24 @@ class TestWaveStatus:
             "executing",
             "paused",
             "review",
+            "integrating",
+            "needs_rework",
+            "under_council_review",
             "steered",
             "delivered",
             "cancelled",
         }
         actual = {s.value for s in WaveStatus}
         assert actual == expected
+
+    def test_wave_status_includes_integrating(self) -> None:
+        assert WaveStatus.INTEGRATING.value == "integrating"
+
+    def test_wave_status_includes_needs_rework(self) -> None:
+        assert WaveStatus.NEEDS_REWORK.value == "needs_rework"
+
+    def test_wave_status_includes_under_council_review(self) -> None:
+        assert WaveStatus.UNDER_COUNCIL_REVIEW.value == "under_council_review"
 
     def test_terminal_states(self) -> None:
         assert WaveStatus.DELIVERED.is_terminal()
