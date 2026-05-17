@@ -8,6 +8,7 @@ struct ProjectHubScreen: View {
     var onBacklogTap: () -> Void = {}
     var onHumanTasksTap: () -> Void = {}
     var onWavesTap: () -> Void = {}
+    @State private var refreshTimer: Timer?
 
     var body: some View {
         ZStack {
@@ -57,6 +58,12 @@ struct ProjectHubScreen: View {
         }
         .navigationBarHidden(true)
         .task { await viewModel.load(projectId: projectId) }
+        .onAppear {
+            startRefreshTimer()
+        }
+        .onDisappear {
+            stopRefreshTimer()
+        }
     }
 
     private func navBar(title: String) -> some View {
@@ -84,6 +91,7 @@ struct ProjectHubScreen: View {
 
                 projectHeader(detail.project)
                 ProjectHubStatsRow(stats: detail.stats)
+                ProjectHubWaveOverviewCard(waveOverview: detail.waveOverview)
                 ProjectHubDocumentsSection(documents: detail.documents, onDocumentTap: onDocumentTap)
                 ProjectHubBacklogCard(backlog: detail.backlog, onTap: onBacklogTap)
                 humanTasksCard
@@ -170,6 +178,19 @@ struct ProjectHubScreen: View {
                 .font(CawnexTypography.caption)
                 .foregroundStyle(CawnexColors.mutedForeground)
         }
+    }
+
+    private func startRefreshTimer() {
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+            Task {
+                await viewModel.load(projectId: projectId)
+            }
+        }
+    }
+
+    private func stopRefreshTimer() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
     }
 }
 

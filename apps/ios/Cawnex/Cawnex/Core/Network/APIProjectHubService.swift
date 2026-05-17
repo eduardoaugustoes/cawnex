@@ -57,7 +57,14 @@ final class APIProjectHubService: ProjectHubService {
                 mvisShipped: waves?.mvis_shipped ?? 0,
                 mvisTotal: waves?.mvis_total ?? 0
             ),
-            murders: murders
+            murders: murders,
+            waveOverview: WaveOverviewSummary(
+                activeCrows: waves?.active_count ?? 0,
+                totalCrows: waves?.total_crows ?? 0,
+                pendingApprovals: waves?.pending_ship ?? 0,
+                pendingHumanTasks: waves?.pending_human_tasks ?? 0,
+                activeWaves: waves?.active_count ?? 0
+            )
         )
     }
 
@@ -103,6 +110,7 @@ private struct HubWavesDTO: Decodable {
     let budget_limit: Int?
     let mvis_total: Int?
     let mvis_shipped: Int?
+    let total_crows: Int?
 }
 
 private struct HubResponseDTO: Decodable {

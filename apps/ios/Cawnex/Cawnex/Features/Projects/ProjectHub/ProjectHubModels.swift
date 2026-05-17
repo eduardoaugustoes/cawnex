@@ -53,10 +53,19 @@ struct MurderSummary: Identifiable, Equatable {
     let isActive: Bool
 }
 
+struct WaveOverviewSummary: Equatable {
+    let activeCrows: Int
+    let totalCrows: Int
+    let pendingApprovals: Int
+    let pendingHumanTasks: Int
+    let activeWaves: Int
+}
+
 struct ProjectHubDetail: Equatable {
     let project: Project
     let stats: ProjectStats
     let documents: [ProjectDocument]
     let backlog: BacklogSummary
     let murders: [MurderSummary]
+    let waveOverview: WaveOverviewSummary
 }

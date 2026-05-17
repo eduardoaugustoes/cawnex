@@ -46,7 +46,14 @@ final class InMemoryProjectHubService: ProjectHubService {
             murders: [
                 MurderSummary(id: "m1", name: "Dev Murder", crowCount: 4, isActive: true),
                 MurderSummary(id: "m2", name: "Editorial Murder", crowCount: 2, isActive: false),
-            ]
+            ],
+            waveOverview: WaveOverviewSummary(
+                activeCrows: 5,
+                totalCrows: 12,
+                pendingApprovals: 3,
+                pendingHumanTasks: 2,
+                activeWaves: 1
+            )
         )
     }
 }

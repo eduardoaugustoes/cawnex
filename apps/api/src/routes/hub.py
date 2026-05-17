@@ -61,6 +61,8 @@ async def get_project_hub(  # noqa: C901
     mvis_shipped = 0
     tasks_done = 0
     tasks_total = 0
+    total_crows = 0
+    active_crows = 0
 
     # Collect data in first pass, compute derived stats after
     completed_mvi_sks: set[str] = set()
@@ -85,6 +87,10 @@ async def get_project_hub(  # noqa: C901
                 completed_mvi_sks.add(item.get("SK", ""))
                 mvis_shipped += 1
         elif level == "crow":
+            total_crows += 1
+            crow_status = item.get("status", "")
+            if crow_status == "completed":
+                active_crows += 1
             if item.get("task_type") == "human":
                 ht_status = item.get("status", "")
                 if ht_status in (
@@ -94,7 +100,7 @@ async def get_project_hub(  # noqa: C901
                     "verification_failed",
                 ):
                     pending_human_tasks += 1
-            if item.get("crow_type") == "planner" and item.get("status") == "completed":
+            if item.get("crow_type") == "planner" and crow_status == "completed":
                 outcome = item.get("outcome")
                 if isinstance(outcome, dict):
                     plan_tasks = outcome.get("tasks", [])
@@ -137,5 +143,6 @@ async def get_project_hub(  # noqa: C901
             "budget_limit": total_budget_limit,
             "mvis_total": total_mvis,
             "mvis_shipped": mvis_shipped,
+            "total_crows": total_crows,
         },
     }
