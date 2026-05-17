@@ -22,3 +22,13 @@
 !apps/stream/src/
 !apps/stream/main.py
 !apps/stream/Dockerfile
+
+# Council service Docker image inputs (Stage 4 Layer A):
+#   - apps/council/requirements.txt
+#   - apps/council/main.py
+#   - apps/council/Dockerfile
+#   - lambdas/council/src/
+!apps/council/requirements.txt
+!apps/council/main.py
+!apps/council/Dockerfile
+!lambdas/council/src/
