@@ -1127,3 +1127,60 @@ class TestHandleCouncilComplete:
         task = blackboard.read("P#p1", "S#w_fb1/integrator-task")
         assert task is not None
         assert task["pr_to_mvi"] == {"99": "_a"}
+
+    def test_mvi_terminal_writes_back_to_backlog(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """When an MVI hits shipped, its backlog row's wave_status mirrors it."""
+        from murder.reactor import react_to_mvi_terminal
+
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "BACKLOG#goal#gX#mvis",
+                "mvis": [
+                    {"id": "mA", "name": "A", "wave_status": "draft"},
+                    {"id": "mB", "name": "B", "wave_status": "draft"},
+                ],
+            }
+        )
+        mvi_item = {
+            "PK": "P#p1",
+            "SK": "S#wQ#mmA",
+            "level": "murder",
+            "status": "shipped",
+            "goal_id": "gX",
+            "mvi_id": "mA",
+        }
+        react_to_mvi_terminal(blackboard, mvi_item, logger)
+
+        backlog = blackboard.read("P#p1", "BACKLOG#goal#gX#mvis")
+        assert backlog is not None
+        mvis = backlog["mvis"]
+        a = next(m for m in mvis if m["id"] == "mA")
+        b = next(m for m in mvis if m["id"] == "mB")
+        assert a["wave_status"] == "shipped"
+        assert b["wave_status"] == "draft"
+
+    def test_mvi_terminal_noop_when_goal_id_missing(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """Legacy MVIs created before goal_id was persisted should be no-ops."""
+        from murder.reactor import react_to_mvi_terminal
+
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "BACKLOG#goal#gY#mvis",
+                "mvis": [{"id": "mA", "wave_status": "draft"}],
+            }
+        )
+        mvi_item = {
+            "PK": "P#p1",
+            "SK": "S#wQ#mmA",
+            "level": "murder",
+            "status": "shipped",
+        }
+        react_to_mvi_terminal(blackboard, mvi_item, logger)
+        backlog = blackboard.read("P#p1", "BACKLOG#goal#gY#mvis")
+        assert backlog["mvis"][0]["wave_status"] == "draft"

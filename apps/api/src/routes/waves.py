@@ -155,7 +155,9 @@ async def create_wave(
             }
             mvis_data.append(mvi_data)
 
-            # Write MVI snapshot
+            # Write MVI snapshot — goal_id + mvi_id persisted so the Murder
+            # reactor can write back to the backlog when this MVI ships,
+            # cancels, or is rejected.
             db.put_project_item(
                 project_id=project_id,
                 sk=f"S#{wave_id}#m{mvi_id}",
@@ -171,6 +173,8 @@ async def create_wave(
                 cost={"tokens_in": 0, "tokens_out": 0, "credits": 0, "duration_ms": 0},
                 repo=repo,
                 branch=branch,
+                goal_id=body.goal_id,
+                mvi_id=mvi_id,
                 created_at=now,
                 entityType="Snapshot",
             )

@@ -953,8 +953,12 @@ def react_to_mvi_terminal(
     crow completions. The dispatcher in handler.py routes here when
     level=murder and status is a post-review terminal.
 
-    The only follow-up action is to check whether the wave can now
-    transition REVIEW → DELIVERED.
+    Two follow-ups:
+      1. Check whether the wave can now transition REVIEW → DELIVERED.
+      2. Mirror the MVI's terminal status onto the originating backlog
+         item so the goal/milestone rollup ("0 done / N active") stays
+         in sync with reality. Without this, the iOS backlog screen
+         shows stale "draft" counts long after MVIs have shipped.
     """
     pk = mvi_item.get("PK", "")
     sk = mvi_item.get("SK", "")
@@ -962,6 +966,51 @@ def react_to_mvi_terminal(
         return
     wave_id = _extract_wave_id(sk)
     _maybe_transition_review_to_delivered(blackboard, pk, wave_id, logger)
+    _writeback_backlog_status(blackboard, pk, mvi_item, logger)
+
+
+def _writeback_backlog_status(
+    blackboard: Blackboard,
+    pk: str,
+    mvi_item: dict[str, Any],
+    logger: StructuredLogger,
+) -> None:
+    """Update `BACKLOG#goal#{goal_id}#mvis` so the matching MVI's
+    `wave_status` mirrors the MVI snapshot's terminal status.
+
+    Read-modify-write; safe to call repeatedly. No-op when goal_id or
+    mvi_id are missing on the MVI snapshot (legacy waves created before
+    apps/api/routes/waves.py started persisting them).
+    """
+    goal_id = mvi_item.get("goal_id", "")
+    mvi_id = mvi_item.get("mvi_id", "")
+    new_status = mvi_item.get("status", "")
+    if not goal_id or not mvi_id or not new_status:
+        return
+
+    backlog_sk = f"BACKLOG#goal#{goal_id}#mvis"
+    backlog = blackboard.read(pk, backlog_sk)
+    if not backlog:
+        return
+    mvis = backlog.get("mvis") or []
+    changed = False
+    for entry in mvis:
+        if entry.get("id") == mvi_id:
+            if entry.get("wave_status") != new_status:
+                entry["wave_status"] = new_status
+                changed = True
+            break
+
+    if not changed:
+        return
+
+    blackboard.update(pk, backlog_sk, {"mvis": mvis})
+    logger.event(
+        "backlog_wave_status_synced",
+        goal_id=goal_id,
+        mvi_id=mvi_id,
+        wave_status=new_status,
+    )
 
 
 def _trigger_council_review(
