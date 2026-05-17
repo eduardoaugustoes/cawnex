@@ -121,8 +121,11 @@ struct WaveExecutionScreen: View {
 
     private func actionButtons(_ wave: WaveSummary) -> some View {
         HStack(spacing: CawnexSpacing.md) {
+            // Primary action varies by state; Cancel is always available
+            // on any non-terminal wave so a stuck wave can be unstuck from
+            // anywhere it is in the lifecycle.
             switch wave.status {
-            case .planning:
+            case .planning, .approved:
                 actionButton("Activate", icon: "play.fill", color: CawnexColors.primary) {
                     Task { await viewModel.activate() }
                 }
@@ -130,18 +133,21 @@ struct WaveExecutionScreen: View {
                 actionButton("Pause", icon: "pause.fill", color: CawnexColors.warning) {
                     Task { await viewModel.pause() }
                 }
-                actionButton("Cancel", icon: "xmark", color: CawnexColors.destructive) {
-                    Task { await viewModel.cancel() }
-                }
             case .paused:
                 actionButton("Resume", icon: "play.fill", color: CawnexColors.primary) {
                     Task { await viewModel.activate() }
                 }
+            case .review, .integrating, .needsRework, .underCouncilReview,
+                 .underHumanReview, .steered:
+                EmptyView()
+            case .delivered, .cancelled:
+                EmptyView()
+            }
+
+            if !wave.status.isTerminal {
                 actionButton("Cancel", icon: "xmark", color: CawnexColors.destructive) {
                     Task { await viewModel.cancel() }
                 }
-            default:
-                EmptyView()
             }
         }
     }
