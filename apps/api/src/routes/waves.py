@@ -487,6 +487,92 @@ async def cancel_wave(
     }
 
 
+def _merge_pr_for_wave(repo: str, pr_number: int) -> Dict[str, Any]:
+    """Wrap the existing GitHub PR merge so tests can monkeypatch it.
+
+    Lifted out as a module-level helper so unit tests can replace the
+    network call with a stub without going through gh.
+    """
+    from src.github_mutations import merge_pr
+
+    return merge_pr(repo, pr_number, method="rebase")
+
+
+@router.post("/{wave_id}/approve")
+async def approve_wave(
+    project_id: str,
+    wave_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
+) -> Dict[str, Any]:
+    """Founder-driven wave approval after Council review.
+
+    Wave must be in `under_human_review`. Merges every PR attached to a
+    ready_to_ship MVI in the wave, then flips wave status to `delivered`.
+    Partial merge failures surface as 502 with status preserved so the
+    founder can investigate and retry.
+    """
+    db = TenantDB(tenant)
+    wave_sk = f"S#{wave_id}"
+    wave = db.get_project_item(project_id=project_id, sk=wave_sk)
+    if not wave:
+        raise HTTPException(status_code=404, detail="Wave not found")
+    current = wave.get("status", "")
+    if current != "under_human_review":
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Wave status is '{current}'; approve requires " "'under_human_review'"
+            ),
+        )
+
+    mvis = db.query_project(project_id=project_id, sk_prefix=f"S#{wave_id}#m")
+    targets: List[Dict[str, Any]] = [
+        m
+        for m in mvis
+        if m.get("level") == "murder"
+        and m.get("status") == "ready_to_ship"
+        and m.get("pr_number") is not None
+    ]
+    pr_numbers = sorted(int(m["pr_number"]) for m in targets)
+
+    merged: List[int] = []
+    for mvi in sorted(targets, key=lambda m: int(m["pr_number"])):
+        pr = int(mvi["pr_number"])
+        repo = mvi.get("repo", "")
+        if not repo:
+            raise HTTPException(
+                status_code=500,
+                detail=f"MVI for PR #{pr} missing repo field",
+            )
+        try:
+            _merge_pr_for_wave(repo=repo, pr_number=pr)
+            merged.append(pr)
+        except Exception as e:  # noqa: BLE001 -- loud-fail with detail
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    f"Partial merge: succeeded {merged}, failed at PR #{pr}: "
+                    f"{type(e).__name__}: {str(e)[:200]}. Wave status unchanged."
+                ),
+            ) from e
+
+    if merged != pr_numbers:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"Partial merge: succeeded {merged}, intended {pr_numbers}. "
+                "Wave status unchanged."
+            ),
+        )
+
+    db.update_project_item(
+        project_id=project_id,
+        sk=wave_sk,
+        updates={"status": "delivered", "delivered_at": _now_iso()},
+    )
+    return {"status": "delivered", "merged_prs": merged, "wave_id": wave_id}
+
+
 @router.get("/{wave_id}/events")
 async def get_wave_events(
     project_id: str,

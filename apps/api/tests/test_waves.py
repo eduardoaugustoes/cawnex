@@ -437,3 +437,127 @@ def test_get_wave_includes_human_tasks(mock_boto3: Mock) -> None:
     assert len(data["crows"]) == 1
     assert len(data["human_tasks"]) == 1
     assert data["human_tasks"][0]["task_type"] == "human"
+
+
+# --- Approve Wave ---
+
+
+@patch("src.routes.waves._merge_pr_for_wave")
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_approve_wave_flips_status_to_delivered_and_merges_prs(
+    mock_boto3: Mock, mock_merge: Mock
+) -> None:
+    """POST /waves/{wid}/approve merges all ready_to_ship PRs and flips to delivered."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {
+        "Item": {"SK": "S#w1", "level": "wave", "status": "under_human_review"}
+    }
+    mock_table.query.return_value = {
+        "Items": [
+            {
+                "SK": "S#w1#m_1",
+                "level": "murder",
+                "status": "ready_to_ship",
+                "pr_number": 42,
+                "repo": "org/repo",
+            },
+            {
+                "SK": "S#w1#m_2",
+                "level": "murder",
+                "status": "ready_to_ship",
+                "pr_number": 43,
+                "repo": "org/repo",
+            },
+        ]
+    }
+    mock_table.update_item.return_value = {"Attributes": {}}
+    mock_merge.return_value = {"sha": "abc123"}
+
+    client = _make_client(_make_tenant())
+    resp = client.post("/projects/p1/waves/w1/approve")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "delivered"
+    assert body["merged_prs"] == [42, 43]
+    assert mock_merge.call_count == 2
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_approve_wave_wrong_status_returns_409(mock_boto3: Mock) -> None:
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {
+        "Item": {"SK": "S#w1", "level": "wave", "status": "executing"}
+    }
+
+    client = _make_client(_make_tenant())
+    resp = client.post("/projects/p1/waves/w1/approve")
+    assert resp.status_code == 409
+    assert "under_human_review" in resp.json()["detail"]
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_approve_wave_missing_returns_404(mock_boto3: Mock) -> None:
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {}
+
+    client = _make_client(_make_tenant())
+    resp = client.post("/projects/p1/waves/w_missing/approve")
+    assert resp.status_code == 404
+
+
+@patch("src.routes.waves._merge_pr_for_wave")
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_approve_wave_partial_merge_returns_502(
+    mock_boto3: Mock, mock_merge: Mock
+) -> None:
+    """When the second merge fails, wave stays in under_human_review and 502 surfaces."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {
+        "Item": {"SK": "S#w1", "level": "wave", "status": "under_human_review"}
+    }
+    mock_table.query.return_value = {
+        "Items": [
+            {
+                "SK": "S#w1#m_1",
+                "level": "murder",
+                "status": "ready_to_ship",
+                "pr_number": 42,
+                "repo": "org/repo",
+            },
+            {
+                "SK": "S#w1#m_2",
+                "level": "murder",
+                "status": "ready_to_ship",
+                "pr_number": 43,
+                "repo": "org/repo",
+            },
+        ]
+    }
+
+    def fake_merge(repo: str, pr_number: int) -> dict[str, str]:
+        if pr_number == 43:
+            raise RuntimeError("github 409 conflict")
+        return {"sha": "abc"}
+
+    mock_merge.side_effect = fake_merge
+
+    client = _make_client(_make_tenant())
+    resp = client.post("/projects/p1/waves/w1/approve")
+    assert resp.status_code == 502
+    assert "Partial merge" in resp.json()["detail"]
+    # Wave update_item must NOT have been called (status preserved)
+    update_calls = [
+        c
+        for c in mock_table.update_item.call_args_list
+        if c.kwargs.get("Key", {}).get("SK") == "S#w1"
+    ]
+    assert update_calls == []
