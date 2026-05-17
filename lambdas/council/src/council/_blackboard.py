@@ -51,3 +51,16 @@ class Blackboard:
 
     def write_event(self, item: dict[str, Any]) -> None:
         self._events_table.put_item(Item=item)
+
+    def scan_pending_council_sessions(self) -> list[dict[str, Any]]:
+        """Find COUNCIL# rows with status=pending.
+
+        Small bounded scan for M2; replace with a GSI when pending volume warrants.
+        """
+        response = self._table.scan(
+            FilterExpression="begins_with(SK, :sk) AND #s = :status",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":sk": "COUNCIL#", ":status": "pending"},
+            Limit=10,
+        )
+        return response.get("Items", [])
