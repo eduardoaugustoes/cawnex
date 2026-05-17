@@ -2,7 +2,7 @@
 
 import json
 
-from council.advisors import build_advisor_prompt, parse_advisor_response
+from council.advisors_legacy import build_advisor_prompt, parse_advisor_response
 from council.enums import AdvisorType, VoteType
 
 

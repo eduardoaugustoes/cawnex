@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from council.advisors import run_all_advisors
+from council.advisors_legacy import run_all_advisors
 from council.config import MAX_ROUNDS
 from council.enums import AdvisorType, CouncilStatus, DecisionAction, VoteType
 from council.models import AdvisorCost, CouncilDecision, VotingRound
