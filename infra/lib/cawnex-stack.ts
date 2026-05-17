@@ -376,54 +376,11 @@ export class CawnexStack extends cdk.Stack {
     );
 
     // ─────────────────────────────────────────────
-    // Lambda — Council (6-advisor quality gate)
+    // Council secret — referenced by the Council Fargate task definition below.
+    // (The legacy Council Lambda was removed once the Fargate service shipped.)
     // ─────────────────────────────────────────────
-    const councilFn = new lambda.Function(this, "CouncilFunction", {
-      functionName: `cawnex-council-${stage}`,
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: "council.handler.lambda_handler",
-      code: lambda.Code.fromAsset("../lambdas/council/src"),
-      memorySize: 1024,
-      timeout: cdk.Duration.seconds(120),
-      architecture: lambda.Architecture.ARM_64,
-      environment: {
-        TABLE_NAME: tableName,
-        EVENTS_TABLE_NAME: eventsTable.tableName,
-        STAGE: stage,
-        ANTHROPIC_MODEL: "claude-sonnet-4-20250514",
-      },
-      logRetention: logs.RetentionDays.ONE_MONTH,
-    });
-
     const anthropicAuthForCouncil = secretsmanager.Secret.fromSecretNameV2(
       this, "AnthropicAuthForCouncil", `cawnex/${stage}/anthropic-auth-token`
-    );
-    anthropicAuthForCouncil.grantRead(councilFn);
-    councilFn.addEnvironment(
-      "ANTHROPIC_AUTH_SECRET_ARN", anthropicAuthForCouncil.secretArn
-    );
-
-    table.grantReadWriteData(councilFn);
-    table.grantStreamRead(councilFn);
-    eventsTable.grantReadWriteData(councilFn);
-
-    councilFn.addEventSource(
-      new lambdaEventSources.DynamoEventSource(table, {
-        startingPosition: lambda.StartingPosition.TRIM_HORIZON,
-        batchSize: 5,
-        bisectBatchOnError: true,
-        retryAttempts: 2,
-        filters: [
-          lambda.FilterCriteria.filter({
-            eventName: lambda.FilterRule.isEqual("INSERT"),
-            dynamodb: {
-              NewImage: {
-                SK: { S: lambda.FilterRule.beginsWith("COUNCIL#") },
-              },
-            },
-          }),
-        ],
-      })
     );
 
     // ─────────────────────────────────────────────
