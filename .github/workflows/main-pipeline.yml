@@ -202,7 +202,7 @@ jobs:
     needs: [detect-changes, python-quality]
     if: |
       github.ref == 'refs/heads/main' &&
-      github.event_name == 'push' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       needs.detect-changes.outputs.any_code == 'true'
     environment: development
     outputs:
