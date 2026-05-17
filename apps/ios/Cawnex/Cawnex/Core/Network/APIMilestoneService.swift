@@ -178,22 +178,5 @@ private struct MilestoneDefinitionSectionDTO: Decodable {
     let status: String
 }
 
-// Type-erased decoder for free-form message dicts.
-private struct AnyCodable: Decodable {
-    let value: Any
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if let s = try? container.decode(String.self) {
-            value = s
-        } else if let i = try? container.decode(Int.self) {
-            value = i
-        } else if let b = try? container.decode(Bool.self) {
-            value = b
-        } else if let d = try? container.decode(Double.self) {
-            value = d
-        } else {
-            value = NSNull()
-        }
-    }
-}
+// `AnyCodable` is defined in Core/Network/AnyCodable.swift — single
+// source of truth, used by both this file and Features/WaveReview/.
