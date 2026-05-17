@@ -1081,3 +1081,49 @@ class TestHandleCouncilComplete:
         wave = blackboard.read("P#p1", "S#w1")
         assert wave is not None
         assert wave["status"] == "under_human_review"
+
+    def test_pr_resolved_from_implementer_crow_when_missing_on_mvi(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """When MVI items lack `pr_number`, fallback to the implementer crow's PR."""
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w_fb1",
+                "level": "wave",
+                "status": "review",
+                "wave_id": "w_fb1",
+            }
+        )
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w_fb1#m_a",
+                "level": "murder",
+                "status": "ready_to_ship",
+                "mvi_id": "_a",
+            }
+        )
+        blackboard.write_item(
+            {
+                "PK": "P#p1",
+                "SK": "S#w_fb1#m_a#cr_impl_02",
+                "level": "crow",
+                "status": "completed",
+                "crow_type": "implementer",
+                "pr": {"number": 99, "url": "https://example/pr/99"},
+            }
+        )
+
+        from murder.reactor import _maybe_start_integrator
+
+        _maybe_start_integrator(
+            blackboard=blackboard,
+            pk="P#p1",
+            wave_id="w_fb1",
+            logger=logger,
+        )
+
+        task = blackboard.read("P#p1", "S#w_fb1/integrator-task")
+        assert task is not None
+        assert task["pr_to_mvi"] == {"99": "_a"}

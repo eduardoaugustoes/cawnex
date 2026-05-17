@@ -1147,6 +1147,39 @@ def react_to_council_complete(
     )
 
 
+def _resolve_pr_from_implementer_crow(
+    blackboard: Blackboard,
+    pk: str,
+    mvi_sk: str,
+) -> int | None:
+    """Find the most-recent completed implementer crow's PR number.
+
+    The implementer writes its PR to its own crow snapshot but historically
+    didn't propagate `pr_number` up to the parent MVI item. This recovers it
+    so `_maybe_start_integrator` can dispatch without that data inconsistency.
+    """
+    crow_prefix = f"{mvi_sk}#cr_impl_"
+    crows = blackboard.query(pk, crow_prefix)
+    completed = [
+        c for c in crows
+        if c.get("status") == CrowStatus.COMPLETED.value
+        and c.get("crow_type") == CrowType.IMPLEMENTER.value
+    ]
+    if not completed:
+        return None
+    # SKs end with cr_impl_NN (zero-padded ordering by string sort matches age)
+    latest = sorted(completed, key=lambda c: c["SK"])[-1]
+    pr = latest.get("pr") or {}
+    if isinstance(pr, dict):
+        num = pr.get("number")
+        if num is not None:
+            try:
+                return int(num)
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
 def _maybe_start_integrator(
     blackboard: Blackboard,
     pk: str,
@@ -1179,12 +1212,25 @@ def _maybe_start_integrator(
 
     pr_to_mvi: dict[str, str] = {}
     for mvi in mvis:
-        pr_number = mvi.get("pr_number")
         mvi_id = mvi.get("mvi_id") or mvi["SK"].split("#m")[-1].split("#")[0]
+        pr_number = mvi.get("pr_number")
+        # Fallback: the implementer crow records the PR on its own snapshot
+        # (under `pr.number`), but not always on the parent MVI item. Recover
+        # the PR from the most-recent completed implementer crow so the
+        # integrator doesn't silently bail when MVI.pr_number is missing.
+        if pr_number is None:
+            pr_number = _resolve_pr_from_implementer_crow(
+                blackboard, pk, mvi["SK"]
+            )
         if pr_number is not None:
             pr_to_mvi[str(pr_number)] = mvi_id
 
     if not pr_to_mvi:
+        logger.warning(
+            "integrator_dispatch_skipped_no_prs",
+            wave_id=wave_id,
+            mvi_count=len(mvis),
+        )
         return
 
     blackboard.update(pk, wave_sk, {"status": WaveStatus.INTEGRATING.value})
