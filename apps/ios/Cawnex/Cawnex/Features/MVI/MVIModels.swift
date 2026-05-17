@@ -111,6 +111,12 @@ struct MVIBlackboardDetail: Equatable {
     let tasks: [MVITask]
     let liveFeed: [LiveFeedEvent]
     let mergeChecklist: [MergeChecklistItem]
+    // Layer B: present when the wave hosting this MVI is `under_human_review`
+    // and a Council session has completed for it. The S32 screen surfaces a
+    // "Council review ready" card that deep-links to S35 WaveReviewScreen.
+    var waveStatus: String? = nil
+    var councilSessionId: String? = nil
+    var councilSummaryLine: String? = nil
 
     var canShip: Bool {
         tasks.allSatisfy { $0.status == .completed }

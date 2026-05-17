@@ -5,6 +5,11 @@ struct MVIDetailScreen: View {
     let waveId: String?
     let mviId: String
     @State var viewModel: MVIDetailViewModel
+    /// Layer B: used to construct the WaveReviewScreen when the founder taps
+    /// the "Council review ready" card. Defaults to an empty InMemory service
+    /// so existing call sites compile unchanged; real call sites pass the
+    /// service from ServiceFactory.
+    var waveReviewService: any WaveReviewService = InMemoryWaveReviewService(seed: [])
     var onBack: () -> Void = {}
     var onTaskTap: (String) -> Void = { _ in }
     var onPRTap: (String) -> Void = { _ in }
@@ -31,6 +36,18 @@ struct MVIDetailScreen: View {
                     crowsSection(crows: detail.activeCrows)
                     tasksSection(tasks: detail.tasks)
                     liveFeedSection(events: detail.liveFeed)
+                    if detail.waveStatus == "under_human_review",
+                        let councilSessionId = detail.councilSessionId,
+                        let waveId = waveId
+                    {
+                        councilReviewReadyCard(
+                            projectId: projectId,
+                            waveId: waveId,
+                            sessionId: councilSessionId,
+                            meta: detail.councilSummaryLine
+                                ?? "Council vote complete · Review now"
+                        )
+                    }
                     mergeReadinessSection(items: detail.mergeChecklist)
                     costRow(detail: detail)
                     shipButton(detail: detail)
@@ -369,6 +386,70 @@ struct MVIDetailScreen: View {
                     .foregroundStyle(CawnexColors.mutedForeground)
             }
         }
+    }
+
+    // MARK: - Council Review Ready (Layer B)
+
+    private func councilReviewReadyCard(
+        projectId: String,
+        waveId: String,
+        sessionId: String,
+        meta: String
+    ) -> some View {
+        // The destination NavigationLink constructs the VM lazily — SwiftUI
+        // evaluates the destination closure only when the link is activated,
+        // so this does NOT construct a new VM on every render of the card.
+        NavigationLink {
+            WaveReviewScreen(
+                projectId: projectId,
+                waveId: waveId,
+                sessionId: sessionId,
+                viewModel: WaveReviewViewModel(service: waveReviewService)
+            )
+        } label: {
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(CawnexColors.primary.opacity(0.13))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "person.3")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(CawnexColors.primary)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Council review ready")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(CawnexColors.cardForeground)
+                        Text(meta)
+                            .font(.caption)
+                            .foregroundStyle(CawnexColors.mutedForeground)
+                    }
+                    Spacer()
+                }
+                HStack {
+                    Text("Review now")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background(CawnexColors.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .padding(14)
+            .background(CawnexColors.card)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(CawnexColors.primary, lineWidth: 1.5)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("mvi-blackboard.council-review-card")
     }
 }
 
