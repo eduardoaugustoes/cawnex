@@ -364,6 +364,86 @@ def test_cancel_wave_already_cancelled_returns_409(mock_boto3: Mock) -> None:
     assert response.status_code == 409
 
 
+# --- Reject Wave (post-council human override) ---
+
+
+@patch("src.routes.waves.boto3")
+@patch("src.db.client.boto3")
+@patch.dict(
+    "os.environ", {"TABLE_NAME": "test-table", "EVENTS_TABLE_NAME": "test-events"}
+)
+def test_reject_wave_under_human_review_cancels_and_records_reason(
+    mock_db_boto3: Mock, mock_waves_boto3: Mock
+) -> None:
+    """POST /waves/{wid}/reject persists reason + cancels wave + non-terminal MVIs."""
+    mock_table = Mock()
+    mock_db_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {
+        "Item": {"SK": "S#w001", "level": "wave", "status": "under_human_review"}
+    }
+    mock_table.query.return_value = {
+        "Items": [
+            {"SK": "S#w001#m01", "level": "murder", "status": "ready_to_ship"},
+            {"SK": "S#w001#m02", "level": "murder", "status": "shipped"},
+        ]
+    }
+    mock_table.update_item.return_value = {"Attributes": {}}
+
+    mock_events_table = Mock()
+    mock_waves_boto3.resource.return_value.Table.return_value = mock_events_table
+
+    client = _make_client(_make_tenant())
+    response = client.post(
+        "/projects/proj-001/waves/w001/reject",
+        json={"reason": "scope creep — feature wasn't asked for"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "cancelled"
+    assert data["rejection_reason"] == "scope creep — feature wasn't asked for"
+    assert data["mvis_cancelled"] == 1  # ready_to_ship cancelled, shipped is terminal
+
+    wave_update = next(
+        call
+        for call in mock_table.update_item.call_args_list
+        if call.kwargs.get("Key", {}).get("SK") == "S#w001"
+    )
+    expr_values = wave_update.kwargs["ExpressionAttributeValues"]
+    assert any(
+        v == "scope creep — feature wasn't asked for" for v in expr_values.values()
+    )
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_reject_wave_wrong_status_returns_409(mock_boto3: Mock) -> None:
+    """POST /waves/{wid}/reject rejects waves not in under_human_review."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {
+        "Item": {"SK": "S#w001", "level": "wave", "status": "executing"}
+    }
+
+    client = _make_client(_make_tenant())
+    response = client.post("/projects/proj-001/waves/w001/reject", json={"reason": "x"})
+    assert response.status_code == 409
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_reject_wave_empty_reason_returns_400(mock_boto3: Mock) -> None:
+    """POST /waves/{wid}/reject requires a non-empty reason."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    client = _make_client(_make_tenant())
+    response = client.post(
+        "/projects/proj-001/waves/w001/reject", json={"reason": "   "}
+    )
+    assert response.status_code == 400
+
+
 # --- Get Wave Events ---
 
 

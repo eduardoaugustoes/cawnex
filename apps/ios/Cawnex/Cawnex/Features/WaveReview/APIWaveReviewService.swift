@@ -50,11 +50,7 @@ final class APIWaveReviewService: WaveReviewService {
     func rejectWave(
         projectId: String, waveId: String, reason: String
     ) async throws {
-        // Reject maps to existing wave cancel; reason is written into the
-        // wave's rework_reasons via a POST body that the cancel route accepts
-        // best-effort (cancel ignores unknown keys today; if a future schema
-        // adds a `reason` field it'll be picked up automatically).
-        let path = "/projects/\(projectId)/waves/\(waveId)/cancel"
+        let path = "/projects/\(projectId)/waves/\(waveId)/reject"
         let body = try JSONEncoder().encode(["reason": reason])
         do {
             _ = try await postRaw(path: path, body: body)

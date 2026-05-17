@@ -434,6 +434,84 @@ async def pause_wave(
     return {"wave_id": wave_id, "status": "paused"}
 
 
+class RejectWaveRequest(BaseModel):
+    """Founder-supplied reason when overriding a council-approved wave."""
+
+    reason: str
+
+
+@router.post("/{wave_id}/reject")
+async def reject_wave(
+    project_id: str,
+    wave_id: str,
+    body: RejectWaveRequest,
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
+) -> Dict[str, Any]:
+    """Founder-driven wave rejection after Council review.
+
+    Distinct from `cancel`: rejection only applies to waves the council has
+    already cleared (`under_human_review`) and persists the founder's
+    reasoning on the wave row + as a `wave_rejected` event so the council's
+    next round of memory has the override on record.
+    """
+    if not body.reason.strip():
+        raise HTTPException(status_code=400, detail="reason is required")
+
+    db = TenantDB(tenant)
+    wave_sk = f"S#{wave_id}"
+    wave_item = db.get_project_item(project_id=project_id, sk=wave_sk)
+    if not wave_item:
+        raise HTTPException(status_code=404, detail="Wave not found")
+
+    current = wave_item.get("status", "")
+    if current != "under_human_review":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Wave status is '{current}'; reject requires 'under_human_review'",
+        )
+
+    now = _now_iso()
+    db.update_project_item(
+        project_id=project_id,
+        sk=wave_sk,
+        updates={
+            "status": "cancelled",
+            "cancelled_at": now,
+            "rejection_reason": body.reason,
+            "rejected_at": now,
+        },
+    )
+
+    items = db.query_project(project_id=project_id, sk_prefix=f"S#{wave_id}#m")
+    cancelled_count = 0
+    for item in items:
+        if item.get("level") != "murder":
+            continue
+        if item.get("status", "") not in _TERMINAL_MVI_STATUSES:
+            db.update_project_item(
+                project_id=project_id,
+                sk=item["SK"],
+                updates={"status": "cancelled"},
+            )
+            cancelled_count += 1
+
+    _write_event(
+        tenant.tenant_id,
+        project_id,
+        wave_id,
+        "wave_rejected",
+        f"Wave rejected by founder: {body.reason[:160]}",
+        "red",
+    )
+
+    return {
+        "wave_id": wave_id,
+        "status": "cancelled",
+        "rejection_reason": body.reason,
+        "mvis_cancelled": cancelled_count,
+    }
+
+
 @router.post("/{wave_id}/cancel")
 async def cancel_wave(
     project_id: str,
