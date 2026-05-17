@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.auth.dependencies import get_tenant
 from src.auth.tenant import TenantContext
 from src.db.client import TenantDB
+from src.db.project_state import compute_current_state
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["hub"])
 
@@ -29,6 +30,13 @@ async def get_project_hub(  # noqa: C901
     project = db.get_project_item(project_id=project_id, sk="S#")
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    # Compute current state
+    try:
+        current_state = compute_current_state(project_id, db)
+    except Exception:
+        # If state computation fails, default to draft
+        current_state = "draft"
 
     # Get all items under the project (includes DOC#, S#wave, etc.)
     all_items = db.query_project(project_id=project_id, sk_prefix="DOC#")
@@ -118,6 +126,7 @@ async def get_project_hub(  # noqa: C901
             "name": project.get("name", ""),
             "one_liner": project.get("one_liner", ""),
             "status": project.get("status", "draft"),
+            "current_state": current_state,
             "murders": project.get("murders", ["dev"]),
         },
         "documents": documents,
