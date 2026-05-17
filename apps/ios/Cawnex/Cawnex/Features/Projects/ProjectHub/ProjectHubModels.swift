@@ -46,6 +46,33 @@ struct BacklogSummary: Equatable {
     let mvisTotal: Int
 }
 
+enum WaveStatusType: String, Equatable {
+    case running = "Running"
+    case idle = "Idle"
+
+    var color: Color {
+        switch self {
+        case .running: CawnexColors.success
+        case .idle: CawnexColors.warning
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .running: "play.fill"
+        case .idle: "pause.circle"
+        }
+    }
+}
+
+struct WaveOverview: Equatable {
+    let crowsCompleted: Int
+    let crowsTotal: Int
+    let mvisAwaitingReview: Int
+    let waveStatus: WaveStatusType
+    let elapsedMinutes: Int? // only set when running
+}
+
 struct MurderSummary: Identifiable, Equatable {
     let id: String
     let name: String
@@ -58,5 +85,6 @@ struct ProjectHubDetail: Equatable {
     let stats: ProjectStats
     let documents: [ProjectDocument]
     let backlog: BacklogSummary
+    let waveOverview: WaveOverview?
     let murders: [MurderSummary]
 }

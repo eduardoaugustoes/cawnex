@@ -43,6 +43,13 @@ final class InMemoryProjectHubService: ProjectHubService {
                 mvisShipped: 5,
                 mvisTotal: 18
             ),
+            waveOverview: WaveOverview(
+                crowsCompleted: 12,
+                crowsTotal: 15,
+                mvisAwaitingReview: 2,
+                waveStatus: .running,
+                elapsedMinutes: 45
+            ),
             murders: [
                 MurderSummary(id: "m1", name: "Dev Murder", crowCount: 4, isActive: true),
                 MurderSummary(id: "m2", name: "Editorial Murder", crowCount: 2, isActive: false),

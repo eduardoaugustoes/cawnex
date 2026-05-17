@@ -33,6 +33,25 @@ final class APIProjectHubService: ProjectHubService {
             ? Int(truncating: (humanEquivSaved / creditsSpent) as NSDecimalNumber)
             : 0
 
+        // Build WaveOverview from response data
+        let waveOverview: WaveOverview? = if let waves = waves {
+            let tasksTotal = response.stats.tasks_total
+            let tasksDone = response.stats.tasks_done
+            let mvisAwaitingReview = waves.pending_ship ?? 0
+            let isRunning = (waves.active_count ?? 0) > 0
+            let status: WaveStatusType = isRunning ? .running : .idle
+
+            WaveOverview(
+                crowsCompleted: tasksDone,
+                crowsTotal: tasksTotal,
+                mvisAwaitingReview: mvisAwaitingReview,
+                waveStatus: status,
+                elapsedMinutes: isRunning ? 0 : nil
+            )
+        } else {
+            nil
+        }
+
         return ProjectHubDetail(
             project: Project(
                 id: response.project.id,
@@ -57,6 +76,7 @@ final class APIProjectHubService: ProjectHubService {
                 mvisShipped: waves?.mvis_shipped ?? 0,
                 mvisTotal: waves?.mvis_total ?? 0
             ),
+            waveOverview: waveOverview,
             murders: murders
         )
     }
