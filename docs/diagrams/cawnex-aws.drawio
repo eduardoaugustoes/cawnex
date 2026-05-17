@@ -1,0 +1,830 @@
+<mxfile host="65bd71144e">
+
+  <diagram id="services" name="1. All AWS Services (Poster)">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-svc" value="Cawnex AWS &#x2014; All Services (per-stage: dev / staging / prod)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle-svc" value="Every AWS resource declared in infra/lib/cawnex-stack.ts + cawnex-auth-stack.ts. Resources are stage-suffixed (e.g. cawnex-api-dev)." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="1000" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane-edge" value="EDGE / IDENTITY" style="text;html=1;strokeColor=none;fillColor=#fce8b2;align=center;verticalAlign=top;fontSize=12;fontStyle=1;fontColor=#7e5b00;rounded=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="380" height="1080" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-compute" value="COMPUTE" style="text;html=1;strokeColor=none;fillColor=#dae8fc;align=center;verticalAlign=top;fontSize=12;fontStyle=1;fontColor=#1a3c6e;rounded=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="440" y="100" width="640" height="1080" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-event" value="EVENT FANOUT" style="text;html=1;strokeColor=none;fillColor=#e1d5e7;align=center;verticalAlign=top;fontSize=12;fontStyle=1;fontColor=#4a1a7a;rounded=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="100" width="320" height="1080" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-data" value="DATA / STORAGE / SECRETS" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=center;verticalAlign=top;fontSize=12;fontStyle=1;fontColor=#0a4d2b;rounded=0;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="100" width="320" height="1080" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-cf" value="&lt;b&gt;CloudFront&lt;/b&gt;&lt;br&gt;CDN distribution&lt;br&gt;&lt;font color=#666&gt;origin: HTTP API&lt;br&gt;REDIRECT_TO_HTTPS&lt;br&gt;caching: disabled&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-apigw" value="&lt;b&gt;API Gateway HTTP v2&lt;/b&gt;&lt;br&gt;cawnex-api-${stage}&lt;br&gt;&lt;font color=#666&gt;Cognito JWT authorizer&lt;br&gt;CORS configured&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="140" width="160" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-alb" value="&lt;b&gt;ALB&lt;/b&gt;&lt;br&gt;cawnex-stream-${stage}&lt;br&gt;&lt;font color=#666&gt;HTTP :80 only&lt;br&gt;idle 120s&lt;br&gt;TG: IP-mode :8080&lt;br&gt;health /_health&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="280" width="160" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-cognito" value="&lt;b&gt;Cognito User Pool&lt;/b&gt;&lt;br&gt;cawnex-${stage}&lt;br&gt;&lt;font color=#666&gt;email sign-in&lt;br&gt;custom: tenant_id&lt;br&gt;hosted domain&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="280" width="160" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-cognito-ios" value="&lt;b&gt;Cognito client (iOS)&lt;/b&gt;&lt;br&gt;cawnex-ios-${stage}&lt;br&gt;&lt;font color=#666&gt;userPassword + SRP&lt;br&gt;cb: cawnex://auth/callback&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="440" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-cognito-web" value="&lt;b&gt;Cognito client (web)&lt;/b&gt;&lt;br&gt;cawnex-web-${stage}&lt;br&gt;&lt;font color=#666&gt;SRP only&lt;br&gt;cb: app.cawnex.ai&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="440" width="160" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-pc" value="&lt;b&gt;&#x3bb; post-confirmation&lt;/b&gt;&lt;br&gt;Python 3.12 &#183; 128MB &#183; 10s &#183; arm64&lt;br&gt;&lt;font color=#666&gt;trigger: Cognito POST_CONFIRMATION&lt;br&gt;seeds tenant + project on signup&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="580" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-acm" value="&lt;b&gt;ACM cert (Domain stack, optional)&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;TLS for CloudFront when custom domain enabled&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#cccccc;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="700" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lbl-vpc-edge" value="&lt;b&gt;VPC&lt;/b&gt; cawnex-${stage} &#183; 2 AZs &#183; 2 public subnets &#183; private subnets + 1 NAT &lt;b&gt;only in prod&lt;/b&gt;" style="text;html=1;strokeColor=#6c8ebf;fillColor=#ffffff;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#1a3c6e;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="460" y="135" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lbl-lambdas" value="&#x3bb; Lambdas (outside VPC)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#1a3c6e;" vertex="1" parent="1">
+          <mxGeometry x="460" y="175" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-api" value="&lt;b&gt;&#x3bb; API&lt;/b&gt;&lt;br&gt;cawnex-api-${stage}&lt;br&gt;512MB &#183; 29s &#183; x86_64&lt;br&gt;&lt;font color=#666&gt;handler.handler&lt;br&gt;FastAPI &#183; HTTP routes&lt;br&gt;trigger: API GW HTTP v2&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="460" y="200" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-murder" value="&lt;b&gt;&#x3bb; Murder&lt;/b&gt;&lt;br&gt;cawnex-murder-${stage}&lt;br&gt;512MB &#183; 60s &#183; arm64&lt;br&gt;&lt;font color=#666&gt;reactor &amp; dispatcher&lt;br&gt;trigger: DDB Stream&lt;br&gt;(main table)&lt;br&gt;batch 10 &#183; TRIM_HORIZON&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="200" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-monarch" value="&lt;b&gt;&#x3bb; Monarch&lt;/b&gt;&lt;br&gt;cawnex-monarch-${stage}&lt;br&gt;512MB &#183; 5min &#183; arm64&lt;br&gt;&lt;font color=#666&gt;trigger: DDB Stream&lt;br&gt;SK begins MONARCH#&lt;br&gt;INSERT only &#183; batch 5&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="200" width="190" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-council" value="&lt;b&gt;&#x3bb; Council&lt;/b&gt;&lt;br&gt;cawnex-council-${stage}&lt;br&gt;1024MB &#183; 120s &#183; arm64&lt;br&gt;&lt;font color=#666&gt;trigger: DDB Stream&lt;br&gt;SK begins COUNCIL#&lt;br&gt;INSERT only &#183; batch 5&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="460" y="340" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-checker" value="&lt;b&gt;&#x3bb; Checker&lt;/b&gt;&lt;br&gt;cawnex-checker-${stage}&lt;br&gt;256MB &#183; 60s &#183; arm64&lt;br&gt;&lt;font color=#666&gt;trigger: EventBridge&lt;br&gt;rate(1 hour)&lt;br&gt;sweeps stale claims&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="340" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-scaler" value="&lt;b&gt;&#x3bb; Worker scaler&lt;/b&gt;&lt;br&gt;cawnex-worker-scaler-${stage}&lt;br&gt;128MB &#183; 30s &#183; arm64&lt;br&gt;&lt;font color=#666&gt;trigger: EventBridge&lt;br&gt;rate(15 min)&lt;br&gt;ECS UpdateService&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="340" width="190" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lbl-fargate" value="ECS Fargate (cluster: cawnex-${stage})" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#1a3c6e;" vertex="1" parent="1">
+          <mxGeometry x="460" y="480" width="300" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-worker" value="&lt;b&gt;Worker task&lt;/b&gt;&lt;br&gt;cawnex-worker-${stage} &#183; 1 vCPU / 2GB&lt;br&gt;image: apps/worker/Dockerfile (asset)&lt;br&gt;desiredCount: &lt;b&gt;0&lt;/b&gt; (scaled to 1 by API/Monarch/scaler)&lt;br&gt;EFS mount /mnt/repos &#183; Spot (non-prod), on-demand (prod)&lt;br&gt;env: ANTHROPIC_MODEL=claude-haiku-4-5-20251001&lt;br&gt;env: MEMORY_INJECTION_ENABLED=true&lt;br&gt;secrets: GITHUB_TOKEN, ANTHROPIC_AUTH_TOKEN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="500" width="610" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-stream" value="&lt;b&gt;Stream task&lt;/b&gt;&lt;br&gt;cawnex-stream-${stage} &#183; 0.25 vCPU / 512MB&lt;br&gt;image: apps/stream/Dockerfile (asset)&lt;br&gt;desiredCount: 1 &#183; port 8080 &#183; health /_health&lt;br&gt;ALB-fronted (HTTP/80) &#183; Spot/on-demand split&lt;br&gt;secrets: PIPE_SECRET" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="660" width="610" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-sg" value="&lt;b&gt;Security Groups&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;&#x2022; WorkerSG &#x2014; all egress; EFS ingress (NFS/2049) from self&lt;br&gt;&#x2022; StreamServiceSG &#x2014; all egress; ALB-managed ingress :8080&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="800" width="610" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-evrules" value="&lt;b&gt;EventBridge Rules&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;cawnex-checker-${stage} &#x2014; rate(1h) &#x2192; checker&#x3bb;&lt;br&gt;cawnex-worker-scaler-${stage} &#x2014; rate(15m) &#x2192; scaler&#x3bb;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="890" width="610" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-pipe" value="&lt;b&gt;EventBridge Pipe&lt;/b&gt;&lt;br&gt;cawnex-stream-events-${stage}-v2&lt;br&gt;&lt;font color=#666&gt;source: events-table DDB stream&lt;br&gt;target: stream-events SQS&lt;br&gt;batch 10 &#183; window 1s&lt;br&gt;startingPosition: TRIM_HORIZON&lt;br&gt;log: TRACE, all data&lt;br&gt;&#x2192; /aws/vendedlogs/pipes/&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="200" width="280" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-sqs-stream" value="&lt;b&gt;SQS&lt;/b&gt; cawnex-stream-events-${stage}&lt;br&gt;&lt;font color=#666&gt;visibility 60s &#183; retention 1d&lt;br&gt;polled by Stream Fargate&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="400" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-sqs-stream-dlq" value="&lt;b&gt;SQS DLQ&lt;/b&gt; cawnex-stream-events-dlq-${stage}&lt;br&gt;&lt;font color=#666&gt;retention 14d &#183; maxReceive 5&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce8b2;strokeColor=#bf9000;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="490" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-sqs-tasks" value="&lt;b&gt;SQS&lt;/b&gt; cawnex-tasks-${stage}&lt;br&gt;&lt;font color=#666&gt;visibility 30 min &#183; default retention&lt;br&gt;dispatcher work queue&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="580" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-sqs-tasks-dlq" value="&lt;b&gt;SQS DLQ&lt;/b&gt; cawnex-tasks-dlq-${stage}&lt;br&gt;&lt;font color=#666&gt;retention 14d &#183; maxReceive 3&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce8b2;strokeColor=#bf9000;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="670" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-ddb-main" value="&lt;b&gt;DynamoDB&lt;/b&gt; cawnex-${stage}&lt;br&gt;&lt;font color=#666&gt;PK/SK string&lt;br&gt;stream: NEW_AND_OLD_IMAGES&lt;br&gt;PITR on &#183; TTL: ttl&lt;br&gt;GSI1 (ALL) &#183; GSI2 (ALL)&lt;br&gt;PAY_PER_REQUEST&lt;br&gt;&lt;i&gt;auth stack&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="140" width="280" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-ddb-events" value="&lt;b&gt;DynamoDB&lt;/b&gt; cawnex-events-${stage}&lt;br&gt;&lt;font color=#666&gt;PK/SK string&lt;br&gt;stream: NEW_IMAGE&lt;br&gt;TTL: expires_at&lt;br&gt;GSI1 (ALL)&lt;br&gt;PAY_PER_REQUEST&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="300" width="280" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-efs" value="&lt;b&gt;EFS&lt;/b&gt; cawnex-repos-${stage}&lt;br&gt;&lt;font color=#666&gt;encrypted &#183; GENERAL_PURPOSE&lt;br&gt;BURSTING &#183; IA after 30d&lt;br&gt;access point /T/dev-tenant&lt;br&gt;(uid/gid 1000, 0750)&lt;br&gt;Worker mount /mnt/repos&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="450" width="280" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-s3-art" value="&lt;b&gt;S3&lt;/b&gt; cawnex-artifacts-${stage}-${acct}&lt;br&gt;&lt;font color=#666&gt;versioned in prod &#183; lifecycle tmp/ 7d&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="600" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-s3-asset" value="&lt;b&gt;S3&lt;/b&gt; cawnex-assets-${stage}-${acct}&lt;br&gt;&lt;font color=#666&gt;CORS PUT/GET &#183; lifecycle tmp/ 1d&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="670" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="svc-secrets" value="&lt;b&gt;Secrets Manager&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;cawnex/${stage}/github-token&lt;br&gt;cawnex/${stage}/anthropic-auth-token&lt;br&gt;cawnex/${stage}/stream-pipe-secret&lt;br&gt;(48-char, in-stack generated)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="740" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-kms" value="&lt;b&gt;KMS&lt;/b&gt; alias/cawnex-vault-${stage}&lt;br&gt;&lt;font color=#666&gt;rotation enabled&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="850" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-ecr" value="&lt;b&gt;ECR&lt;/b&gt; (CDK assets)&lt;br&gt;&lt;font color=#666&gt;Worker + Stream images pushed by &lt;br&gt;ContainerImage.fromAsset(...) &#x2014; no declared repo&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="920" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-logs" value="&lt;b&gt;CloudWatch Logs&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;ONE_MONTH retention on all &#x3bb;s&lt;br&gt;Pipe logs: /aws/vendedlogs/pipes/ (1 week)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="1000" width="280" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-cf-api" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;" edge="1" parent="1" source="svc-cf" target="svc-apigw"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-apigw-api" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;" edge="1" parent="1" source="svc-apigw" target="svc-api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-cog-api" style="endArrow=open;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#bf9000;dashed=1;" edge="1" parent="1" source="svc-cognito" target="svc-apigw"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="320" y="195" /></Array></mxGeometry></mxCell>
+        <mxCell id="e-cog-ios-pool" style="endArrow=none;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;" edge="1" parent="1" source="svc-cognito-ios" target="svc-cognito"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-cog-web-pool" style="endArrow=none;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;" edge="1" parent="1" source="svc-cognito-web" target="svc-cognito"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-cog-pc" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;" edge="1" parent="1" source="svc-cognito" target="svc-pc"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e-api-ddb-main" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;strokeWidth=2;" edge="1" parent="1" source="svc-api" target="svc-ddb-main"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-api-ddb-evt" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;" edge="1" parent="1" source="svc-api" target="svc-ddb-events"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-api-sqstasks" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;" edge="1" parent="1" source="svc-api" target="svc-sqs-tasks"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e-ddb-murder" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2;dashed=1;" edge="1" parent="1" source="svc-ddb-main" target="svc-murder"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1430" y="155" /><mxPoint x="765" y="170" /></Array></mxGeometry></mxCell>
+        <mxCell id="e-ddb-murder-lbl" value="Streams" style="text;html=1;align=center;fontSize=10;fontColor=#9673a6;fontStyle=2;" vertex="1" parent="1"><mxGeometry x="1090" y="148" width="60" height="16" as="geometry" /></mxCell>
+        <mxCell id="e-ddb-monarch" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="svc-ddb-main" target="svc-monarch"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-ddb-council" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="svc-ddb-main" target="svc-council"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1430" y="280" /><mxPoint x="555" y="320" /></Array></mxGeometry></mxCell>
+
+        <mxCell id="e-ddbe-pipe" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2;dashed=1;" edge="1" parent="1" source="svc-ddb-events" target="svc-pipe"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-pipe-sqs" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="svc-pipe" target="svc-sqs-stream"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-sqs-dlq" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#bf9000;dashed=1;" edge="1" parent="1" source="svc-sqs-stream" target="svc-sqs-stream-dlq"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-sqs-stream-svc" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="svc-sqs-stream" target="svc-stream"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1100" y="720" /></Array></mxGeometry></mxCell>
+        <mxCell id="e-stream-ddb" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;dashed=1;" edge="1" parent="1" source="svc-stream" target="svc-ddb-events"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-sqst-dlq" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#bf9000;dashed=1;" edge="1" parent="1" source="svc-sqs-tasks" target="svc-sqs-tasks-dlq"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e-alb-stream" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;" edge="1" parent="1" source="svc-alb" target="svc-stream"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e-murder-ddb" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;" edge="1" parent="1" source="svc-murder" target="svc-ddb-main"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-murder-ecs" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;" edge="1" parent="1" source="svc-murder" target="svc-worker"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-monarch-ddb" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;" edge="1" parent="1" source="svc-monarch" target="svc-ddb-main"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-council-ddb" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;" edge="1" parent="1" source="svc-council" target="svc-ddb-main"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e-worker-ddb" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;strokeWidth=2;" edge="1" parent="1" source="svc-worker" target="svc-ddb-main"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-worker-efs" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;" edge="1" parent="1" source="svc-worker" target="svc-efs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-worker-sec" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;dashed=1;" edge="1" parent="1" source="svc-worker" target="svc-secrets"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e-scaler-worker" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;dashed=1;" edge="1" parent="1" source="svc-scaler" target="svc-worker"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-stream-sec" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;dashed=1;" edge="1" parent="1" source="svc-stream" target="svc-secrets"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-api-sec" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;dashed=1;" edge="1" parent="1" source="svc-api" target="svc-secrets"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="svc-legend" value="&lt;b&gt;Legend&lt;/b&gt; &#183; &lt;font color=#d79b00&gt;Orange&lt;/font&gt; = edge/identity &#183; &lt;font color=#1a3c6e&gt;Blue&lt;/font&gt; = compute (&#x3bb;/Fargate) &#183; &lt;font color=#9673a6&gt;Purple&lt;/font&gt; = eventing &#183; &lt;font color=#0a4d2b&gt;Green&lt;/font&gt; = data &#183; &lt;font color=#bf9000&gt;Amber&lt;/font&gt; = DLQ/auth-claim &#183; &lt;b&gt;Solid&lt;/b&gt; = synchronous call &#183; &lt;b&gt;Dashed&lt;/b&gt; = async trigger / IAM read" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#dddddd;align=left;verticalAlign=middle;fontSize=11;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1190" width="1720" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="vpc" name="2. VPC / Network Topology">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-vpc" value="VPC &amp; Network Topology (per stage)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle-vpc" value="Stage-conditional: private subnets + NAT only in prod. Dev/staging is public-subnet-only." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="900" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-title" value="PROD topology" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="800" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="dev-title" value="DEV / STAGING topology" style="text;html=1;strokeColor=none;fillColor=#fff2cc;fontColor=#a07b00;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="100" width="760" height="32" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-vpc" value="&lt;b&gt;VPC cawnex-prod&lt;/b&gt; &#183; 10.0.0.0/16 &#183; 2 AZs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;strokeWidth=2;dashed=1;fontSize=12;align=left;verticalAlign=top;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="800" height="820" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-azA" value="us-east-1a" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;fontSize=11;align=left;verticalAlign=top;spacing=6;fontColor=#1a3c6e;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="170" width="380" height="770" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-azB" value="us-east-1b" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;fontSize=11;align=left;verticalAlign=top;spacing=6;fontColor=#1a3c6e;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="470" y="170" width="380" height="770" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-igw" value="&lt;b&gt;Internet Gateway&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="190" width="220" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-pubA" value="&lt;b&gt;Public subnet&lt;/b&gt; /24&lt;br&gt;&lt;font color=#666&gt;routes 0.0.0.0/0 &#x2192; IGW&lt;br&gt;ALB target (target IP)&lt;br&gt;NAT GW lives here&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="100" y="250" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-pubB" value="&lt;b&gt;Public subnet&lt;/b&gt; /24&lt;br&gt;&lt;font color=#666&gt;routes 0.0.0.0/0 &#x2192; IGW&lt;br&gt;ALB target (target IP)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="490" y="250" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-alb" value="&lt;b&gt;ALB&lt;/b&gt; cawnex-stream-prod&lt;br&gt;&lt;font color=#666&gt;HTTP :80 &#183; idle 120s&lt;br&gt;spans both public subnets&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="350" width="320" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-nat" value="&lt;b&gt;NAT Gateway&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;1 only (cost)&lt;br&gt;EIP attached&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="350" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-privA" value="&lt;b&gt;Private subnet&lt;/b&gt; /24 (egress)&lt;br&gt;&lt;font color=#666&gt;routes 0.0.0.0/0 &#x2192; NAT&lt;br&gt;Fargate tasks (Worker, Stream)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="100" y="440" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-privB" value="&lt;b&gt;Private subnet&lt;/b&gt; /24 (egress)&lt;br&gt;&lt;font color=#666&gt;routes 0.0.0.0/0 &#x2192; NAT (AZ-a)&lt;br&gt;Fargate tasks (Worker, Stream)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="490" y="440" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-worker" value="&lt;b&gt;Worker Fargate&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;1 vCPU / 2GB&lt;br&gt;desiredCount: 0&lt;br&gt;SG: WorkerSG&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="120" y="540" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-stream" value="&lt;b&gt;Stream Fargate&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;0.25 vCPU / 0.5GB&lt;br&gt;desiredCount: 1&lt;br&gt;SG: StreamServiceSG :8080&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="510" y="540" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-efs" value="&lt;b&gt;EFS&lt;/b&gt; cawnex-repos-prod&lt;br&gt;&lt;font color=#666&gt;mount targets: both private subnets&lt;br&gt;SG ingress NFS 2049 from WorkerSG&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="220" y="650" width="500" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-egress" value="&lt;b&gt;Egress targets&lt;/b&gt; (via NAT EIP)&lt;br&gt;&lt;font color=#666&gt;api.anthropic.com &#183; api.github.com &#183; AWS service endpoints (DDB, SQS, Secrets, ECR)&lt;br&gt;&#x2192; &lt;b&gt;no VPC endpoints declared&lt;/b&gt; &#x2014; all DDB/SQS/Secrets traffic goes over the public AWS edge via NAT&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2f2;strokeColor=#b85450;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="740" width="730" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-out" value="Internet" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="850" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod-e1" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;" edge="1" parent="1" source="prod-igw" target="prod-alb"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="prod-e2" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;" edge="1" parent="1" source="prod-alb" target="prod-stream"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="prod-e3" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;" edge="1" parent="1" source="prod-worker" target="prod-efs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="prod-e4" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;" edge="1" parent="1" source="prod-worker" target="prod-nat"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="100" y="580" /><mxPoint x="100" y="420" /></Array></mxGeometry></mxCell>
+        <mxCell id="prod-e5" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;" edge="1" parent="1" source="prod-nat" target="prod-igw"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="prod-e6" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#999;" edge="1" parent="1" source="prod-egress" target="prod-out"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="dev-vpc" value="&lt;b&gt;VPC cawnex-${dev|staging}&lt;/b&gt; &#183; 10.0.0.0/16 &#183; 2 AZs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d6b656;strokeWidth=2;dashed=1;fontSize=12;align=left;verticalAlign=top;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="880" y="140" width="760" height="820" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-azA" value="us-east-1a" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;fontSize=11;align=left;verticalAlign=top;spacing=6;fontColor=#1a3c6e;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="900" y="170" width="360" height="770" as="geometry" />
+        </mxCell>
+        <mxCell id="dev-azB" value="us-east-1b" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;fontSize=11;align=left;verticalAlign=top;spacing=6;fontColor=#1a3c6e;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="170" width="360" height="770" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-igw" value="&lt;b&gt;Internet Gateway&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="190" width="220" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-pubA" value="&lt;b&gt;Public subnet&lt;/b&gt; /24&lt;br&gt;&lt;font color=#666&gt;routes 0.0.0.0/0 &#x2192; IGW&lt;br&gt;ALB target&lt;br&gt;&lt;b&gt;Fargate tasks live here&lt;/b&gt;&lt;br&gt;(public IPs assigned)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="920" y="250" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="dev-pubB" value="&lt;b&gt;Public subnet&lt;/b&gt; /24&lt;br&gt;&lt;font color=#666&gt;routes 0.0.0.0/0 &#x2192; IGW&lt;br&gt;ALB target&lt;br&gt;&lt;b&gt;Fargate tasks live here&lt;/b&gt;&lt;br&gt;(public IPs assigned)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="250" width="320" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-alb" value="&lt;b&gt;ALB&lt;/b&gt; cawnex-stream-${stage}&lt;br&gt;&lt;font color=#666&gt;HTTP :80&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="380" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-worker" value="&lt;b&gt;Worker Fargate&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Spot capacity&lt;br&gt;public IP&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="940" y="470" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dev-stream" value="&lt;b&gt;Stream Fargate&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Spot capacity&lt;br&gt;public IP&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="470" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-efs" value="&lt;b&gt;EFS&lt;/b&gt; cawnex-repos-${stage}&lt;br&gt;&lt;font color=#666&gt;mount targets in both public subnets&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="590" width="460" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-warn" value="&lt;b&gt;&#x26a0; Implications of no-private-subnet posture&lt;/b&gt;&lt;br&gt;&lt;font color=#8b1a00&gt;&#x2022; Fargate tasks get &lt;b&gt;public IPs&lt;/b&gt; for egress to Anthropic/GitHub/DDB/SQS&lt;br&gt;&#x2022; SG ingress is the only network boundary &#x2014; no NAT allowlist, no private subnet hop&lt;br&gt;&#x2022; Cheaper (no NAT bill), faster cold starts&lt;br&gt;&#x2022; Acceptable for dev/staging; prod uses private + NAT for the same workload&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2f2;strokeColor=#b85450;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="680" width="700" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-out" value="Internet&lt;br&gt;(Anthropic, GitHub, AWS endpoints)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="830" width="300" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-e1" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;" edge="1" parent="1" source="dev-igw" target="dev-alb"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="dev-e2" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;" edge="1" parent="1" source="dev-alb" target="dev-stream"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="dev-e3" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;" edge="1" parent="1" source="dev-worker" target="dev-efs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="dev-e4" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;" edge="1" parent="1" source="dev-worker" target="dev-igw"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="900" y="510" /><mxPoint x="900" y="210" /></Array></mxGeometry></mxCell>
+
+        <mxCell id="vpc-legend" value="&lt;b&gt;Note:&lt;/b&gt; Lambdas (API, Murder, Monarch, Council, Checker, Scaler) are &lt;b&gt;not VPC-attached&lt;/b&gt; &#x2014; they call DDB, SQS, Secrets Manager, ECS over public AWS endpoints from the Lambda fleet network. The VPC only contains the ALB + Fargate tasks + EFS." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#dddddd;align=left;verticalAlign=middle;fontSize=11;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="980" width="1580" height="50" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="wave" name="3. Wave Execution Flow">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-wf" value="Wave Execution Flow &#x2014; end-to-end on AWS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle-wf" value="How an MVI travels from iOS submit to merged PR. Swimlanes per AWS service; numbered steps trace the loop." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="900" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-lane-ios" value="iOS app" style="text;html=1;strokeColor=#000;fillColor=#f5f5f5;fontColor=#333;align=center;verticalAlign=top;fontSize=12;fontStyle=1;rounded=0;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="180" height="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-lane-edge" value="CloudFront + API GW + Cognito" style="text;html=1;strokeColor=#000;fillColor=#ffe6cc;fontColor=#7e5b00;align=center;verticalAlign=top;fontSize=12;fontStyle=1;rounded=0;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="240" y="100" width="180" height="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-lane-api" value="API Lambda" style="text;html=1;strokeColor=#000;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=top;fontSize=12;fontStyle=1;rounded=0;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="440" y="100" width="180" height="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-lane-ddb" value="DynamoDB (main)" style="text;html=1;strokeColor=#000;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=top;fontSize=12;fontStyle=1;rounded=0;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="640" y="100" width="180" height="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-lane-murder" value="Murder Lambda" style="text;html=1;strokeColor=#000;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=top;fontSize=12;fontStyle=1;rounded=0;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="100" width="180" height="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-lane-worker" value="Worker Fargate" style="text;html=1;strokeColor=#000;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=top;fontSize=12;fontStyle=1;rounded=0;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="100" width="180" height="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-lane-ext" value="Anthropic + GitHub" style="text;html=1;strokeColor=#000;fillColor=#e1d5e7;fontColor=#4a1a7a;align=center;verticalAlign=top;fontSize=12;fontStyle=1;rounded=0;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="100" width="180" height="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-lane-efs" value="EFS / Secrets" style="text;html=1;strokeColor=#000;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=top;fontSize=12;fontStyle=1;rounded=0;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="100" width="180" height="1150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-s1" value="&lt;b&gt;1&lt;/b&gt; User taps&lt;br&gt;&quot;Start wave&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="140" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s2" value="&lt;b&gt;2&lt;/b&gt; POST /waves&lt;br&gt;Bearer JWT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="250" y="140" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s3" value="&lt;b&gt;3&lt;/b&gt; JWT validated by&lt;br&gt;HTTP API authorizer&lt;br&gt;&lt;font color=#666&gt;aud = iOS clientId&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="250" y="220" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s4" value="&lt;b&gt;4&lt;/b&gt; Handler builds wave +&lt;br&gt;MVI snapshots from plan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="220" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s5" value="&lt;b&gt;5&lt;/b&gt; PutItem&lt;br&gt;S#{wave} &#183; status=executing&lt;br&gt;S#{wave}#m{mvi} &#xd7; N" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="650" y="220" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s6" value="&lt;b&gt;6&lt;/b&gt; 200 OK&lt;br&gt;wave_id returned" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="320" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-s7" value="&lt;b&gt;7&lt;/b&gt; DDB Stream emits&lt;br&gt;INSERT records&lt;br&gt;&#x2192; Murder event source" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="400" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s8" value="&lt;b&gt;8&lt;/b&gt; Reactor dispatches&lt;br&gt;per MVI: level=murder&lt;br&gt;_handle_assign (planner)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="400" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s9" value="&lt;b&gt;9&lt;/b&gt; UpdateItem&lt;br&gt;crow_kind=planner&lt;br&gt;claimed=true" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="650" y="500" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s10" value="&lt;b&gt;10&lt;/b&gt; ecs:UpdateService&lt;br&gt;desiredCount: 0 &#x2192; 1&lt;br&gt;&lt;font color=#666&gt;~30s task start&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="500" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-s11" value="&lt;b&gt;11&lt;/b&gt; Task starts&lt;br&gt;claims work via DDB&lt;br&gt;conditional UpdateItem" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="600" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s12" value="&lt;b&gt;12&lt;/b&gt; Fetch secrets&lt;br&gt;GITHUB_TOKEN&lt;br&gt;ANTHROPIC_AUTH_TOKEN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1450" y="600" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s13" value="&lt;b&gt;13&lt;/b&gt; git clone &#x2192; EFS&lt;br&gt;/mnt/repos/T/{tenant}/&lt;br&gt;{repo}&lt;br&gt;&lt;font color=#666&gt;cached across runs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1450" y="700" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-s14" value="&lt;b&gt;14&lt;/b&gt; Anthropic API&lt;br&gt;tool-use loop (planner)&lt;br&gt;&#x2192; emits N tasks via&lt;br&gt;submit_result" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="700" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s15" value="&lt;b&gt;15&lt;/b&gt; UpdateItem&lt;br&gt;outcome=planner_result&lt;br&gt;tasks_total=N&lt;br&gt;claimed=false" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="650" y="800" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-s16" value="&lt;b&gt;16&lt;/b&gt; Stream MODIFY&lt;br&gt;&#x2192; Murder reactor again&lt;br&gt;_handle_assign (implementer)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="850" y="800" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s17" value="&lt;b&gt;17&lt;/b&gt; Worker runs implementer&lt;br&gt;tool-use loop&#x2192; writes files&lt;br&gt;to worktree, opens PR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="900" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s18" value="&lt;b&gt;18&lt;/b&gt; GitHub REST&lt;br&gt;create branch, push,&lt;br&gt;open PR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="900" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s19" value="&lt;b&gt;19&lt;/b&gt; UpdateItem&lt;br&gt;pr_number, head_sha&lt;br&gt;crow_kind=reviewer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="650" y="1000" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-s20" value="&lt;b&gt;20&lt;/b&gt; Stream &#x2192; Murder&lt;br&gt;Worker runs reviewer&lt;br&gt;&#x2192; verdict + blocking_issues" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="1000" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s21" value="&lt;b&gt;21&lt;/b&gt; ready_to_ship&lt;br&gt;status=ready_to_ship&lt;br&gt;UpdateItem" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="650" y="1100" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-s22" value="&lt;b&gt;22&lt;/b&gt; iOS reads PR Review&lt;br&gt;screen via SSE&lt;br&gt;(see Tab 4)&lt;br&gt;Founder taps Merge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1100" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s23" value="&lt;b&gt;23&lt;/b&gt; POST .../prs/{n}/merge&lt;br&gt;API merges via GitHub REST&lt;br&gt;UpdateItem status=shipped&lt;br&gt;merge_sha set" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="1180" width="370" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s24" value="&lt;b&gt;24&lt;/b&gt; Stream &#x2192; Murder dispatch&lt;br&gt;react_to_mvi_terminal&lt;br&gt;all MVIs terminal &#x2192; Wave delivered" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="1180" width="370" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wfe-1" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="wf-s1" target="wf-s2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-2" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="wf-s3" target="wf-s4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-3" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="wf-s4" target="wf-s5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-4" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="wf-s5" target="wf-s6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-5" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2;dashed=1;" edge="1" parent="1" source="wf-s5" target="wf-s7"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-6" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;" edge="1" parent="1" source="wf-s7" target="wf-s8"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-7" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="wf-s8" target="wf-s9"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-8" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="wf-s9" target="wf-s10"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-9" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-s10" target="wf-s11"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-10" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;" edge="1" parent="1" source="wf-s11" target="wf-s12"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-11" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;" edge="1" parent="1" source="wf-s11" target="wf-s13"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-12" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;" edge="1" parent="1" source="wf-s11" target="wf-s14"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-13" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="wf-s14" target="wf-s15"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-14" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="wf-s15" target="wf-s16"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-15" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-s16" target="wf-s17"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-16" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;" edge="1" parent="1" source="wf-s17" target="wf-s18"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-17" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;" edge="1" parent="1" source="wf-s17" target="wf-s19"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-18" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="wf-s19" target="wf-s20"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-19" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;" edge="1" parent="1" source="wf-s20" target="wf-s21"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-20" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;dashed=1;" edge="1" parent="1" source="wf-s21" target="wf-s22"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="610" y="1140" /><mxPoint x="130" y="1140" /></Array></mxGeometry></mxCell>
+        <mxCell id="wfe-21" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="wf-s22" target="wf-s23"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="wfe-22" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="wf-s23" target="wf-s24"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="sse" name="4. SSE Event Flow">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-sse" value="SSE Event Flow &#x2014; the async fanout" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle-sse" value="DDB writes &#x2192; iOS push-update via Server-Sent Events. ~1 second latency observed end-to-end." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="900" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-step1" value="&lt;b&gt;1. Write side&lt;/b&gt;&lt;br&gt;&lt;br&gt;API or Worker writes to&lt;br&gt;&lt;b&gt;events table&lt;/b&gt;:&lt;br&gt;PK = project_id&lt;br&gt;SK = E#{ts}#{uuid}&lt;br&gt;event_type, payload&lt;br&gt;TTL: 24h" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="220" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="sse-step2" value="&lt;b&gt;2. DDB Stream&lt;/b&gt;&lt;br&gt;&lt;br&gt;cawnex-events-${stage}&lt;br&gt;stream config:&lt;br&gt;&lt;b&gt;NEW_IMAGE&lt;/b&gt;&lt;br&gt;shard iterators&lt;br&gt;polled by Pipe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="120" width="220" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="sse-step3" value="&lt;b&gt;3. EventBridge Pipe&lt;/b&gt;&lt;br&gt;&lt;br&gt;cawnex-stream-events-&lt;br&gt;${stage}-v2&lt;br&gt;source: DDB Stream&lt;br&gt;target: SQS&lt;br&gt;batch 10, window 1s&lt;br&gt;TRIM_HORIZON&lt;br&gt;log TRACE all" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="580" y="120" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="sse-step4" value="&lt;b&gt;4. SQS&lt;/b&gt;&lt;br&gt;&lt;br&gt;cawnex-stream-events-${stage}&lt;br&gt;visibility 60s&lt;br&gt;retention 1d&lt;br&gt;DLQ after 5 failures&lt;br&gt;(14d retention)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="840" y="120" width="220" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="sse-step5" value="&lt;b&gt;5. Stream Fargate&lt;/b&gt;&lt;br&gt;&lt;br&gt;cawnex-stream-${stage}&lt;br&gt;FastAPI on :8080&lt;br&gt;SqsPoller.start() in&lt;br&gt;lifespan&lt;br&gt;long-poll 20s &#183; batch 10&lt;br&gt;normalize_record()&lt;br&gt;&#x2192; publish_records()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="120" width="240" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="sse-step6" value="&lt;b&gt;6. SubscriberRegistry&lt;/b&gt;&lt;br&gt;&lt;br&gt;in-process map:&lt;br&gt;(project_id, wave_id)&lt;br&gt;&#x2192; Subscriber[]&lt;br&gt;asyncio.Queue per sub&lt;br&gt;maxsize=64&lt;br&gt;QueueFull &#x2192; mark_dropped" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="120" width="240" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-step7" value="&lt;b&gt;7. ALB&lt;/b&gt;&lt;br&gt;&lt;br&gt;cawnex-stream-${stage}.&lt;br&gt;us-east-1.elb.amazonaws.com&lt;br&gt;HTTP :80 only&lt;br&gt;idle 120s&lt;br&gt;TG: IP-mode :8080&lt;br&gt;health /_health" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="380" width="240" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="sse-step8" value="&lt;b&gt;8. iOS SSE client&lt;/b&gt;&lt;br&gt;&lt;br&gt;EventStreamClient&lt;br&gt;URLSession.bytes(for:)&lt;br&gt;async for line in bytes:&lt;br&gt;&#x2002;decoder.consume(line)&lt;br&gt;&#x2192; SSEFrame &#x2192; WaveEvent&lt;br&gt;reconnect [1s,2s,5s,10s,10s]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="380" width="240" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-route" value="&lt;b&gt;6a. Route handler&lt;/b&gt;&#10;GET /projects/{pid}/waves/{wid}/stream&#10;&#10;&#x2022; Validate JWT (Cognito JWKS, allowed_audiences = iOS+Web)&#10;&#x2022; Verify project belongs to tenant&#10;&#x2022; Register Subscriber in registry&#10;&#x2022; Yield SSE frames from queue&#10;&#x2022; Emit comment keepalive every 25s" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="380" width="500" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-pipe-detail" value="&lt;b&gt;Pipe auth (when target was HTTP)&lt;/b&gt;&#10;&#10;Originally Pipe &#x2192; HTTP /_pipe with X-Pipe-Secret header.&#10;&#10;Now: Pipe &#x2192; SQS (no HTTP target), so X-Pipe-Secret is &lt;b&gt;unused at runtime&lt;/b&gt;.&#10;The route still exists for direct testing." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="380" width="480" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-fail-note" value="&lt;b&gt;Failure modes&lt;/b&gt;&#10;&#10;&#x2022; iOS disconnects &#x2192; Subscriber removed from registry, dropped backlog discarded&#10;&#x2022; Slow consumer &#x2192; asyncio.Queue fills &#x2192; mark_dropped, optional last-event-id backfill (Phase 4, not yet built)&#10;&#x2022; Stream Fargate task restart &#x2192; subscribers re-connect via [1s,2s,5s,10s,10s] backoff &#x2192; new in-process registry&#10;&#x2022; SQS DLQ catches messages that fail 5 deliveries; alert-worthy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2f2;strokeColor=#b85450;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="620" width="1560" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-latency" value="&lt;b&gt;Latency budget (observed ~1s end-to-end)&lt;/b&gt; &#183; DDB write &lt;b&gt;~10ms&lt;/b&gt; &#x2192; Stream visible &lt;b&gt;~200ms&lt;/b&gt; &#x2192; Pipe batch flush &lt;b&gt;&#x2264;1000ms&lt;/b&gt; (window) &#x2192; SQS visible &lt;b&gt;~50ms&lt;/b&gt; &#x2192; Stream poller pulls &lt;b&gt;&#x2264;1000ms&lt;/b&gt; (batch) &#x2192; publish_records + queue.put &lt;b&gt;~1ms&lt;/b&gt; &#x2192; ALB &#x2192; URLSession.bytes flush &lt;b&gt;~50ms&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#dddddd;align=left;verticalAlign=middle;fontSize=11;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="800" width="1560" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssee-1" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;strokeWidth=2;" edge="1" parent="1" source="sse-step1" target="sse-step2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ssee-2" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2;dashed=1;" edge="1" parent="1" source="sse-step2" target="sse-step3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ssee-3" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="sse-step3" target="sse-step4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ssee-4" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" parent="1" source="sse-step4" target="sse-step5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ssee-5" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" parent="1" source="sse-step5" target="sse-step6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ssee-6" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" parent="1" source="sse-step6" target="sse-step7"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ssee-7" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="sse-step7" target="sse-step8"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="iam" name="5. IAM / Security Boundaries">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-iam" value="IAM Roles &amp; Security Boundaries" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle-iam" value="Who can call what. Trust relationships and resource grants from cawnex-stack.ts." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="1000" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-cog" value="&lt;b&gt;Cognito User Pool&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;issues JWTs for iOS + Web clients.&lt;br&gt;Trust: Cognito validates user credentials, signs token.&lt;br&gt;Audience claim = client_id (iOS or Web).&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="380" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="iam-jwks" value="&lt;b&gt;Cognito JWKS&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;https://cognito-idp.us-east-1.amazonaws.com/&lt;br&gt;{pool}/.well-known/jwks.json&lt;br&gt;Public &#x2014; no auth required&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="380" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-api" value="&lt;b&gt;API Lambda role&lt;/b&gt;&lt;br&gt;cawnex-api-${stage}&#x2014;Role&lt;br&gt;&lt;font color=#666&gt;Trust: lambda.amazonaws.com&lt;/font&gt;&lt;br&gt;&lt;br&gt;Permissions:&lt;br&gt;&#x2022; RW main table + GSI Query&lt;br&gt;&#x2022; RW events table&lt;br&gt;&#x2022; RW artifacts S3, R assets S3&lt;br&gt;&#x2022; KMS encrypt: vault key&lt;br&gt;&#x2022; SQS Send: tasks queue&lt;br&gt;&#x2022; ECS UpdateService/DescribeServices on worker&lt;br&gt;&#x2022; SecretsManager Read: 3 secrets&lt;br&gt;&#x2022; &lt;b&gt;GITHUB_TOKEN injected as plain env via unsafeUnwrap() &#x26a0;&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="380" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-murder" value="&lt;b&gt;Murder Lambda role&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Trust: lambda.amazonaws.com&lt;/font&gt;&lt;br&gt;&lt;br&gt;Permissions:&lt;br&gt;&#x2022; RW main + events&lt;br&gt;&#x2022; DDB Stream read: main&lt;br&gt;&#x2022; (no ECS &#x2014; only scaler/api scale Workers)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="100" width="380" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-monarch" value="&lt;b&gt;Monarch Lambda role&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Trust: lambda.amazonaws.com&lt;/font&gt;&lt;br&gt;&lt;br&gt;Permissions:&lt;br&gt;&#x2022; RW main + events&lt;br&gt;&#x2022; DDB Stream read: main&lt;br&gt;&#x2022; ECS UpdateService/DescribeServices on worker&lt;br&gt;&#x2022; SecretsManager Read: anthropic-auth-token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="280" width="380" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-council" value="&lt;b&gt;Council Lambda role&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Trust: lambda.amazonaws.com&lt;/font&gt;&lt;br&gt;&lt;br&gt;Permissions:&lt;br&gt;&#x2022; RW main + events&lt;br&gt;&#x2022; DDB Stream read: main (SK begins COUNCIL#)&lt;br&gt;&#x2022; SecretsManager Read: anthropic-auth-token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="480" width="380" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-scaler" value="&lt;b&gt;Worker-scaler Lambda role&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Trust: lambda.amazonaws.com&lt;/font&gt;&lt;br&gt;&lt;br&gt;Permissions:&lt;br&gt;&#x2022; R main table&lt;br&gt;&#x2022; ECS UpdateService/DescribeServices on worker&lt;br&gt;&lt;font color=#666&gt;Idles worker desiredCount to 0 when no claimed work for &gt;15min&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="660" width="380" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-checker" value="&lt;b&gt;Checker Lambda role&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Trust: lambda.amazonaws.com&lt;/font&gt;&lt;br&gt;&lt;br&gt;Permissions:&lt;br&gt;&#x2022; RW main table&lt;br&gt;&#x2022; SQS Send: tasks queue&lt;br&gt;&lt;font color=#666&gt;Hourly cron &#x2014; releases abandoned claims&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="850" width="380" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-worker" value="&lt;b&gt;Worker task role&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Trust: ecs-tasks.amazonaws.com&lt;/font&gt;&lt;br&gt;&lt;br&gt;Permissions:&lt;br&gt;&#x2022; RW main table + dynamodb:Query on index/*&lt;br&gt;&#x2022; RW events table (writes events for SSE)&lt;br&gt;&#x2022; RW artifacts S3, R assets S3&lt;br&gt;&#x2022; KMS decrypt: vault key&lt;br&gt;&#x2022; SQS Consume+Send: tasks queue&lt;br&gt;&#x2022; EFS Client RW (via mount IAM)&lt;br&gt;&#x2022; SecretsManager via container ecs.Secret:&lt;br&gt;&#x2002;&#x2002;&#x2014; GITHUB_TOKEN&lt;br&gt;&#x2002;&#x2002;&#x2014; ANTHROPIC_AUTH_TOKEN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="100" width="420" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-stream" value="&lt;b&gt;Stream task role&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Trust: ecs-tasks.amazonaws.com&lt;/font&gt;&lt;br&gt;&lt;br&gt;Permissions:&lt;br&gt;&#x2022; R main table (project &#x2192; tenant lookup)&lt;br&gt;&#x2022; R events table&lt;br&gt;&#x2022; SQS Consume: stream-events queue&lt;br&gt;&#x2022; SecretsManager via ecs.Secret: PIPE_SECRET&lt;br&gt;&lt;font color=#666&gt;Fetches Cognito JWKS over public internet for JWT validation&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="380" width="420" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-pipe" value="&lt;b&gt;StreamPipeRole&lt;/b&gt;&lt;br&gt;cawnex-stream-pipe-${stage}&lt;br&gt;&lt;font color=#666&gt;Trust: pipes.amazonaws.com&lt;/font&gt;&lt;br&gt;&lt;br&gt;Permissions:&lt;br&gt;&#x2022; DDB Stream read on events-table (GetRecords, GetShardIterator, &lt;b&gt;ListShards&lt;/b&gt;, DescribeStream)&lt;br&gt;&#x2022; SQS Send: stream-events queue&lt;br&gt;&#x2022; CloudWatch Logs write to /aws/vendedlogs/pipes/*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="600" width="420" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-pc" value="&lt;b&gt;Post-confirmation Lambda role&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Trust: lambda.amazonaws.com&lt;/font&gt;&lt;br&gt;&lt;br&gt;Permissions:&lt;br&gt;&#x2022; RW main table&lt;br&gt;&lt;font color=#666&gt;Runs in AuthStack &#x2014; creates tenant + seed project on signup&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="820" width="420" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-warn" value="&lt;b&gt;&#x26a0; Security observations from audit&lt;/b&gt;&#10;&#10;1. API Lambda receives GITHUB_TOKEN as a &lt;b&gt;plain env var&lt;/b&gt; via secretValue.unsafeUnwrap() &#x2014; the token literal appears in CloudFormation template + Lambda console. Worker correctly uses ecs.Secret (resolved at task start, not stored in task def). Move API to a runtime SecretsManager fetch.&#10;&#10;2. ALB listener is &lt;b&gt;HTTP/80 only&lt;/b&gt; &#x2014; SSE traffic crosses public internet unencrypted. Add ACM cert + :443 listener before prod traffic.&#10;&#10;3. Cognito Web client has no supportedIdentityProviders filter &#x2014; defaults open to any future IdP added at pool level.&#10;&#10;4. Dev/staging Fargate tasks run in &lt;b&gt;public subnets with public IPs&lt;/b&gt; (no NAT) &#x2014; SG ingress is the only network boundary. Acceptable for dev, would need re-evaluation for staging if exposed externally." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2f2;strokeColor=#b85450;fontSize=11;align=left;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="100" width="420" height="600" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iam-flow-note" value="&lt;b&gt;Request flow under IAM&lt;/b&gt;&#10;&#10;iOS &#x2192; Cognito (SRP login) &#x2192; receives JWT (aud=iOS clientId)&#10;iOS &#x2192; CloudFront &#x2192; HTTP API GW &#x2192; (JWT authorizer validates against Cognito) &#x2192; API Lambda role assumed&#10;API Lambda &#x2192; DDB / SQS / Secrets / ECS via its role&#10;DDB Streams &#x2192; Lambda event source (no role assumed by Lambda &#x2014; Lambda&#x27;s execution role has dynamodb:GetRecords from stream config)&#10;DDB Streams (events) &#x2192; EventBridge Pipe assumes StreamPipeRole &#x2192; reads stream &#x2192; writes to SQS&#10;Stream Fargate task &#x2192; assumes Stream task role &#x2192; polls SQS, reads main+events DDB, fetches JWKS&#10;Stream Fargate &#x2192; iOS responses encoded as SSE through ALB (no IAM on response path)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#dddddd;align=left;verticalAlign=top;fontSize=11;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="720" width="420" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iame-1" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;dashed=1;" edge="1" parent="1" source="iam-cog" target="iam-api"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="250" y="320" /></Array></mxGeometry></mxCell>
+        <mxCell id="iame-1-lbl" value="JWT validate" style="edgeLabel;html=1;fontSize=10;fontColor=#d79b00;fontStyle=2;" vertex="1" connectable="0" parent="iame-1"><mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry></mxCell>
+        <mxCell id="iame-2" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#d79b00;dashed=1;" edge="1" parent="1" source="iam-jwks" target="iam-stream"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="880" y="260" /><mxPoint x="880" y="480" /></Array></mxGeometry></mxCell>
+        <mxCell id="iame-2-lbl" value="JWKS fetch" style="edgeLabel;html=1;fontSize=10;fontColor=#d79b00;fontStyle=2;" vertex="1" connectable="0" parent="iame-2"><mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="data" name="6. Data / Storage Map">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-data" value="Data &amp; Storage Map &#x2014; what lives where, who reads/writes it" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="1100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle-data" value="DynamoDB SK patterns &#x2022; EFS per-tenant layout &#x2022; S3 buckets &#x2022; Secrets Manager &#x2022; ECR &#x2022; CloudWatch Logs." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="1100" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-ddb-main-title" value="&lt;b&gt;DynamoDB&lt;/b&gt; cawnex-${stage} &#183; main table &#183; single-table design" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="900" height="32" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-ddb-h-pk" value="PK" style="text;html=1;strokeColor=none;fillColor=#82b366;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="data-ddb-h-sk" value="SK pattern" style="text;html=1;strokeColor=none;fillColor=#82b366;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="140" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="data-ddb-h-purpose" value="Purpose" style="text;html=1;strokeColor=none;fillColor=#82b366;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="140" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="data-ddb-h-rw" value="R/W" style="text;html=1;strokeColor=none;fillColor=#82b366;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="780" y="140" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-row1-pk" value="P#{project_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="170" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row1-sk" value="META" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="170" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row1-p" value="Project metadata, name, status" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="540" y="170" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row1-rw" value="API: RW &#183; Post-conf: W" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="170" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-row2-pk" value="P#{project_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row2-sk" value="DOC#{doc_type}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="210" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row2-p" value="vision / architecture / glossary / design (AI-guided docs)" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="540" y="210" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row2-rw" value="API: RW" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="210" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-row3-pk" value="P#{project_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="250" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row3-sk" value="S#{wave_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="250" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row3-p" value="Wave root snapshot (status, milestones)" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="540" y="250" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row3-rw" value="API: RW &#183; Murder: RW &#183; Worker: RW" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="250" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-row4-pk" value="P#{project_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="290" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row4-sk" value="S#{wave_id}#m{mvi_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="290" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row4-p" value="MVI execution snapshot: crow_kind, claimed, outcome, tasks_done, pr_number, fix_history" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="540" y="290" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row4-rw" value="API: RW &#183; Murder: RW &#183; Worker: RW &#183; Checker: RW" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="290" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-row5-pk" value="P#{project_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row5-sk" value="BACKLOG#goal#{gid}#mvis" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="340" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row5-p" value="Plan records (MVI list before execution)" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="540" y="340" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row5-rw" value="API: RW" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="340" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-row6-pk" value="P#{project_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="380" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row6-sk" value="MONARCH#{operation_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="380" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row6-p" value="Monarch ops (planning, refinement) &#x2014; stream-filtered" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="540" y="380" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row6-rw" value="API: W &#183; Monarch: RW" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="380" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-row7-pk" value="P#{project_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="420" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row7-sk" value="COUNCIL#{vote_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="420" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row7-p" value="Council votes &#x2014; stream-filtered, designed not run" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="540" y="420" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row7-rw" value="API: W &#183; Council: RW" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="420" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-row8-pk" value="T#{tenant_id}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="460" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row8-sk" value="META &#183; USER#{cognito_sub}" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="460" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row8-p" value="Tenant metadata + member roster" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="540" y="460" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="data-row8-rw" value="Post-conf: W &#183; API: R" style="text;html=1;strokeColor=#82b366;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;spacingLeft=10;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="460" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-ddb-indexes" value="&lt;b&gt;Indexes&lt;/b&gt; &#183; GSI1 (GSI1PK/GSI1SK, ALL) &#x2014; reverse lookups (e.g. user &#x2192; projects) &#183; GSI2 (GSI2PK/GSI2SK, ALL) &#x2014; cross-tenant ops queries&lt;br&gt;&lt;b&gt;Streams&lt;/b&gt; &#183; NEW_AND_OLD_IMAGES &#x2014; consumed by Murder (no filter), Monarch (SK begins MONARCH#), Council (SK begins COUNCIL#)&lt;br&gt;&lt;b&gt;PITR&lt;/b&gt; on &#183; &lt;b&gt;TTL&lt;/b&gt; attribute = &lt;code&gt;ttl&lt;/code&gt; &#183; &lt;b&gt;Billing&lt;/b&gt; PAY_PER_REQUEST" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#dddddd;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="510" width="900" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-ddb-events-title" value="&lt;b&gt;DynamoDB&lt;/b&gt; cawnex-events-${stage} &#183; events table (TTL 24h)" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="610" width="900" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="data-events-detail" value="&lt;b&gt;PK&lt;/b&gt; project_id &#183; &lt;b&gt;SK&lt;/b&gt; E#{ts}#{uuid}&lt;br&gt;&lt;b&gt;Fields&lt;/b&gt; event_type (wave_status / mvi_status / pr_event), payload (JSON), expires_at (epoch +24h)&lt;br&gt;&lt;b&gt;Stream&lt;/b&gt; NEW_IMAGE only &#x2192; consumed by &lt;b&gt;only&lt;/b&gt; the EventBridge Pipe (Tab 4)&lt;br&gt;&lt;b&gt;GSI1&lt;/b&gt; (ALL) for cross-project event queries (e.g. all events for a user&#x27;s tenants)&lt;br&gt;&lt;b&gt;Writers&lt;/b&gt; API + Worker on wave/MVI state changes &#183; &lt;b&gt;Readers&lt;/b&gt; Stream Fargate via SQS, never queried directly by API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="650" width="900" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-efs-title" value="&lt;b&gt;EFS&lt;/b&gt; cawnex-repos-${stage} &#183; git worktree storage" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="810" width="900" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="data-efs-detail" value="&lt;b&gt;Filesystem&lt;/b&gt; encrypted, GENERAL_PURPOSE, BURSTING, IA after 30d&lt;br&gt;&lt;b&gt;Access points&lt;/b&gt; one declared: DevTenantAP &#x2192; /T/dev-tenant (uid/gid 1000, perms 0750)&lt;br&gt;&lt;br&gt;&lt;b&gt;Layout under /mnt/repos in the Worker container:&lt;/b&gt;&lt;br&gt;/mnt/repos/T/{tenant_id}/{repo_name}/ &#x2014; bare clone, reused across crow runs&lt;br&gt;/mnt/repos/T/{tenant_id}/{repo_name}/.git/ &#x2014; the actual git data&lt;br&gt;&lt;br&gt;&lt;b&gt;Mount&lt;/b&gt; transit encryption + IAM-authenticated &#183; SG NFS/2049 ingress from WorkerSG only&lt;br&gt;&lt;b&gt;Limitation&lt;/b&gt; single &quot;dev-tenant&quot; access point &#x2014; multi-tenant production would create one access point per tenant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="850" width="900" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-secrets-title" value="&lt;b&gt;Secrets Manager&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="100" width="780" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="data-sec-github" value="&lt;b&gt;cawnex/${stage}/github-token&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;GitHub PAT &#x2014; PR create, merge, comment, push&lt;br&gt;Consumers: Worker (ecs.Secret), API (&#x26a0; unsafeUnwrap to plain env)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="140" width="780" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="data-sec-anth" value="&lt;b&gt;cawnex/${stage}/anthropic-auth-token&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Anthropic API key &#x2014; tool-use loops, chat, doc synthesis&lt;br&gt;Consumers: API, Monarch, Council, Worker&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="230" width="780" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="data-sec-pipe" value="&lt;b&gt;cawnex/${stage}/stream-pipe-secret&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;48-char random &#x2014; generated in-stack at deploy&lt;br&gt;Consumers: Stream Fargate (ecs.Secret)&lt;br&gt;Was used for Pipe&#x2192;HTTP auth; now legacy (Pipe&#x2192;SQS)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="320" width="780" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-kms-title" value="&lt;b&gt;KMS&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="440" width="780" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="data-kms-detail" value="&lt;b&gt;alias/cawnex-vault-${stage}&lt;/b&gt; &#183; rotation enabled&lt;br&gt;&lt;font color=#666&gt;Used by API (encrypt) and Worker (decrypt) for the vault &#x2014; encrypted blob stored in DDB for user-supplied secrets (BYOK pattern, not actively used in current MVI flow)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="480" width="780" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-s3-title" value="&lt;b&gt;S3 buckets&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="580" width="780" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="data-s3-art" value="&lt;b&gt;cawnex-artifacts-${stage}-${account}&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;Versioned in prod &#183; lifecycle expires tmp/ after 7d&lt;br&gt;Consumers: API + Worker for crow outcome archives (large planner/reviewer payloads that don&#x27;t fit in DDB item size)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="620" width="780" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="data-s3-asset" value="&lt;b&gt;cawnex-assets-${stage}-${account}&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;CORS PUT/GET &#183; lifecycle expires tmp/ after 1d&lt;br&gt;Consumers: iOS uploads (presigned URLs) via API &#x2014; user-uploaded design assets, screenshots&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="720" width="780" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-ecr-title" value="&lt;b&gt;ECR&lt;/b&gt; (CDK asset repositories &#x2014; not explicitly declared)" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="830" width="780" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="data-ecr-detail" value="&lt;b&gt;cdk-{qualifier}-container-assets-${account}-${region}&lt;/b&gt;&lt;br&gt;&lt;font color=#666&gt;CDK&#x27;s shared asset repo &#x2014; both Worker + Stream images live here, tagged by content hash.&lt;br&gt;cdk bootstrap creates &amp; manages this repo; lifecycle = CDK default.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="870" width="780" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-logs-title" value="&lt;b&gt;CloudWatch Logs&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="970" width="780" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="data-logs-detail" value="&lt;b&gt;/aws/lambda/cawnex-{api|murder|monarch|council|checker|worker-scaler|post-confirmation}-${stage}&lt;/b&gt; &#183; ONE_MONTH retention&lt;br&gt;&lt;b&gt;/ecs/cawnex-{worker|stream}-${stage}&lt;/b&gt; &#183; default retention&lt;br&gt;&lt;b&gt;/aws/vendedlogs/pipes/cawnex-stream-events-${stage}&lt;/b&gt; &#183; 1 week &#183; TRACE level, all execution data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;align=left;spacing=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="1010" width="780" height="100" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>

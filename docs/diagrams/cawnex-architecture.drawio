@@ -645,4 +645,583 @@
     </mxGraphModel>
   </diagram>
 
+  <diagram id="convergent" name="6. Convergent Pattern Audit">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-cv" value="The Convergent Dark-Factory Pattern vs Cawnex" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle-cv" value="The six elements Coinbase/Ramp/Stripe/Anthropic/StrongDM independently converged on. SAE-style autonomy levels (L1&#x2013;L5)." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="900" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cv-primer-title" value="SAE-Style Autonomy Levels &#x2014; the scale the convergent five use" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="1580" height="32" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cv-l1" value="&lt;b&gt;L1 &#x2014; Suggest&lt;/b&gt;&lt;br&gt;&lt;br&gt;AI proposes, human types every keystroke. Autocomplete-shaped.&lt;br&gt;&lt;br&gt;&lt;font color=#888&gt;Example: Copilot inline suggestions, ChatGPT pasted into IDE&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-l2" value="&lt;b&gt;L2 &#x2014; Supervised&lt;/b&gt;&lt;br&gt;&lt;br&gt;AI executes multi-step tasks under continuous human review. Human still grades every output and clicks merge.&lt;br&gt;&lt;br&gt;&lt;font color=#888&gt;Example: Cursor / Claude Code in agent mode &#183; most teams sit here&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="380" y="140" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-l3" value="&lt;b&gt;L3 &#x2014; Conditional&lt;/b&gt;&lt;br&gt;&lt;br&gt;AI runs autonomously within a defined operating envelope. Human only steps in at declared gates &#x2014; not every action.&lt;br&gt;&lt;br&gt;&lt;font color=#888&gt;Example: Cawnex&#x27;s four-altitude approval gates (Milestone / Goal / MVI / PR)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="140" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-l4" value="&lt;b&gt;L4 &#x2014; High autonomy&lt;/b&gt;&lt;br&gt;&lt;br&gt;AI runs full lifecycles unattended &#x2014; spec to merge &#x2014; with deterministic+adversarial gates as back pressure. Human reviews aggregates, not units.&lt;br&gt;&lt;br&gt;&lt;font color=#888&gt;Example: convergent five (Coinbase/Ramp/Stripe/Anthropic/StrongDM)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="140" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-l5" value="&lt;b&gt;L5 &#x2014; Full autonomy&lt;/b&gt;&lt;br&gt;&lt;br&gt;AI owns the loop end-to-end with no human in any path. Spec generation, execution, verification, merge, deploy, monitor &#x2014; all closed-loop.&lt;br&gt;&lt;br&gt;&lt;font color=#888&gt;Aspirational. Nobody in production today.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="140" width="300" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cv-h-elem" value="Element" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="330" width="180" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-h-df" value="Dark Factory pattern" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="330" width="500" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-h-cawnex" value="Cawnex today" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="330" width="500" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-h-grade" value="Level" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="330" width="120" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-h-gap" value="Single biggest gap" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="330" width="280" height="36" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cv-r1-elem" value="&lt;b&gt;1. Orchestrator&lt;/b&gt;&#10;decomposes work into a DAG" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="366" width="180" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r1-df" value="One requirement &#x2192; DAG of parallel tasks with dependency analysis. Dispatches concurrently. Manages rework. Routes to different agents/models per task type. AWS mapping: EventBridge + Step Functions." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="366" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r1-cx" value="Murder Lambda reactor turns an MVI into a &lt;b&gt;linear&lt;/b&gt; crow chain: Planner &#x2192; Implementer &#x2192; Reviewer &#x2192; (Fixer&#xd7;N) &#x2192; ship. Wave-level parallelism across MVIs exists. Bundled-PR implementer ships all planner tasks at once." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="366" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r1-grade" value="L3" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;fontColor=#a07b00;align=center;verticalAlign=middle;fontSize=26;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="366" width="120" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r1-gap" value="No DAG-level parallelism within an MVI. 8 planner tasks &#x2192; one implementer crow, not 8 parallel sub-tasks with merge-conflict awareness up front." style="text;html=1;strokeColor=#9673a6;fillColor=#fff2cc;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="366" width="280" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cv-r2-elem" value="&lt;b&gt;2. Per-agent isolation&lt;/b&gt;&#10;sandbox + worktree per agent" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="486" width="180" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r2-df" value="Container / micro-VM / EC2 per agent. Independent git worktree (Jujutsu or git-worktree). Stateless &#x2014; restart with no state loss. No shared resources except the orchestrator + verification gates." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="486" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r2-cx" value="Single Worker Fargate task runs one crow at a time. EFS access point per &lt;b&gt;tenant&lt;/b&gt; (not per-agent). One shared worktree at /mnt/repos/T/{tenant}. Two parallel crows would share state." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="486" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r2-grade" value="L2" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=26;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="486" width="120" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r2-gap" value="No per-crow sandbox. Per-crow worktree subdirs unlock parallel execution &amp; safe lint/test runs in (3)." style="text;html=1;strokeColor=#9673a6;fillColor=#fff2cc;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="486" width="280" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cv-r3-elem" value="&lt;b&gt;3. Verification gates&lt;/b&gt;&#10;multi-tier, parallel, adversarial" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="606" width="180" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r3-df" value="3 tiers running in parallel: traditional (unit/property/mutation/lint), AI-native (scenario testing, adversarial code reviewer), formal (declared invariants). Failure of any tier = rework with full context fed forward. &lt;b&gt;Tests = back pressure, not just gates.&lt;/b&gt;" style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="606" width="500" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r3-cx" value="Reviewer crow runs (adversarial-by-design). Council 6-advisor designed but never exercised on a real wave. &lt;b&gt;No deterministic test gate on crow output before merge.&lt;/b&gt; CI runs after merge; PR #16&#x27;s lint issues caught post-hoc in c5c2915." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="606" width="500" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r3-grade" value="L1" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;fontColor=#8b1a00;align=center;verticalAlign=middle;fontSize=26;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="606" width="120" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r3-gap" value="&lt;b&gt;THE big gap.&lt;/b&gt; Deterministic verification gate inside the Worker, before reviewer. Stripe&#x27;s 2-CI-iteration cap is the operational variant of FIX_CYCLE_LIMIT we already have." style="text;html=1;strokeColor=#9673a6;fillColor=#fff2cc;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="606" width="280" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cv-r4-elem" value="&lt;b&gt;4. Rework loop&lt;/b&gt;&#10;not retry &#x2014; full context forward" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="746" width="180" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r4-df" value="When a task fails, the orchestrator routes it to a &lt;b&gt;different&lt;/b&gt; agent (often a stronger model) with the full failure context in the prompt. Not a retry; a rework with new compute. Hard cap (Stripe: 2 CI iterations) prevents infinite loops." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="746" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r4-cx" value="Fixer crow + _find_fix_history threading is the correct shape. blocking_issues from Reviewer fed forward. FIX_CYCLE_LIMIT caps retries. But: &lt;b&gt;Fixer uses the same model (Haiku 4.5) as the Implementer it&#x27;s repairing.&lt;/b&gt; Underexercised &#x2014; no dogfood wave has hit a fixer yet." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="746" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r4-grade" value="L3" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;fontColor=#a07b00;align=center;verticalAlign=middle;fontSize=26;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="746" width="120" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r4-gap" value="Fixer should be a &lt;b&gt;stronger&lt;/b&gt; model than the failed Implementer (Sonnet, not Haiku). The rework loop&#x27;s value is &lt;i&gt;different&lt;/i&gt; compute, not retried compute." style="text;html=1;strokeColor=#9673a6;fillColor=#fff2cc;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="746" width="280" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cv-r5-elem" value="&lt;b&gt;5. Cost-routed dispatch&lt;/b&gt;&#10;cheap models for trivial, frontier for hard" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="866" width="180" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r5-df" value="Orchestrator decides per task: trivial transforms (rename, type add) &#x2192; cheap model. Complex synthesis (new feature, multi-file) &#x2192; frontier. Adversarial review &#x2192; cheap (value is in independence, not depth)." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="866" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r5-cx" value="&lt;b&gt;Single hardcoded model&lt;/b&gt; across all crow types: claude-haiku-4-5-20251001. config.MODEL_CONTEXT_WINDOWS knows about Haiku / Sonnet 4.6 / Opus 4.7 but no selection logic exists." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="866" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r5-grade" value="L1" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;fontColor=#8b1a00;align=center;verticalAlign=middle;fontSize=26;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="866" width="120" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r5-gap" value="Planner = Sonnet &#183; Implementer = Haiku/Sonnet by task count &#183; Reviewer = Haiku &#183; Fixer = Sonnet &#183; Council = Haiku majority + Opus tiebreak. ~2 days of selection logic." style="text;html=1;strokeColor=#9673a6;fillColor=#fff2cc;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="866" width="280" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cv-r6-elem" value="&lt;b&gt;6. Crashing is a feature&lt;/b&gt;&#10;agents are cattle, orchestrator is the pet" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="986" width="180" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r6-df" value="Agents are stateless. Orchestrator holds DAG progress + failure context in durable storage. If an agent dies mid-task, clean up, boot a new one with the same context. Recovery is &lt;b&gt;sub-minute.&lt;/b&gt;" style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="986" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r6-cx" value="Murder Lambda survives (durable orchestrator). Worker is stateless across crow runs. But: a Worker crash mid-crow leaves the row claimed=true until the Checker Lambda&#x27;s &lt;b&gt;hourly cron&lt;/b&gt; sweeps it." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="986" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r6-grade" value="L2" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=26;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="986" width="120" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cv-r6-gap" value="Right architecture, wrong cycle time. Claim TTL via DDB conditional puts: Worker writes claim_expires_at = now + 5min, renews every 60s. Sub-minute recovery, no Checker Lambda. ~half a day." style="text;html=1;strokeColor=#9673a6;fillColor=#fff2cc;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="986" width="280" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cv-summary" value="&lt;b&gt;Overall: mostly L2, two pockets of L3.&lt;/b&gt;&#10;The shape is dark-factory-shaped but the autonomy isn&#x27;t there yet. Verification and cost-routing are the L1 anchors dragging the average down &#x2014; the single biggest move toward L4 is a deterministic verification gate inside the Worker (~1 day). The most distinctive thing Cawnex has that the convergent five don&#x27;t: four-altitude approval gates (Milestone / Goal / MVI / PR) &#x2014; deliberate L3 design for the founder user, not an incomplete L4 for engineering orgs." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7c3aed;strokeColor=#5e26b3;fontColor=#ffffff;fontSize=12;align=left;verticalAlign=middle;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1110" width="1580" height="100" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="loopcompare" name="7. Wave Loop &#x2014; Today vs Target">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-lc" value="The Wave Loop &#x2014; Cawnex Today vs Dark-Factory Target" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle-lc" value="Same scale, same notation, side-by-side. What would have to change inside the wave to move from L2-shaped to L4-shaped." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="900" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lc-left-title" value="CAWNEX TODAY (L2-shaped)" style="text;html=1;strokeColor=none;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="800" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-right-title" value="DARK FACTORY TARGET (L4-shaped)" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;fontColor=#0a4d2b;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="880" y="100" width="780" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lc-l-spec" value="MVI spec from human chat" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-l-plan" value="&lt;b&gt;Planner crow&lt;/b&gt; (Haiku 4.5)&lt;br&gt;reads docs &#x2192; emits N tasks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="230" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-l-bundle" value="bundle all N tasks &#x2192;&#10;&lt;b&gt;1 implementer crow&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="310" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-l-impl" value="&lt;b&gt;Implementer crow&lt;/b&gt; (Haiku 4.5)&lt;br&gt;tool-use loop (read_file, grep,&lt;br&gt;submit_result)&lt;br&gt;writes ALL files, opens 1 PR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="380" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-l-noverify" value="(no deterministic gate)&#10;black / flake8 / mypy / pytest&#10;NOT run here" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;dashed=1;fontColor=#8b1a00;" vertex="1" parent="1">
+          <mxGeometry x="60" y="500" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-l-rev" value="&lt;b&gt;Reviewer crow&lt;/b&gt; (Haiku 4.5)&lt;br&gt;diffs vs origin/main&lt;br&gt;prose verdict + blocking_issues" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="580" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-l-fix" value="&lt;b&gt;Fixer crow&lt;/b&gt; (Haiku 4.5)&lt;br&gt;same model as implementer&lt;br&gt;up to FIX_CYCLE_LIMIT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="580" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-l-mvi" value="MVI &#x2192; ready_to_ship&lt;br&gt;&lt;font color=#888&gt;Council designed but not run&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="690" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-l-human" value="&lt;b&gt;FOUNDER GATE&lt;/b&gt;&lt;br&gt;iOS PR Review screen&lt;br&gt;Approve / Reject" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="780" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-l-merge" value="API merges PR via REST&lt;br&gt;MVI &#x2192; shipped&lt;br&gt;Wave &#x2192; delivered" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="880" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lc-l-side1" value="&lt;b&gt;Run-6 (only successful wave) cost the Cawnex devs the following:&lt;/b&gt;&#10;&#10;&#x2022; Run 1: prompt injection &#x2192; cancelled&#10;&#x2022; Run 2: destroyed TenantDB &#x2192; cancelled&#10;&#x2022; Run 3: phantom-diff approval &#x2192; cancelled&#10;&#x2022; Run 4: JSON truncation &#x2192; cancelled&#10;&#x2022; Run 5: streaming-required API error &#x2192; cancelled&#10;&#x2022; Run 6: real PR (#16) but 3 lint issues caught post-merge&#10;&#10;Each was caught by a different post-hoc defense layer, not by the loop itself.&#10;The loop has &lt;b&gt;no in-flight test execution&lt;/b&gt; &#x2014; every failure became someone&#x27;s 3am incident." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#dddddd;align=left;verticalAlign=top;fontSize=10;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="160" width="540" height="350" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lc-l-e1" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-l-spec" target="lc-l-plan"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-l-e2" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-l-plan" target="lc-l-bundle"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-l-e3" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-l-bundle" target="lc-l-impl"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-l-e4" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="lc-l-impl" target="lc-l-noverify"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-l-e5" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-l-noverify" target="lc-l-rev"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-l-e6" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;" edge="1" parent="1" source="lc-l-rev" target="lc-l-fix"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-l-e8" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#0a8043;" edge="1" parent="1" source="lc-l-rev" target="lc-l-mvi"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-l-e9" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-l-mvi" target="lc-l-human"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-l-e10" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#0a8043;strokeWidth=2;" edge="1" parent="1" source="lc-l-human" target="lc-l-merge"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="lc-r-spec" value="MVI spec from human chat" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="160" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-specrev" value="&lt;b&gt;Spec adversary&lt;/b&gt;&lt;br&gt;reviews spec for thinness,&lt;br&gt;ambiguity, hidden assumptions&lt;br&gt;&lt;font color=#ddd&gt;before any tokens burned&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7c3aed;strokeColor=#5e26b3;fontColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="160" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-plan" value="&lt;b&gt;Planner crow&lt;/b&gt; (Sonnet 4.6)&lt;br&gt;reads codex + docs &#x2192; DAG&lt;br&gt;dependency analysis up front" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="260" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-planadv" value="&lt;b&gt;Plan adversary&lt;/b&gt;&lt;br&gt;reviews DAG before dispatch:&lt;br&gt;merge-conflict risks?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7c3aed;strokeColor=#5e26b3;fontColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="260" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-impl1" value="Impl A (Haiku)&lt;br&gt;trivial task" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="370" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-impl2" value="Impl B (Sonnet)&lt;br&gt;complex task" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="370" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-impl3" value="Impl C (Haiku)&lt;br&gt;trivial task" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="370" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-impllbl" value="parallel implementers, isolated worktrees, cost-routed by task complexity" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="1410" y="385" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-deter" value="&lt;b&gt;Deterministic verification gate&lt;/b&gt; (in Worker, before reviewer)&lt;br&gt;black --check &#183; flake8 &#183; mypy &#183; pytest &#183; project-specific checks&lt;br&gt;&lt;font color=#ddd&gt;failures become Reviewer&#x27;s blocking_issues with structured output&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7c3aed;strokeColor=#5e26b3;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="450" width="780" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-rev" value="&lt;b&gt;Reviewer crow&lt;/b&gt; (Haiku, adversarial)&lt;br&gt;cites cawnex.md / codex.md rules&lt;br&gt;structured findings + cited_rules[]&lt;br&gt;&lt;font color=#888&gt;Cloudflare codecs pattern&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="560" width="380" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-fix" value="&lt;b&gt;Fixer crow&lt;/b&gt; (Sonnet)&lt;br&gt;stronger than Implementer&lt;br&gt;full failure context fed forward" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="560" width="360" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-hsum" value="&lt;b&gt;Human summarizer&lt;/b&gt; (Haiku)&lt;br&gt;takes structured outcome &#x2192; 1-line headline + 3 bullets + concerns&lt;br&gt;&lt;font color=#ddd&gt;Lawrence Jones&#x27;s separate-layer-for-humans&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7c3aed;strokeColor=#5e26b3;fontColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="680" width="780" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-council" value="&lt;b&gt;Council vote&lt;/b&gt; (Haiku &#xd7; 6 + Opus tiebreak)&lt;br&gt;6 advisors review &#183; Security + Clarity veto&lt;br&gt;auto-merge if unanimous, escalate to founder otherwise" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="760" width="780" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-r-merge" value="auto-merge (low risk) &#183; founder gate (high risk)&lt;br&gt;MVI &#x2192; shipped &#183; Wave &#x2192; delivered" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="860" width="780" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lc-r-e1" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-r-spec" target="lc-r-specrev"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e3" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-r-plan" target="lc-r-planadv"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e4a" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-r-planadv" target="lc-r-impl1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e4b" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-r-planadv" target="lc-r-impl2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e4c" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-r-planadv" target="lc-r-impl3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e5a" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#5e26b3;strokeWidth=2;" edge="1" parent="1" source="lc-r-impl1" target="lc-r-deter"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e5b" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#5e26b3;strokeWidth=2;" edge="1" parent="1" source="lc-r-impl2" target="lc-r-deter"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e5c" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#5e26b3;strokeWidth=2;" edge="1" parent="1" source="lc-r-impl3" target="lc-r-deter"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e6" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-r-deter" target="lc-r-rev"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e7" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;" edge="1" parent="1" source="lc-r-rev" target="lc-r-fix"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e9" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#0a8043;" edge="1" parent="1" source="lc-r-rev" target="lc-r-hsum"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e10" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#333;" edge="1" parent="1" source="lc-r-hsum" target="lc-r-council"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="lc-r-e11" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#0a8043;strokeWidth=2;" edge="1" parent="1" source="lc-r-council" target="lc-r-merge"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="lc-legend" value="&lt;b&gt;Legend&lt;/b&gt; &#183; &lt;font color=#7c3aed&gt;Purple&lt;/font&gt; = new on the target side (the back-pressure tier) &#183; &lt;font color=#d6b656&gt;Yellow&lt;/font&gt; = existing crow types &#183; &lt;font color=#82b366&gt;Green&lt;/font&gt; = terminal good state &#183; &lt;font color=#b85450&gt;Red dashed&lt;/font&gt; = missing tier today &#183; &lt;font color=#5e26b3&gt;Bold purple arrows&lt;/font&gt; = where deterministic verification lives" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#dddddd;align=left;verticalAlign=middle;fontSize=11;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="970" width="1600" height="50" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="subsystemmatrix" name="8. Sub-System &#xd7; Element (L-levels)">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="ssm-title" value="Cawnex Sub-Systems Graded Per Dark-Factory Element" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-subtitle" value="Where each piece of the platform actually sits on the SAE L1&#x2013;L5 scale. Some elements don&#x27;t apply to every sub-system; some sub-systems aren&#x27;t built yet." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="1000" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-h-sys" value="Sub-system" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-h-1" value="1. Orchestrator&#10;(DAG decomposition)" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="300" y="100" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-h-2" value="2. Per-agent isolation&#10;(sandbox/worktree)" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="500" y="100" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-h-3" value="3. Verification gates&#10;(multi-tier, parallel)" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="700" y="100" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-h-4" value="4. Rework loop&#10;(escalate, not retry)" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="900" y="100" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-h-5" value="5. Cost-routed dispatch&#10;(cheap vs frontier)" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="100" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-h-6" value="6. Crashing-is-a-feature&#10;(stateless recovery)" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="100" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-h-note" value="Quick read" style="text;html=1;strokeColor=none;fillColor=#5e26b3;fontColor=#ffffff;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="100" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-r1-name" value="&lt;b&gt;Murder Lambda&lt;/b&gt;&lt;br&gt;reactor + dispatcher&lt;br&gt;&lt;font color=#888&gt;Bundles: orchestration + state machine + claim/lease&lt;/font&gt;" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r1-c1" value="L3" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;fontColor=#a07b00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="300" y="160" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r1-c2" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="500" y="160" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r1-c3" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="700" y="160" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r1-c4" value="L3" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;fontColor=#a07b00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="160" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r1-c5" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="160" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r1-c6" value="L3" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;fontColor=#a07b00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="160" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r1-note" value="Strongest piece. State machine + rework dispatch + durable orchestrator are the right shape, just linear not DAG." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="160" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-r2-name" value="&lt;b&gt;Worker Fargate&lt;/b&gt;&lt;br&gt;crow execution runtime&lt;br&gt;&lt;font color=#888&gt;Hosts the Anthropic tool-use loop, EFS-mounted worktree&lt;/font&gt;" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="240" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r2-c1" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="300" y="240" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r2-c2" value="L2" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="500" y="240" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r2-c3" value="L1" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;fontColor=#8b1a00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="700" y="240" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r2-c4" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="240" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r2-c5" value="L1" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;fontColor=#8b1a00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="240" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r2-c6" value="L2" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="240" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r2-note" value="Where the L1 anchors live. No in-flight verification, no model selection, tenant-shared worktree." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="240" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-r3-name" value="&lt;b&gt;Planner crow&lt;/b&gt;&lt;br&gt;turns MVI spec into task list&lt;br&gt;&lt;font color=#888&gt;Emits flat ordered list, not DAG&lt;/font&gt;" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="320" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r3-c1" value="L2" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="300" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r3-c2" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="500" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r3-c3" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="700" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r3-c4" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r3-c5" value="L1" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;fontColor=#8b1a00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r3-c6" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r3-note" value="Outputs a list, not a dependency graph. Hardcoded Haiku where Sonnet would help." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="320" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-r4-name" value="&lt;b&gt;Implementer crow&lt;/b&gt;&lt;br&gt;writes the code&lt;br&gt;&lt;font color=#888&gt;Bundled-PR mode: all tasks in one crow run&lt;/font&gt;" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r4-c1" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="300" y="400" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r4-c2" value="L2" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="500" y="400" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r4-c3" value="L1" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;fontColor=#8b1a00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="700" y="400" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r4-c4" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="400" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r4-c5" value="L1" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;fontColor=#8b1a00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="400" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r4-c6" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="400" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r4-note" value="Hardcoded Haiku. Doesn&#x27;t self-verify (no in-process lint/test/typecheck). Single-tier output." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="400" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-r5-name" value="&lt;b&gt;Reviewer crow&lt;/b&gt;&lt;br&gt;diff vs main, blocking_issues&lt;br&gt;&lt;font color=#888&gt;Adversarial-by-design, model-only (no test execution)&lt;/font&gt;" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="480" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r5-c1" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="300" y="480" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r5-c2" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="500" y="480" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r5-c3" value="L2" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="700" y="480" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r5-c4" value="L3" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;fontColor=#a07b00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="480" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r5-c5" value="L1" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;fontColor=#8b1a00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="480" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r5-c6" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="480" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r5-note" value="Only adversarial tier. Feeds blocking_issues to Fixer (rework loop is strong here)." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="480" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-r6-name" value="&lt;b&gt;Fixer crow&lt;/b&gt;&lt;br&gt;repairs from blocking_issues&lt;br&gt;&lt;font color=#888&gt;FIX_CYCLE_LIMIT cap, _find_fix_history context&lt;/font&gt;" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="560" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r6-c1" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="300" y="560" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r6-c2" value="L2" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="500" y="560" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r6-c3" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="700" y="560" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r6-c4" value="L3" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;fontColor=#a07b00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="560" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r6-c5" value="L1" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;fontColor=#8b1a00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="560" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r6-c6" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="560" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r6-note" value="Right shape (rework not retry, history threaded). Wrong model &#x2014; same Haiku as Implementer, should be Sonnet." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="560" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-r7-name" value="&lt;b&gt;Council Lambda&lt;/b&gt;&lt;br&gt;6-advisor parallel vote&lt;br&gt;&lt;font color=#b85450&gt;DESIGNED, NOT BUILT&lt;/font&gt;" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="640" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r7-c1" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="640" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r7-c2" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="640" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r7-c3" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="640" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r7-c4" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="640" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r7-c5" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="640" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r7-c6" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="640" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r7-note" value="Spec exists in council-protocol.md but no wave has exercised it. Would unlock L4 auto-merge if built + cost-routed." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="640" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-r8-name" value="&lt;b&gt;Checker Lambda&lt;/b&gt;&lt;br&gt;hourly cron sweeper&lt;br&gt;&lt;font color=#888&gt;Releases abandoned claims, retries stalled crows&lt;/font&gt;" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="720" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r8-c1" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="300" y="720" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r8-c2" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="500" y="720" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r8-c3" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="700" y="720" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r8-c4" value="L2" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="720" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r8-c5" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="720" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r8-c6" value="L2" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;fontColor=#1a3c6e;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="720" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r8-note" value="Right idea, wrong cycle time. Hourly cron should become sub-minute claim-TTL renewal on the Worker side." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="720" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-r9-name" value="&lt;b&gt;Deterministic gate&lt;/b&gt;&lt;br&gt;in-flight lint/test/typecheck&lt;br&gt;&lt;font color=#b85450&gt;NOT BUILT&lt;/font&gt;" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="800" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r9-c1" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="800" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r9-c2" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="800" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r9-c3" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="800" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r9-c4" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="800" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r9-c5" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="800" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r9-c6" value="N/A" style="text;html=1;strokeColor=#b85450;fillColor=#fff2f2;fontColor=#b85450;align=center;verticalAlign=middle;fontSize=18;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="800" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r9-note" value="&lt;b&gt;The single biggest missing sub-system.&lt;/b&gt; Would raise element 3 from L1 to L3 across the platform." style="text;html=1;strokeColor=#9673a6;fillColor=#fff2cc;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="800" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-r10-name" value="&lt;b&gt;Approval gates (4-altitude)&lt;/b&gt;&lt;br&gt;Milestone / Goal / MVI / PR&lt;br&gt;&lt;font color=#888&gt;Cawnex&#x27;s distinctive bet&lt;/font&gt;" style="text;html=1;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="880" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r10-c1" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="300" y="880" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r10-c2" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="500" y="880" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r10-c3" value="L3" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;fontColor=#a07b00;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="700" y="880" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r10-c4" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="880" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r10-c5" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="880" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r10-c6" value="&#x2014;" style="text;html=1;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#888;align=center;verticalAlign=middle;fontSize=22;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="880" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-r10-note" value="Founder gate as &lt;i&gt;feature&lt;/i&gt;, not bug. Deliberate L3 design for founder users &#x2014; convergent five don&#x27;t have this." style="text;html=1;strokeColor=#9673a6;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="880" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-legend" value="&lt;b&gt;Legend&lt;/b&gt; &#183; &lt;font color=#b85450&gt;L1&lt;/font&gt; suggest &#183; &lt;font color=#1a3c6e&gt;L2&lt;/font&gt; supervised &#183; &lt;font color=#a07b00&gt;L3&lt;/font&gt; conditional (gated autonomy) &#183; &lt;font color=#0a4d2b&gt;L4&lt;/font&gt; high autonomy &#183; &lt;font color=#888&gt;&#x2014;&lt;/font&gt; element doesn&#x27;t apply to this sub-system &#183; &lt;font color=#b85450&gt;N/A&lt;/font&gt; sub-system not built yet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#dddddd;align=left;verticalAlign=middle;fontSize=11;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="980" width="1720" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
 </mxfile>
