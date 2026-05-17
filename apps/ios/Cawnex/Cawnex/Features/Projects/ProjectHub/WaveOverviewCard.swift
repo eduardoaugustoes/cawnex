@@ -1,9 +1,31 @@
 import SwiftUI
 
+@Observable
+fileprivate final class WaveOverviewTimerViewModel {
+    var elapsedSeconds: Int = 0
+    private var timer: Timer?
+
+    func startTimer() {
+        elapsedSeconds = 0
+        stopTimer()
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.elapsedSeconds += 1
+        }
+    }
+
+    func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    deinit {
+        stopTimer()
+    }
+}
+
 struct WaveOverviewCard: View {
     let waveOverview: WaveOverview
-    @State private var elapsedSeconds: Int = 0
-    @State private var timer: Timer?
+    @State private var timerViewModel = WaveOverviewTimerViewModel()
 
     var body: some View {
         VStack(alignment: .leading, spacing: CawnexSpacing.md) {
@@ -16,10 +38,10 @@ struct WaveOverviewCard: View {
         .background(CawnexColors.card)
         .clipShape(RoundedRectangle(cornerRadius: CawnexRadius.md))
         .onAppear {
-            startTimer()
+            timerViewModel.startTimer()
         }
         .onDisappear {
-            stopTimer()
+            timerViewModel.stopTimer()
         }
     }
 
@@ -84,7 +106,7 @@ struct WaveOverviewCard: View {
 
     private var elapsedDisplayValue: String? {
         guard waveOverview.waveStatus == .running else { return nil }
-        let total = (waveOverview.elapsedMinutes ?? 0) * 60 + elapsedSeconds
+        let total = (waveOverview.elapsedMinutes ?? 0) * 60 + timerViewModel.elapsedSeconds
         let hours = total / 3600
         let minutes = (total % 3600) / 60
         let seconds = total % 60
@@ -96,19 +118,6 @@ struct WaveOverviewCard: View {
         } else {
             return String(format: "%ds", seconds)
         }
-    }
-
-    private func startTimer() {
-        elapsedSeconds = 0
-        stopTimer()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            elapsedSeconds += 1
-        }
-    }
-
-    private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
     }
 }
 
