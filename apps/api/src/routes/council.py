@@ -134,3 +134,31 @@ async def apply_council_override(
         "override_action": body.action,
         "session_id": session_id,
     }
+
+
+@router.get("/sessions/{session_id}")
+async def get_council_session(
+    project_id: str,
+    session_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
+) -> Dict[str, Any]:
+    """Return the full Council session row for the founder's review screen.
+
+    Status reflects reality:
+      - pending / running: decision is null, rounds may be empty or partial
+      - completed: decision + full rounds populated
+      - errored: decision null, pipeline_health=degraded
+
+    iOS branches on `status` rather than null-checking individual fields.
+    """
+    db = TenantDB(tenant)
+    council_sk = f"COUNCIL#{session_id}"
+    session = db.get_project_item(project_id, council_sk)
+    if not session:
+        raise HTTPException(status_code=404, detail="Council session not found")
+
+    out = {k: v for k, v in session.items() if k not in {"PK", "SK", "entityType"}}
+    out.setdefault("session_id", session_id)
+    out.setdefault("wave_id", session.get("wave_id", ""))
+    out.setdefault("project_id", project_id)
+    return out
