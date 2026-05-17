@@ -1,9 +1,16 @@
-"""Council Lambda handler — DynamoDB Stream entry point."""
+"""Council handler — Lambda DDB-stream entry point AND Fargate poll-once entry.
+
+The Lambda path (`lambda_handler`) is the legacy entry; Task 29 will remove it.
+The Fargate path (`process_pending_session`) is invoked by apps/council/main.py
+and processes one pending COUNCIL# row end-to-end.
+"""
 
 from __future__ import annotations
 
 import json
 import logging
+import os
+import traceback
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
@@ -13,8 +20,9 @@ import boto3
 from council._blackboard import Blackboard
 from council.actions import execute_decision, execute_planning_decision
 from council.config import EVENTS_TABLE_NAME, TABLE_NAME
+from council.enums import AdvisorType
 from council.memory_store import CouncilMemoryStore
-from council.orchestrator import run_council_session
+from council.orchestrator import run_council_session, run_council_session_async
 from council.overrides import HumanOverride, apply_override
 from council.reflection import extract_learnings
 
@@ -271,3 +279,190 @@ def _process_override(item: dict[str, Any]) -> None:
             decision=decision,
             auto_mode=auto_mode,
         )
+
+
+# ---------------------------------------------------------------------------
+# Fargate path: process one pending COUNCIL# session end-to-end.
+# ---------------------------------------------------------------------------
+
+_fargate_logger = logging.getLogger("council.handler.fargate")
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _emit_pipeline_error(
+    blackboard: Any,
+    project_id: str,
+    session_id: str,
+    wave_id: str,
+    phase: str,
+    error_class: str,
+    error_message: str,
+    traceback_head: str = "",
+    final: bool = False,
+) -> None:
+    now = _now()
+    blackboard.write_event(
+        {
+            "PK": f"P#{project_id}",
+            "SK": f"E#{now}#{session_id[-8:]}",
+            "event_type": "council_pipeline_error",
+            "phase": phase,
+            "error_class": error_class,
+            "error_message": error_message[:1000],
+            "traceback_head": traceback_head[:1000],
+            "wave_id": wave_id,
+            "session_id": session_id,
+            "final": final,
+            "created_at": now,
+        }
+    )
+    _fargate_logger.error(
+        json.dumps(
+            {
+                "event": "council_pipeline_error",
+                "phase": phase,
+                "wave_id": wave_id,
+                "session_id": session_id,
+                "error_class": error_class,
+                "final": final,
+            }
+        )
+    )
+
+
+async def process_pending_session(
+    blackboard: Any,
+    project_id: str,
+    session_sk: str,
+) -> None:
+    """Process one pending Council session: load packet, run advisors, write decision."""
+    pk = f"P#{project_id}"
+    session = blackboard.read(pk, session_sk)
+    if not session or session.get("status") != "pending":
+        return
+
+    session_id = session_sk.replace("COUNCIL#", "")
+    wave_id = session.get("wave_id", "")
+
+    blackboard.update(pk, session_sk, {"status": "running", "started_at": _now()})
+
+    findings = blackboard.read(pk, session.get("integration_sk", ""))
+    if not findings:
+        _emit_pipeline_error(
+            blackboard=blackboard,
+            project_id=project_id,
+            session_id=session_id,
+            wave_id=wave_id,
+            phase="council-load-findings",
+            error_class="MissingFindings",
+            error_message=(
+                f"no INTEGRATION row at {session.get('integration_sk', '')}"
+            ),
+            final=True,
+        )
+        blackboard.update(
+            pk, session_sk, {"status": "errored", "completed_at": _now()}
+        )
+        return
+
+    packet = {
+        "wave_id": wave_id,
+        "project_id": project_id,
+        "integration_findings": findings,
+        "pr_numbers": findings.get("pr_numbers", []),
+    }
+    context = {
+        "repo_path": os.environ.get("REPO_PATH", "/mnt/repos/T/dev-tenant/repo"),
+        "repo": os.environ.get("GITHUB_REPO", ""),
+        "github_token": os.environ.get("GITHUB_TOKEN", ""),
+        "worktree_paths": {
+            int(k): v for k, v in (findings.get("worktree_paths") or {}).items()
+        },
+        "integration_path": findings.get("integration_worktree", ""),
+    }
+
+    pipeline_errors = 0
+    try:
+        result = await run_council_session_async(packet=packet, context=context)
+    except Exception as e:  # noqa: BLE001 -- loud-fail catch with pipeline_error emission
+        _emit_pipeline_error(
+            blackboard=blackboard,
+            project_id=project_id,
+            session_id=session_id,
+            wave_id=wave_id,
+            phase="council-orchestrator",
+            error_class=type(e).__name__,
+            error_message=str(e),
+            traceback_head=traceback.format_exc()[:1000],
+            final=True,
+        )
+        blackboard.update(
+            pk, session_sk, {"status": "errored", "completed_at": _now()}
+        )
+        return
+
+    try:
+        learnings = extract_learnings(result)
+        memory_store = CouncilMemoryStore(blackboard)
+        tenant, project = _safe_extract_tenant_project(pk, project_id)
+        for advisor_type, advisor_learnings in learnings.items():
+            for learning in advisor_learnings:
+                memory_store.append_advisor_learning(
+                    tenant, project, advisor_type, learning
+                )
+    except Exception as e:  # noqa: BLE001 -- reflection failures are non-fatal but loud
+        _emit_pipeline_error(
+            blackboard=blackboard,
+            project_id=project_id,
+            session_id=session_id,
+            wave_id=wave_id,
+            phase="council-reflection",
+            error_class=type(e).__name__,
+            error_message=str(e),
+            traceback_head=traceback.format_exc()[:1000],
+            final=False,
+        )
+        pipeline_errors += 1
+
+    pipeline_health = "degraded" if pipeline_errors >= 2 else "ok"
+    blackboard.update(
+        pk,
+        session_sk,
+        {
+            "status": "completed",
+            "completed_at": _now(),
+            "decision": _dynamo_safe(result.decision.to_dict()),
+            "rounds": _dynamo_safe([r.to_dict() for r in result.rounds]),
+            "cost": result.total_cost.to_dict(),
+            "pipeline_health": pipeline_health,
+        },
+    )
+
+    blackboard.write_event(
+        {
+            "PK": pk,
+            "SK": f"E#{_now()}#{session_id[-8:]}",
+            "event_type": "council_decision",
+            "wave_id": wave_id,
+            "session_id": session_id,
+            "decision_action": result.decision.action.value,
+            "confidence": result.decision.confidence,
+            "pipeline_health": pipeline_health,
+            "created_at": _now(),
+        }
+    )
+
+
+def _safe_extract_tenant_project(pk: str, project_id: str) -> tuple[str, str]:
+    """Map PK to (tenant, project) for memory-store calls.
+
+    Stage 4 PKs are `P#{project_id}` (single-tenant); for now route memory under
+    a synthetic tenant slot so the existing CouncilMemoryStore API works
+    unchanged.
+    """
+    if pk.startswith("T#") and "#P#" in pk:
+        return _extract_tenant_project(pk)
+    return ("default", project_id)
