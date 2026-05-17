@@ -219,3 +219,53 @@ def test_advisor_type_has_cost() -> None:
 def test_advisor_type_no_longer_has_quality() -> None:
     from council.enums import AdvisorType
     assert not hasattr(AdvisorType, "QUALITY")
+
+
+def test_advisor_vote_has_investigation_trace() -> None:
+    from council.models import AdvisorVote, ToolCall
+    from council.enums import AdvisorType, VoteType
+
+    vote = AdvisorVote(
+        advisor=AdvisorType.SECURITY,
+        vote=VoteType.APPROVE,
+        scores={},
+        reasoning="ok",
+        confidence=0.8,
+        investigation_trace=[
+            ToolCall(
+                tool_name="read_file",
+                args={"path": "foo.py"},
+                result_summary="def foo()...",
+                duration_ms=15,
+                error=None,
+            ),
+        ],
+    )
+    assert len(vote.investigation_trace) == 1
+    d = vote.to_dict()
+    assert "investigation_trace" in d
+    assert d["investigation_trace"][0]["tool_name"] == "read_file"
+
+
+def test_advisor_vote_has_cited_evidence() -> None:
+    from council.models import AdvisorVote, CitedEvidence
+    from council.enums import AdvisorType, VoteType
+
+    vote = AdvisorVote(
+        advisor=AdvisorType.ARCHITECTURE,
+        vote=VoteType.BLOCK,
+        scores={},
+        reasoning="circular dep",
+        confidence=0.9,
+        cited_evidence=[
+            CitedEvidence(
+                file_path="apps/api/foo.py",
+                line_range=(42, 50),
+                pr_number=5,
+                reason="imports apps/api/bar which imports back",
+            ),
+        ],
+    )
+    d = vote.to_dict()
+    assert d["cited_evidence"][0]["file_path"] == "apps/api/foo.py"
+    assert d["cited_evidence"][0]["line_range"] == [42, 50]

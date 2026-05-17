@@ -14,6 +14,42 @@ from council.enums import (
 
 
 @dataclass
+class ToolCall:
+    tool_name: str
+    args: dict[str, Any]
+    result_summary: str
+    duration_ms: int
+    error: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "tool_name": self.tool_name,
+            "args": self.args,
+            "result_summary": self.result_summary,
+            "duration_ms": self.duration_ms,
+        }
+        if self.error:
+            d["error"] = self.error
+        return d
+
+
+@dataclass
+class CitedEvidence:
+    file_path: str
+    line_range: tuple[int, int] | None = None
+    pr_number: int | None = None
+    reason: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {"file_path": self.file_path, "reason": self.reason}
+        if self.line_range:
+            d["line_range"] = list(self.line_range)
+        if self.pr_number is not None:
+            d["pr_number"] = self.pr_number
+        return d
+
+
+@dataclass
 class AdvisorCost:
     tokens_in: int = 0
     tokens_out: int = 0
@@ -54,6 +90,8 @@ class AdvisorVote:
     suggested_crows: list[str] = field(default_factory=list)
     changed_from: str = ""
     cost: AdvisorCost = field(default_factory=AdvisorCost.zero)
+    investigation_trace: list[ToolCall] = field(default_factory=list)
+    cited_evidence: list[CitedEvidence] = field(default_factory=list)
 
     @property
     def is_veto(self) -> bool:
@@ -77,6 +115,10 @@ class AdvisorVote:
             d["changed_from"] = self.changed_from
         if self.cost.total_tokens > 0:
             d["cost"] = self.cost.to_dict()
+        if self.investigation_trace:
+            d["investigation_trace"] = [t.to_dict() for t in self.investigation_trace]
+        if self.cited_evidence:
+            d["cited_evidence"] = [c.to_dict() for c in self.cited_evidence]
         return d
 
 
