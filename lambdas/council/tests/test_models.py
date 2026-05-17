@@ -18,7 +18,7 @@ class TestAdvisorVote:
 
     def test_is_not_veto_quality_block(self) -> None:
         vote = AdvisorVote(
-            advisor=AdvisorType.QUALITY,
+            advisor=AdvisorType.ARCHITECTURE,
             vote=VoteType.BLOCK,
             scores={"mvi_01": 3},
             reasoning="Low test coverage",
@@ -63,7 +63,7 @@ class TestVotingRound:
                 blockers=["Critical issue"],
             ),
             AdvisorVote(
-                advisor=AdvisorType.QUALITY,
+                advisor=AdvisorType.ARCHITECTURE,
                 vote=VoteType.APPROVE,
                 scores={},
                 reasoning="OK",
@@ -137,7 +137,7 @@ class TestVoteCostIntegration:
 
     def test_vote_omits_cost_when_zero(self) -> None:
         vote = AdvisorVote(
-            advisor=AdvisorType.QUALITY,
+            advisor=AdvisorType.ARCHITECTURE,
             vote=VoteType.APPROVE,
             scores={},
             reasoning="OK",
@@ -157,7 +157,7 @@ class TestVoteCostIntegration:
                 cost=AdvisorCost(tokens_in=500, tokens_out=200, duration_ms=150),
             ),
             AdvisorVote(
-                advisor=AdvisorType.QUALITY,
+                advisor=AdvisorType.ARCHITECTURE,
                 vote=VoteType.APPROVE,
                 scores={},
                 reasoning="OK",
@@ -199,3 +199,23 @@ class TestCouncilDecision:
         d = decision.to_dict()
         assert d["action"] == "approve"
         assert d["wave_plan"] == ["mvi_01", "mvi_02"]
+
+
+def test_advisor_type_has_architecture() -> None:
+    from council.enums import AdvisorType
+    assert AdvisorType.ARCHITECTURE.value == "architecture"
+
+
+def test_advisor_type_has_ux() -> None:
+    from council.enums import AdvisorType
+    assert AdvisorType.UX.value == "ux"
+
+
+def test_advisor_type_has_cost() -> None:
+    from council.enums import AdvisorType
+    assert AdvisorType.COST.value == "cost"
+
+
+def test_advisor_type_no_longer_has_quality() -> None:
+    from council.enums import AdvisorType
+    assert not hasattr(AdvisorType, "QUALITY")

@@ -33,12 +33,12 @@ class TestReadWriteMemory:
 
     def test_overwrite(self, memory_store: CouncilMemoryStore) -> None:
         memory_store.write_advisor_memory(
-            "t1", "p1", AdvisorType.QUALITY, "First version"
+            "t1", "p1", AdvisorType.ARCHITECTURE, "First version"
         )
         memory_store.write_advisor_memory(
-            "t1", "p1", AdvisorType.QUALITY, "Updated version"
+            "t1", "p1", AdvisorType.ARCHITECTURE, "Updated version"
         )
-        result = memory_store.read_advisor_memory("t1", "p1", AdvisorType.QUALITY)
+        result = memory_store.read_advisor_memory("t1", "p1", AdvisorType.ARCHITECTURE)
         assert result == "Updated version"
 
 
@@ -76,11 +76,11 @@ class TestReadAllAdvisorMemories:
             "t1", "p1", AdvisorType.SECURITY, "sec memory"
         )
         memory_store.write_advisor_memory(
-            "t1", "p1", AdvisorType.QUALITY, "qual memory"
+            "t1", "p1", AdvisorType.ARCHITECTURE, "qual memory"
         )
         result = memory_store.read_all_advisor_memories("t1", "p1")
         assert result["security"] == "sec memory"
-        assert result["quality"] == "qual memory"
+        assert result["architecture"] == "qual memory"
         assert "performance" not in result
 
     def test_empty_project_returns_empty_dict(

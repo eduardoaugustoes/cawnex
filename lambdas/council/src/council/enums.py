@@ -5,11 +5,11 @@ from enum import Enum
 
 class AdvisorType(Enum):
     SECURITY = "security"
-    QUALITY = "quality"
-    PERFORMANCE = "performance"
-    MARKET = "market"
-    MATURITY = "maturity"
+    ARCHITECTURE = "architecture"
     CLARITY = "clarity"
+    PERFORMANCE = "performance"
+    UX = "ux"
+    COST = "cost"
 
 
 VETO_ADVISORS = {AdvisorType.SECURITY, AdvisorType.CLARITY}

@@ -16,7 +16,7 @@ class TestBuildAdvisorPrompt:
 
     def test_includes_decision_context(self) -> None:
         prompt = build_advisor_prompt(
-            AdvisorType.QUALITY,
+            AdvisorType.ARCHITECTURE,
             decision_context={"ask": "Review wave", "mvis": ["mvi_01"]},
         )
         assert "mvi_01" in prompt["user"]
@@ -68,7 +68,7 @@ class TestBuildAdvisorPrompt:
 
     def test_layers_omitted_when_empty(self) -> None:
         prompt = build_advisor_prompt(
-            AdvisorType.QUALITY,
+            AdvisorType.ARCHITECTURE,
             decision_context={"ask": "Review"},
             advisor_memory="",
             org_standards="",
@@ -110,6 +110,6 @@ class TestParseAdvisorResponse:
         assert len(vote.blockers) == 1
 
     def test_malformed_json_returns_abstain(self) -> None:
-        vote = parse_advisor_response(AdvisorType.QUALITY, "not json at all")
+        vote = parse_advisor_response(AdvisorType.ARCHITECTURE, "not json at all")
         assert vote.vote == VoteType.ABSTAIN
         assert vote.confidence == 0.0

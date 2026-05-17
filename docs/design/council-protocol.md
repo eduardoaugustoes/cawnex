@@ -1,5 +1,9 @@
 # Council Protocol — Advisory Decision-Making
 
+> **Note:** Advisor names were updated 2026-05-16 from wave-planning lenses
+> (Quality / Market / Maturity) to wave-review lenses (Architecture / UX / Cost).
+> The veto pair (Security + Clarity) is unchanged.
+
 > Intelligence without judgment is just computation.
 > Judgment without multiple perspectives is just bias.
 > The Council combines both.
@@ -23,12 +27,12 @@
 
 | Advisor         | Lens                                 | Veto Power      | Example Concern                                    |
 | --------------- | ------------------------------------ | --------------- | -------------------------------------------------- |
-| **Security**    | Vulnerabilities, auth, data exposure | YES — can BLOCK | "No rate limiting on auth endpoint"                |
-| **Quality**     | Patterns, tests, maintainability     | No              | "Test coverage below 60%"                          |
-| **Performance** | Latency, cost, scalability           | No              | "N+1 query pattern detected"                       |
-| **Market**      | Business value, user impact, timing  | No              | "Onboarding is higher priority than admin panel"   |
-| **Maturity**    | Tech debt, stability, reliability    | No              | "This approach creates coupling we'll regret"      |
-| **Clarity**     | Spec ambiguity, missing requirements | YES — can BLOCK | "Acceptance criteria are vague, will cause rework" |
+| **Security**     | Vulnerabilities, auth, data exposure | YES — can BLOCK | "No rate limiting on auth endpoint"                |
+| **Architecture** | Coupling, layering, patterns         | No              | "This introduces a circular dependency"            |
+| **Performance**  | Latency, cost, scalability           | No              | "N+1 query pattern detected"                       |
+| **UX**           | Usability, accessibility, surprise   | No              | "Error states aren't covered in the spec"          |
+| **Cost**         | Token / infra / human time spent     | No              | "We'd burn 30% of the wave budget here"            |
+| **Clarity**      | Spec ambiguity, missing requirements | YES — can BLOCK | "Acceptance criteria are vague, will cause rework" |
 
 **Two advisors have veto:** Security (can't ship vulnerable code) and Clarity (can't build against ambiguous specs). Others influence through scoring.
 
@@ -144,7 +148,7 @@ The Monarch receives all 6 votes and:
     "Add CSRF middleware before payment"
   ],
   "dissent_acknowledged": {
-    "market": "Wanted payment in this wave for revenue. Acknowledged but security risk outweighs."
+    "cost": "Wanted payment in this wave for revenue. Acknowledged but security risk outweighs."
   },
   "confidence": 0.82,
   "action": "execute"

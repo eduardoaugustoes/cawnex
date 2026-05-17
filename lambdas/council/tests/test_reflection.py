@@ -33,7 +33,7 @@ class TestExtractLearnings:
                     round_number=1,
                     votes=[
                         _vote(AdvisorType.SECURITY, VoteType.APPROVE, 0.7),
-                        _vote(AdvisorType.QUALITY, VoteType.APPROVE, 0.6),
+                        _vote(AdvisorType.ARCHITECTURE, VoteType.APPROVE, 0.6),
                     ],
                 )
             ],
@@ -62,7 +62,7 @@ class TestExtractLearnings:
                             0.9,
                             blockers=["No rate limiting"],
                         ),
-                        _vote(AdvisorType.QUALITY, VoteType.APPROVE, 0.8),
+                        _vote(AdvisorType.ARCHITECTURE, VoteType.APPROVE, 0.8),
                     ],
                 ),
                 VotingRound(
@@ -138,15 +138,15 @@ class TestExtractLearnings:
                     round_number=1,
                     votes=[
                         _vote(
-                            AdvisorType.QUALITY,
+                            AdvisorType.ARCHITECTURE,
                             VoteType.BLOCK,
                             0.7,
                             reasoning="Test coverage too low",
                         ),
                         _vote(AdvisorType.SECURITY, VoteType.APPROVE, 0.9),
-                        _vote(AdvisorType.MARKET, VoteType.APPROVE, 0.85),
+                        _vote(AdvisorType.COST, VoteType.APPROVE, 0.85),
                         _vote(AdvisorType.PERFORMANCE, VoteType.APPROVE, 0.8),
-                        _vote(AdvisorType.MATURITY, VoteType.APPROVE, 0.75),
+                        _vote(AdvisorType.UX, VoteType.APPROVE, 0.75),
                         _vote(AdvisorType.CLARITY, VoteType.APPROVE, 0.8),
                     ],
                 )
@@ -162,8 +162,8 @@ class TestExtractLearnings:
         learnings = extract_learnings(result)
 
         # Quality blocked but was overridden — should learn this
-        assert AdvisorType.QUALITY in learnings
-        assert any("overridden" in l.lower() for l in learnings[AdvisorType.QUALITY])
+        assert AdvisorType.ARCHITECTURE in learnings
+        assert any("overridden" in l.lower() for l in learnings[AdvisorType.ARCHITECTURE])
 
     def test_max_three_learnings_per_advisor(self) -> None:
         # Edge case: advisor has many triggers — should cap at 3
