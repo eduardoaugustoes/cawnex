@@ -891,6 +891,10 @@ class TestHandleWaveReviewReady:
         assert task is not None
         assert task["crow_kind"] == "integrator"
         assert task["pr_to_mvi"] == {"42": "_1", "43": "_2"}
+        # repo_path must match the EFS-mounted layout (no T/ prefix; the
+        # access point already resolves that). Council reads worktree paths
+        # rooted under the same /mnt/repos/<projectId> path.
+        assert task["repo_path"] == "/mnt/repos/p1/repo"
 
     def test_not_all_mvis_ready_does_nothing(
         self, blackboard: Blackboard, logger: StructuredLogger

@@ -1285,9 +1285,13 @@ def _maybe_start_integrator(
     blackboard.update(pk, wave_sk, {"status": WaveStatus.INTEGRATING.value})
 
     project = blackboard.read(pk, "META")
+    # EFS access point is rooted at the tenant (/T/<tenant>) and presented
+    # as /mnt/repos to the worker + council containers, so reachable paths
+    # start at /mnt/repos/<projectId>/repo, NOT /mnt/repos/T/<projectId>/repo.
+    project_id = pk.replace("P#", "")
     repo_path = (
         project.get("repo_path", "") if project else ""
-    ) or f"/mnt/repos{pk.replace('P#', '/T/')}/repo"
+    ) or f"/mnt/repos/{project_id}/repo"
 
     blackboard.write_item(
         {
