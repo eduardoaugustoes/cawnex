@@ -365,6 +365,7 @@ def _handle_mvi_ready(
     # Run deterministic checks against the implementer's outcome
     impl_crows = [c for c in crow_items if c.get("crow_type") == "implementer"]
     impl_outcome = impl_crows[-1].get("outcome", {}) if impl_crows else {}
+    impl_pr = impl_crows[-1].get("pr", {}) if impl_crows else {}
     mvi_item = blackboard.read(pk, mvi_sk)
     mvi_name = (mvi_item or {}).get("name", mvi_id)
     check_results = run_deterministic_checks(impl_outcome or {}, mvi_item or {})
@@ -394,6 +395,17 @@ def _handle_mvi_ready(
         "deterministic_checks": checks_summary,
         "tasks_done": tasks_total_count,
     }
+    # Propagate pr_number from the implementer crow onto the parent MVI row.
+    # Without this, integrator dispatch + iOS PR card both have to fall back
+    # to scanning the implementer crow snapshots. The worker now writes
+    # outcome.pr_number when the implementer opens a PR — read either that
+    # or the top-level pr.number for backward compat with older crows.
+    pr_number = impl_outcome.get("pr_number") or impl_pr.get("number")
+    if pr_number is not None:
+        updates["pr_number"] = pr_number
+        pr_url = impl_outcome.get("pr_url") or impl_pr.get("url")
+        if pr_url:
+            updates["pr_url"] = pr_url
 
     ready_item = {
         "status": MVIStatus.READY_TO_SHIP.value,
