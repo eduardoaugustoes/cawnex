@@ -193,6 +193,71 @@ def test_list_projects_includes_current_state(mock_boto3: Mock) -> None:
 
 @patch("src.db.client.boto3")
 @patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_returns_single_project(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns a single project with computed state."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    project_data = {
+        "PK": "T#tenant-abc",
+        "SK": "P#proj-1",
+        "project_id": "proj-1",
+        "name": "Test Project",
+        "one_liner": "A test",
+        "status": "draft",
+        "murders": ["dev"],
+        "created_at": "2024-01-01T00:00:00+00:00",
+    }
+    mock_table.get_item.return_value = {"Item": project_data}
+
+    # Patch TenantDB to mock query_project for state computation
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.get_item.return_value = project_data
+
+        def mock_query_project(project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
+            if sk_prefix == "DOC#":
+                return [
+                    {"SK": "DOC#vision", "doc_type": "vision", "status": "complete"},
+                    {
+                        "SK": "DOC#architecture",
+                        "doc_type": "architecture",
+                        "status": "complete",
+                    },
+                    {"SK": "DOC#glossary", "doc_type": "glossary", "status": "complete"},
+                    {"SK": "DOC#design", "doc_type": "design", "status": "complete"},
+                ]
+            return []
+
+        mock_db_instance.query_project.side_effect = mock_query_project
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects/proj-1")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["project_id"] == "proj-1"
+        assert data["name"] == "Test Project"
+        assert data["current_state"] == "active"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_not_found(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns 404 when project doesn't exist."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {}
+
+    client = _make_client(_make_tenant())
+    response = client.get("/projects/nonexistent")
+
+    assert response.status_code == 404
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
 def test_update_project_auto_mode(mock_boto3: Mock) -> None:
     """PATCH /projects/{id} updates auto_mode on root snapshot."""
     mock_table = Mock()

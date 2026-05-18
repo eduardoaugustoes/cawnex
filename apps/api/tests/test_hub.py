@@ -60,6 +60,7 @@ def test_get_hub_returns_project_and_documents(mock_boto3: Mock) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["project"]["name"] == "My Project"
+    assert "current_state" in data["project"]
     assert len(data["documents"]) == 4
 
     doc_map = {d["type"]: d["status"] for d in data["documents"]}
