@@ -163,8 +163,34 @@ def commit_and_push(
     diff = run_git("git diff --cached --name-only", cwd=worktree_dir, check=False)
     if not diff:
         return ""
-    run_git(f"git commit -m \"{message}\"", cwd=worktree_dir)
+    # Pass commit message via stdin (-F -) so multi-line messages, embedded
+    # quotes, and shell metacharacters can't break the command. The previous
+    # f-string interpolation broke on every implementer that returned a
+    # multi-line commit message with embedded newlines or quotes.
+    _git_commit_with_stdin_message(worktree_dir, message)
     push_url = f"https://x-access-token:{github_token}@github.com/{repo}.git"
     run_git(f"git push --force {push_url} {branch}", cwd=worktree_dir)
     sha = run_git("git rev-parse HEAD", cwd=worktree_dir)
     return sha
+
+
+def _git_commit_with_stdin_message(worktree_dir: str, message: str) -> None:
+    """Commit with the message read from stdin — no shell quoting needed."""
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_KEY_0"] = "safe.directory"
+    env["GIT_CONFIG_VALUE_0"] = "*"
+    result = subprocess.run(
+        ["git", "commit", "-F", "-"],
+        input=message,
+        capture_output=True,
+        text=True,
+        cwd=worktree_dir,
+        env=env,
+        timeout=60,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"git commit failed (rc={result.returncode}): {result.stderr.strip()}"
+        )

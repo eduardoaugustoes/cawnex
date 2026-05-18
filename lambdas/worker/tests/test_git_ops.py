@@ -178,7 +178,11 @@ def test_commit_and_push_returns_sha(mock_git: MagicMock) -> None:
         return ""
 
     mock_git.side_effect = git_side_effect
-    sha = commit_and_push("/wt", "feat: thing", "o/r", "branch", "tok")
+    # Patch subprocess.run because commit itself now goes through it
+    # directly (stdin-fed `git commit -F -`), bypassing run_git.
+    with patch("worker.git_ops.subprocess.run") as mock_sub:
+        mock_sub.return_value = MagicMock(returncode=0, stderr="")
+        sha = commit_and_push("/wt", "feat: thing", "o/r", "branch", "tok")
     assert sha == "abc123def456"
 
 
@@ -192,3 +196,37 @@ def test_commit_and_push_empty_diff(mock_git: MagicMock) -> None:
     mock_git.side_effect = git_side_effect
     sha = commit_and_push("/wt", "feat: nothing", "o/r", "branch", "tok")
     assert sha == ""
+
+
+@patch("worker.git_ops.subprocess.run")
+@patch("worker.git_ops.run_git")
+def test_commit_message_with_newlines_and_quotes_uses_stdin(
+    mock_git: MagicMock, mock_subprocess: MagicMock
+) -> None:
+    """Multi-line commit messages with quotes broke the old f-string shell call.
+
+    Verifies commit goes through ['git', 'commit', '-F', '-'] with the
+    full multi-line message passed on stdin — no shell interpolation.
+    """
+    def git_side_effect(cmd: str, **kwargs: object) -> str:
+        if "diff --cached" in cmd:
+            return "file.py"
+        if "rev-parse HEAD" in cmd:
+            return "deadbeef"
+        return ""
+
+    mock_git.side_effect = git_side_effect
+    mock_subprocess.return_value = MagicMock(returncode=0, stderr="")
+
+    nasty_message = (
+        'feat: tricky commit\n\n'
+        'Line with "double quotes" and a $shell_var and\n'
+        'a trailing newline.\n'
+    )
+    commit_and_push("/wt", nasty_message, "o/r", "branch", "tok")
+
+    mock_subprocess.assert_called_once()
+    call_args, call_kwargs = mock_subprocess.call_args
+    assert call_args[0] == ["git", "commit", "-F", "-"]
+    assert call_kwargs["input"] == nasty_message
+    assert call_kwargs["cwd"] == "/wt"
