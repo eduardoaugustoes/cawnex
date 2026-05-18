@@ -662,8 +662,16 @@ async def get_wave_events(
     tenant: Annotated[TenantContext, Depends(get_tenant)],
     limit: int = 50,
     after: Optional[str] = None,
+    mvi_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Read events from the events table, paginated."""
+    """Read events from the events table, paginated.
+
+    When `mvi_id` is provided, returns only events scoped to that MVI plus
+    wave-level events (no mvi_id on the row). Wave-level events stay so the
+    MVI screen still surfaces context like `wave_activated`. Events emitted
+    before this filter shipped have no `mvi_id` in `extra` — they will be
+    treated as wave-level and pass through.
+    """
     events_table_name = os.environ.get("EVENTS_TABLE_NAME", "")
     if not events_table_name:
         return {"events": [], "next_cursor": None}
@@ -673,20 +681,38 @@ async def get_wave_events(
     events_table = boto3.resource("dynamodb").Table(events_table_name)
     events_pk = f"T#{tenant.tenant_id}#P#{project_id}#W#{wave_id}"
 
+    # When filtering by mvi_id we may need to over-fetch to compensate for
+    # wave-level rows being dropped; bump query limit modestly to stay in
+    # one round-trip for typical wave sizes.
+    query_limit = limit * 3 if mvi_id else limit
+
     if after:
         response = events_table.query(
             KeyConditionExpression=Key("PK").eq(events_pk) & Key("SK").gt(after),
             ScanIndexForward=False,
-            Limit=limit,
+            Limit=query_limit,
         )
     else:
         response = events_table.query(
             KeyConditionExpression=Key("PK").eq(events_pk),
             ScanIndexForward=False,
-            Limit=limit,
+            Limit=query_limit,
         )
 
     items = response.get("Items", [])
+
+    # Murder's MVI-scoped event builders write `mvi_id` into `extra` (see
+    # lambdas/murder/src/murder/events.py). Wave-level events omit it. Pre-
+    # filter rows write neither — treat them as wave-level (kept).
+    if mvi_id:
+
+        def _matches(item: Dict[str, Any]) -> bool:
+            extra = item.get("extra") or {}
+            row_mvi = extra.get("mvi_id", "") if isinstance(extra, dict) else ""
+            return not row_mvi or row_mvi == mvi_id
+
+        items = [i for i in items if _matches(i)][:limit]
+
     events = [
         {
             "event_type": item.get("event_type", ""),

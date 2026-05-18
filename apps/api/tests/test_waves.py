@@ -481,6 +481,65 @@ def test_get_events_paginated(mock_db_boto3: Mock, mock_waves_boto3: Mock) -> No
     assert data["events"][0]["event_type"] == "wave_activated"
 
 
+@patch("src.routes.waves.boto3")
+@patch("src.db.client.boto3")
+@patch.dict(
+    "os.environ", {"TABLE_NAME": "test-table", "EVENTS_TABLE_NAME": "test-events"}
+)
+def test_get_events_filters_by_mvi_id(
+    mock_db_boto3: Mock, mock_waves_boto3: Mock
+) -> None:
+    """?mvi_id= scopes the feed to that MVI plus wave-level events.
+
+    Wave-level events (no mvi_id on the row) stay so context like
+    `wave_activated` still surfaces on the MVI screen.
+    """
+    mock_table = Mock()
+    mock_db_boto3.resource.return_value.Table.return_value = mock_table
+
+    mock_events_table = Mock()
+    mock_waves_boto3.resource.return_value.Table.return_value = mock_events_table
+    mock_events_table.query.return_value = {
+        "Items": [
+            {
+                "SK": "2026-03-16T10:00:00Z#wave_activated",
+                "event_type": "wave_activated",
+                "message": "Wave activated",
+                "color": "blue",
+                "timestamp": "2026-03-16T10:00:00Z",
+                # wave-level: no extra.mvi_id
+            },
+            {
+                "SK": "2026-03-16T10:00:01Z#crow_assigned",
+                "event_type": "crow_assigned",
+                "message": "Planner for mvi2",
+                "color": "purple",
+                "timestamp": "2026-03-16T10:00:01Z",
+                "extra": {"crow_type": "planner", "mvi_id": "mvi2"},
+            },
+            {
+                "SK": "2026-03-16T10:00:02Z#crow_assigned",
+                "event_type": "crow_assigned",
+                "message": "Planner for mvi3",
+                "color": "purple",
+                "timestamp": "2026-03-16T10:00:02Z",
+                "extra": {"crow_type": "planner", "mvi_id": "mvi3"},
+            },
+        ],
+    }
+
+    client = _make_client(_make_tenant())
+    response = client.get("/projects/proj-001/waves/w001/events?mvi_id=mvi2")
+
+    assert response.status_code == 200
+    types = [e["event_type"] for e in response.json()["events"]]
+    # wave_activated (no mvi_id) kept; mvi2 row kept; mvi3 row dropped.
+    assert types == ["wave_activated", "crow_assigned"]
+    messages = [e["message"] for e in response.json()["events"]]
+    assert "Planner for mvi2" in messages
+    assert "Planner for mvi3" not in messages
+
+
 # --- Get Wave Detail ---
 
 
