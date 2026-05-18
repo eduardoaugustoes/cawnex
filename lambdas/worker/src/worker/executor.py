@@ -276,12 +276,17 @@ def execute(
         user_prompt = f"## Instructions\n{resolved_instructions}\n\n## Codebase\n{context}"
 
         # Every crow now uses the `submit_result` terminator tool so the
-        # final output is server-validated structured JSON. Implementer and
-        # fixer additionally get worktree read tools because they iterate
-        # over files before producing the output; planner and reviewer go
-        # single-call. force_terminator_tool tells the API the model MUST
-        # call a tool every turn — combined with the terminator, that makes
-        # the "model returned prose instead of JSON" failure mode impossible.
+        # final output is server-validated structured JSON. Implementer,
+        # fixer, AND reviewer also get worktree read tools so they can read
+        # the surrounding repo state — the reviewer needs these because
+        # without them it only sees the PR diff and hallucinates "missing
+        # imports" when the import target actually exists in an unchanged
+        # file (this blocked a real wave today: reviewer flagged
+        # ProjectReadResponse as undefined while it was sitting in
+        # apps/api/src/models/__init__.py). Planner stays single-call.
+        # force_terminator_tool tells the API the model MUST call a tool
+        # every turn — combined with the terminator, that makes the
+        # "model returned prose instead of JSON" failure mode impossible.
         worktree_tools: WorktreeTools | None = None
         tool_schemas: list[dict[str, Any]] | None = None
         force_terminator: str | None = None
@@ -289,11 +294,12 @@ def execute(
             worktree_tools = WorktreeTools(worktree_dir=worktree_dir, logger=logger)
             tool_schemas = [*WORKTREE_TOOL_SCHEMAS, IMPLEMENTER_SUBMIT_RESULT_SCHEMA]
             force_terminator = "submit_result"
+        elif crow_type == CrowType.REVIEWER:
+            worktree_tools = WorktreeTools(worktree_dir=worktree_dir, logger=logger)
+            tool_schemas = [*WORKTREE_TOOL_SCHEMAS, REVIEWER_SUBMIT_RESULT_SCHEMA]
+            force_terminator = "submit_result"
         elif crow_type == CrowType.PLANNER:
             tool_schemas = [PLANNER_SUBMIT_RESULT_SCHEMA]
-            force_terminator = "submit_result"
-        elif crow_type == CrowType.REVIEWER:
-            tool_schemas = [REVIEWER_SUBMIT_RESULT_SCHEMA]
             force_terminator = "submit_result"
 
         # max_tokens is the per-response output ceiling. Planner/reviewer emit
@@ -429,6 +435,35 @@ def execute(
                     files=len(changes),
                     commit=git_commit[:12] if git_commit else "",
                 )
+
+                # Detect fixer no-op: claimed file changes but wrote bytes
+                # identical to what was already on disk. Without this, the
+                # reviewer-fixer loop can spin indefinitely — fixer reports
+                # success, Murder re-runs reviewer, reviewer flags the same
+                # issue again because nothing changed. Fail the crow loudly
+                # so Murder advances to the cap path with a real cause.
+                if not git_commit and crow_type == CrowType.FIXER:
+                    reason = (
+                        f"fixer wrote {len(changes)} files but produced no git "
+                        "diff — the changes were byte-identical to existing "
+                        "content. Either the reviewer's feedback was already "
+                        "addressed, or the fixer didn't actually change anything."
+                    )
+                    logger.event(
+                        "fixer_noop",
+                        crow_id=crow_id,
+                        files_claimed=len(changes),
+                    )
+                    now_fail = datetime.now(timezone.utc).isoformat()
+                    fail_outcome = _build_failed(crow_type, reason)
+                    fail_result = {
+                        **fail_outcome,
+                        "cost": cost.to_dict(),
+                        "completed_at": now_fail,
+                    }
+                    validate_crow_completion(fail_result)
+                    logger.event("crow_failed", crow_id=crow_id, reason="fixer_noop")
+                    return fail_result
 
                 # Create PR or reuse existing one
                 existing_pr = snapshot.get("existing_pr")
