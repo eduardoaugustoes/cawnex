@@ -16,7 +16,10 @@ final class APIMVIService: MVIService {
         }
 
         async let waveDetailDTO: MVIWaveDetailDTO = client.get("/projects/\(projectId)/waves/\(resolvedWaveId)")
-        async let eventsDTO: MVIEventsDTO = client.get("/projects/\(projectId)/waves/\(resolvedWaveId)/events?limit=50")
+        // Scope events to this MVI server-side so the live feed isn't
+        // wave-wide noise. The endpoint still returns wave-level events
+        // (no mvi_id on the row) so context like `wave_activated` survives.
+        async let eventsDTO: MVIEventsDTO = client.get("/projects/\(projectId)/waves/\(resolvedWaveId)/events?limit=50&mvi_id=\(mviId)")
 
         let (detail, events) = try await (waveDetailDTO, eventsDTO)
 
@@ -69,7 +72,14 @@ final class APIMVIService: MVIService {
             description: mviDTO?.description ?? ""
         )
 
-        let activeCrows = mapCrows(detail.crows)
+        // Scope crows to this MVI — the wave detail blob carries every
+        // crow in the wave, and the MVI screen should only surface its
+        // own. Crow SKs follow `S#{wave}#m{mvi_id}#{crow_id}`.
+        let mviCrows = (detail.crows ?? []).filter { crow in
+            guard let sk = crow.SK else { return false }
+            return sk.contains("#m\(mviId)#")
+        }
+        let activeCrows = mapCrows(mviCrows)
         let tasks = mapTasks(
             from: detail.crows,
             tasksDone: tasksDone,
@@ -312,6 +322,7 @@ private struct MVICostDTO: Decodable {
 }
 
 private struct MVICrowDTO: Decodable {
+    let SK: String?
     let crow_id: String?
     let crow_type: String?
     let status: String?
