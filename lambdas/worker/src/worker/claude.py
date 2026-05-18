@@ -164,6 +164,7 @@ def call_claude(
     tools: list[dict[str, Any]] | None = None,
     tool_executor: ToolExecutor | None = None,
     max_iterations: int = 25,
+    force_terminator_tool: str | None = None,
 ) -> ClaudeResult:
     """Call Claude. One-shot when tools is None, agentic loop when tools is provided.
 
@@ -171,6 +172,12 @@ def call_claude(
       1. Claude calls the `submit_result` terminator tool (structured output).
       2. stop_reason != "tool_use" (Claude has no more tools to call).
       3. max_iterations reached.
+
+    When `force_terminator_tool` is set, the API is told the model MUST call
+    some tool every turn (`tool_choice={"type": "any"}`). Combined with the
+    presence of the terminator tool in `tools`, this makes "prose instead of
+    JSON" impossible: the model either calls a read tool to keep exploring,
+    or calls the terminator with server-validated structured output.
 
     Each iteration counts input tokens before sending; if the input would
     exceed the model's window, InputTooLarge is raised with diagnostics.
@@ -187,8 +194,17 @@ def call_claude(
         len(tools) if tools else 0,
     )
 
-    if tools is not None and tool_executor is None:
-        raise ValueError("tool_executor is required when tools is provided")
+    # tool_executor is only needed when the model might call non-terminator
+    # tools. Terminator-only crows (planner, reviewer) pass tools=[terminator]
+    # with no executor — the loop catches submit_result before it would ever
+    # try to execute anything else.
+    has_non_terminator_tools = bool(
+        tools and any(t.get("name") != SUBMIT_RESULT_TOOL_NAME for t in tools)
+    )
+    if has_non_terminator_tools and tool_executor is None:
+        raise ValueError(
+            "tool_executor is required when tools include non-terminator tools"
+        )
 
     client = _get_client()
     start = time.monotonic()
@@ -258,6 +274,12 @@ def call_claude(
         }
         if tools:
             kwargs["tools"] = tools
+            # Force "must call some tool" when the caller wants a terminator-
+            # guaranteed result. Cannot pin to the terminator specifically —
+            # the model needs to be free to call read tools first — but "any"
+            # eliminates the "wrote prose, no tool" failure mode entirely.
+            if force_terminator_tool:
+                kwargs["tool_choice"] = {"type": "any"}
 
         # The Anthropic SDK refuses non-streaming requests when the model
         # might take longer than 10 minutes to respond — which Haiku 4.5 can

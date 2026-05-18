@@ -39,6 +39,8 @@ from worker.parsing import parse_json_output
 from worker.prompts import CROW_IDENTITIES
 from worker.tools import (
     IMPLEMENTER_SUBMIT_RESULT_SCHEMA,
+    PLANNER_SUBMIT_RESULT_SCHEMA,
+    REVIEWER_SUBMIT_RESULT_SCHEMA,
     WORKTREE_TOOL_SCHEMAS,
     WorktreeTools,
 )
@@ -273,16 +275,26 @@ def execute(
 
         user_prompt = f"## Instructions\n{resolved_instructions}\n\n## Codebase\n{context}"
 
-        # Implementer crows run the agentic loop so they can actively read files
-        # the planner referenced (including spec paths in the directive). They
-        # also get the `submit_result` terminator tool so the final output is
-        # delivered as server-validated JSON (no parse-fail-silently). Other
-        # crow types stay one-shot for now.
+        # Every crow now uses the `submit_result` terminator tool so the
+        # final output is server-validated structured JSON. Implementer and
+        # fixer additionally get worktree read tools because they iterate
+        # over files before producing the output; planner and reviewer go
+        # single-call. force_terminator_tool tells the API the model MUST
+        # call a tool every turn — combined with the terminator, that makes
+        # the "model returned prose instead of JSON" failure mode impossible.
         worktree_tools: WorktreeTools | None = None
         tool_schemas: list[dict[str, Any]] | None = None
-        if crow_type == CrowType.IMPLEMENTER:
+        force_terminator: str | None = None
+        if crow_type in (CrowType.IMPLEMENTER, CrowType.FIXER):
             worktree_tools = WorktreeTools(worktree_dir=worktree_dir, logger=logger)
             tool_schemas = [*WORKTREE_TOOL_SCHEMAS, IMPLEMENTER_SUBMIT_RESULT_SCHEMA]
+            force_terminator = "submit_result"
+        elif crow_type == CrowType.PLANNER:
+            tool_schemas = [PLANNER_SUBMIT_RESULT_SCHEMA]
+            force_terminator = "submit_result"
+        elif crow_type == CrowType.REVIEWER:
+            tool_schemas = [REVIEWER_SUBMIT_RESULT_SCHEMA]
+            force_terminator = "submit_result"
 
         # max_tokens is the per-response output ceiling. Planner/reviewer emit
         # short JSON (tasks list, review verdict) and 8K is plenty. Implementer
@@ -299,6 +311,7 @@ def execute(
             max_tokens=max_tokens,
             tools=tool_schemas,
             tool_executor=worktree_tools,
+            force_terminator_tool=force_terminator,
         )
         logger.event(
             "claude_completed",
@@ -448,9 +461,18 @@ def execute(
 
         # Build completion
         now = datetime.now(timezone.utc).isoformat()
+        outcome_dict = _build_outcome(crow_type, parsed)
+        # Stash PR info inside outcome too — the reactor reads outcome.pr_number
+        # to propagate it onto the parent MVI row so the integrator dispatch +
+        # iOS PR card don't have to fall back to scanning implementer crows.
+        if pr_data and crow_type == CrowType.IMPLEMENTER:
+            pr_number = pr_data.get("number")
+            if pr_number is not None:
+                outcome_dict["pr_number"] = pr_number
+                outcome_dict["pr_url"] = pr_data.get("url", "")
         result: dict[str, Any] = {
             "status": "completed",
-            "outcome": _build_outcome(crow_type, parsed),
+            "outcome": outcome_dict,
             "cost": cost.to_dict(),
             "completed_at": now,
         }

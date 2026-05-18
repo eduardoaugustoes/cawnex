@@ -473,7 +473,7 @@ class TestToolUseWiring:
         "worker.executor.gather_planner_context",
         return_value=("ctx", {"files_read": [], "files_failed": [], "failure_reasons": {}}),
     )
-    def test_planner_stays_one_shot(
+    def test_planner_uses_terminator_tool_only(
         self,
         mock_context: MagicMock,
         mock_claude: MagicMock,
@@ -481,13 +481,20 @@ class TestToolUseWiring:
         mock_wt: MagicMock,
         mock_cleanup: MagicMock,
     ) -> None:
+        """Planner gets the submit_result terminator tool but no worktree
+        read tools — it's a single-shot call where the only acceptable
+        output is structured JSON via the terminator."""
         mock_claude.return_value = _make_claude_result('{"tasks": []}')
 
         execute(_make_snapshot(crow_type="planner"), logger=_make_logger(), config=_make_config())
 
         kwargs = mock_claude.call_args.kwargs
-        assert kwargs.get("tools") is None
+        tools = kwargs.get("tools")
+        assert tools is not None and len(tools) == 1
+        assert tools[0]["name"] == "submit_result"
+        # No tool_executor: planner only has the terminator, no reads to dispatch.
         assert kwargs.get("tool_executor") is None
+        assert kwargs.get("force_terminator_tool") == "submit_result"
 
 
 class TestEmptyChangesGuard:

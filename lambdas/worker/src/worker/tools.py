@@ -322,6 +322,100 @@ IMPLEMENTER_SUBMIT_RESULT_SCHEMA: dict[str, Any] = {
 }
 
 
+PLANNER_SUBMIT_RESULT_SCHEMA: dict[str, Any] = {
+    "name": "submit_result",
+    "description": (
+        "Call this tool EXACTLY ONCE with your plan. This is how you deliver "
+        "the final result — do not write JSON in prose. `tasks` is the list "
+        "of implementation tasks for the MVI, `context_files` is the files "
+        "the implementer should read before coding, and `summary` is your "
+        "one-line plan overview."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "tasks": {
+                "type": "array",
+                "description": "Implementation tasks in execution order.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "description": {"type": "string"},
+                        "estimated_hours": {"type": "number"},
+                        "task_type": {
+                            "type": "string",
+                            "enum": ["crow", "human"],
+                            "description": (
+                                "'crow' = engine implements; 'human' = "
+                                "founder must do (e.g. set a secret)."
+                            ),
+                        },
+                    },
+                    "required": ["name", "description"],
+                },
+            },
+            "context_files": {
+                "type": "array",
+                "description": (
+                    "Paths the implementer should read before coding. "
+                    "Include every file mentioned in the directive."
+                ),
+                "items": {"type": "string"},
+            },
+            "summary": {
+                "type": "string",
+                "description": "One-line plan summary.",
+            },
+        },
+        "required": ["tasks", "context_files", "summary"],
+    },
+}
+
+
+REVIEWER_SUBMIT_RESULT_SCHEMA: dict[str, Any] = {
+    "name": "submit_result",
+    "description": (
+        "Call this tool EXACTLY ONCE with your review verdict. This is how "
+        "you deliver the final result — do not write JSON in prose. "
+        "`approved=true` and an empty `blocking_issues` list means the PR "
+        "ships. Any item in `blocking_issues` triggers a fixer crow."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "approved": {
+                "type": "boolean",
+                "description": "True only when there are zero blocking issues.",
+            },
+            "blocking_issues": {
+                "type": "array",
+                "description": (
+                    "Issues that prevent merging. Each item is a concrete, "
+                    "actionable description of what's wrong and what file."
+                ),
+                "items": {"type": "string"},
+            },
+            "non_blocking_issues": {
+                "type": "array",
+                "description": "Nice-to-fix issues that don't block the PR.",
+                "items": {"type": "string"},
+            },
+            "suggestions": {
+                "type": "array",
+                "description": "Optional improvement suggestions.",
+                "items": {"type": "string"},
+            },
+            "summary": {
+                "type": "string",
+                "description": "One-line review verdict with reasoning.",
+            },
+        },
+        "required": ["approved", "blocking_issues", "summary"],
+    },
+}
+
+
 WORKTREE_TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
         "name": "read_file",
