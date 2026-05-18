@@ -1,5 +1,6 @@
 """Project Hub route — aggregated view for the Project Hub screen."""
 
+import logging
 from typing import Annotated, Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,6 +11,7 @@ from src.db.client import TenantDB
 from src.db.project_state import compute_current_state
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["hub"])
+log = logging.getLogger(__name__)
 
 DOC_TYPES = ["vision", "architecture", "glossary", "design"]
 
@@ -35,6 +37,10 @@ async def get_project_hub(  # noqa: C901
     try:
         current_state = compute_current_state(project_id, db)
     except Exception:
+        log.exception(
+            "compute_current_state failed for project_id=%s, defaulting to draft",
+            project_id,
+        )
         current_state = "draft"
 
     # Get all items under the project (includes DOC#, S#wave, etc.)

@@ -187,6 +187,39 @@ def test_get_project_returns_current_state_active(mock_boto3: Mock) -> None:
 
 @patch("src.db.client.boto3")
 @patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_compute_current_state_raises(mock_boto3: Mock) -> None:
+    """GET /projects/{id} defaults to draft when compute_current_state raises."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    seeded: Dict[str, Any] = {
+        "PK": "T#tenant-abc",
+        "SK": "P#my-project-abc123",
+        "project_id": "my-project-abc123",
+        "name": "My Project",
+        "one_liner": "A cool project",
+        "status": "draft",
+        "murders": ["dev"],
+        "created_at": "2024-01-01T00:00:00+00:00",
+    }
+
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.get_item.return_value = seeded
+        # Make compute_current_state raise an exception
+        mock_db_instance.query_project.side_effect = RuntimeError("DB error")
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects/my-project-abc123")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current_state"] == "draft"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
 def test_list_projects_returns_empty(mock_boto3: Mock) -> None:
     """GET /projects returns empty list when no projects exist."""
     mock_table = Mock()
