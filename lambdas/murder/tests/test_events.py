@@ -29,6 +29,19 @@ class TestCrowAssignedEvent:
         assert "planner" in event.message.lower()
         assert event.pk == "T#acme#P#cawnex"
         assert event.sk.startswith("EVT#w001#")
+        assert "mvi_id" not in event.extra  # absent when not passed
+
+    def test_mvi_id_propagates_into_extra(self) -> None:
+        """API events feed filters by extra.mvi_id — the builder must carry it."""
+        event = build_crow_assigned_event(
+            tenant="acme",
+            project="cawnex",
+            wave_id="w001",
+            crow_type=CrowType.PLANNER,
+            task_name="plan",
+            mvi_id="mvi2",
+        )
+        assert event.extra["mvi_id"] == "mvi2"
 
 
 class TestMVIReadyEvent:
@@ -42,6 +55,17 @@ class TestMVIReadyEvent:
         assert event.event_type == EventType.MVI_READY.value
         assert event.color == EventColor.GREEN.value
         assert "auth" in event.message.lower()
+        assert "mvi_id" not in event.extra
+
+    def test_mvi_id_propagates_into_extra(self) -> None:
+        event = build_mvi_ready_event(
+            tenant="acme",
+            project="cawnex",
+            wave_id="w001",
+            mvi_name="Auth & JWT",
+            mvi_id="mvi2",
+        )
+        assert event.extra["mvi_id"] == "mvi2"
 
 
 class TestWaveEvents:

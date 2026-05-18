@@ -116,7 +116,7 @@ def react_to_mvi_queued(
     blackboard.write_item(item)
 
     evt = build_crow_assigned_event(
-        tenant, project, wave_id, CrowType.PLANNER, "plan"
+        tenant, project, wave_id, CrowType.PLANNER, "plan", mvi_id=mvi_id
     )
     blackboard.write_event(evt.to_events_item(EVENT_TTL_DAYS))
 
@@ -325,7 +325,7 @@ def _handle_assign(
     blackboard.write_item(item)
 
     evt = build_crow_assigned_event(
-        tenant, project, wave_id, action.crow_type, action.reason
+        tenant, project, wave_id, action.crow_type, action.reason, mvi_id=mvi_id
     )
     blackboard.write_event(evt.to_events_item(EVENT_TTL_DAYS))
 
@@ -404,7 +404,7 @@ def _handle_mvi_ready(
 
     blackboard.update(pk, mvi_sk, updates)
 
-    evt = build_mvi_ready_event(tenant, project, wave_id, mvi_name)
+    evt = build_mvi_ready_event(tenant, project, wave_id, mvi_name, mvi_id=mvi_id)
     blackboard.write_event(evt.to_events_item(EVENT_TTL_DAYS))
 
     logger.event("mvi_ready_to_ship", mvi_id=mvi_id, cost=total_cost.credits)
@@ -488,7 +488,7 @@ def _handle_split_required(
     blackboard.write_item(item)
 
     evt = build_crow_assigned_event(
-        tenant, project, wave_id, CrowType.PLANNER, action.reason
+        tenant, project, wave_id, CrowType.PLANNER, action.reason, mvi_id=mvi_id
     )
     blackboard.write_event(evt.to_events_item(EVENT_TTL_DAYS))
 
@@ -745,6 +745,7 @@ def _check_and_unblock(
 
         evt2 = build_crow_assigned_event(
             tenant, project, wave_id, crow_type, f"unblocked by {resolved_ref}",
+            mvi_id=mvi_id,
         )
         blackboard.write_event(evt2.to_events_item(EVENT_TTL_DAYS))
 

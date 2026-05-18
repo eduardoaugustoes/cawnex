@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from murder.config import MICROS_PER_DOLLAR
 from murder.enums import CrowType, EventColor, EventType, HumanTaskSubtype
 from murder.models import EventRecord
@@ -17,7 +19,11 @@ def build_crow_assigned_event(
     wave_id: str,
     crow_type: CrowType,
     task_name: str,
+    mvi_id: str = "",
 ) -> EventRecord:
+    extra: dict[str, Any] = {"crow_type": crow_type.value, "task_name": task_name}
+    if mvi_id:
+        extra["mvi_id"] = mvi_id
     return EventRecord(
         tenant=tenant,
         project=project,
@@ -25,7 +31,7 @@ def build_crow_assigned_event(
         event_type=EventType.CROW_ASSIGNED.value,
         message=f"Murder assigned {crow_type.value} — {task_name}",
         color=EventColor.PURPLE.value,
-        extra={"crow_type": crow_type.value, "task_name": task_name},
+        extra=extra,
     )
 
 
@@ -34,7 +40,11 @@ def build_mvi_ready_event(
     project: str,
     wave_id: str,
     mvi_name: str,
+    mvi_id: str = "",
 ) -> EventRecord:
+    extra: dict[str, Any] = {"mvi_name": mvi_name}
+    if mvi_id:
+        extra["mvi_id"] = mvi_id
     return EventRecord(
         tenant=tenant,
         project=project,
@@ -42,7 +52,7 @@ def build_mvi_ready_event(
         event_type=EventType.MVI_READY.value,
         message=f"{mvi_name} ready to ship — all tasks completed, PR approved",
         color=EventColor.GREEN.value,
-        extra={"mvi_name": mvi_name},
+        extra=extra,
     )
 
 
