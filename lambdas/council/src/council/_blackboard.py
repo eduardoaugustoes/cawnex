@@ -55,12 +55,30 @@ class Blackboard:
     def scan_pending_council_sessions(self) -> list[dict[str, Any]]:
         """Find COUNCIL# rows with status=pending.
 
-        Small bounded scan for M2; replace with a GSI when pending volume warrants.
+        DynamoDB Limit applies to items SCANNED before the filter is applied,
+        not items RETURNED. With ~266 rows in the table and our COUNCIL row
+        deep in the partition order, Limit=10 silently returned [] every poll
+        because the first 10 examined rows had different SKs. Paginate fully
+        until we hit a match or exhaust the table. Long-term, add a GSI on
+        status to avoid the table scan entirely.
         """
-        response = self._table.scan(
-            FilterExpression="begins_with(SK, :sk) AND #s = :status",
-            ExpressionAttributeNames={"#s": "status"},
-            ExpressionAttributeValues={":sk": "COUNCIL#", ":status": "pending"},
-            Limit=10,
-        )
-        return response.get("Items", [])
+        items: list[dict[str, Any]] = []
+        scan_kwargs: dict[str, Any] = {
+            "FilterExpression": "begins_with(SK, :sk) AND #s = :status",
+            "ExpressionAttributeNames": {"#s": "status"},
+            "ExpressionAttributeValues": {
+                ":sk": "COUNCIL#",
+                ":status": "pending",
+            },
+        }
+        while True:
+            response = self._table.scan(**scan_kwargs)
+            items.extend(response.get("Items", []))
+            last_key = response.get("LastEvaluatedKey")
+            if not last_key or items:
+                # Stop as soon as we have at least one pending session; one
+                # pending row at a time is enough for the poll loop to make
+                # forward progress.
+                break
+            scan_kwargs["ExclusiveStartKey"] = last_key
+        return items
