@@ -1,5 +1,6 @@
 """Projects routes — create and list projects."""
 
+import logging
 import re
 import time
 from datetime import datetime, timezone
@@ -15,6 +16,7 @@ from src.db.project_state import compute_current_state
 from src.models import ProjectReadResponse
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+logger = logging.getLogger(__name__)
 
 VALID_MURDERS = {"dev", "editorial", "infra", "data", "social"}
 
@@ -136,8 +138,13 @@ async def list_projects(
         project_id = item.get("project_id", "")
         try:
             current_state = compute_current_state(project_id, db)
-        except Exception:
-            # If state computation fails, default to draft
+        except Exception as e:
+            # If state computation fails, log and default to draft
+            logger.warning(
+                "Failed to compute current_state for project %s: %s",
+                project_id,
+                str(e),
+            )
             current_state = "draft"
         result.append(
             {
@@ -167,8 +174,13 @@ async def get_project(
     project_data = item[0]
     try:
         current_state = compute_current_state(project_id, db)
-    except Exception:
-        # If state computation fails, default to draft
+    except Exception as e:
+        # If state computation fails, log and default to draft
+        logger.warning(
+            "Failed to compute current_state for project %s: %s",
+            project_id,
+            str(e),
+        )
         current_state = "draft"
 
     return {
