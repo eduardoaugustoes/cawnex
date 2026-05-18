@@ -38,7 +38,7 @@ final class APIProjectHubService: ProjectHubService {
                 id: response.project.id,
                 name: response.project.name,
                 description: response.project.one_liner,
-                status: ProjectStatus(rawValue: response.project.status.capitalized) ?? .draft,
+                status: ProjectStatus(rawValue: response.project.current_state.capitalized) ?? .draft,
                 tasks: TaskCounts(done: response.stats.tasks_done, active: waves?.active_count ?? 0, refined: 0, draft: 0),
                 creditsSpent: creditsSpent,
                 humanEquivSaved: humanEquivSaved
@@ -78,6 +78,7 @@ private struct HubProjectDTO: Decodable {
     let name: String
     let one_liner: String
     let status: String
+    let current_state: String
     let murders: [String]?
 }
 
