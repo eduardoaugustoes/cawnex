@@ -193,6 +193,264 @@ def test_list_projects_includes_current_state(mock_boto3: Mock) -> None:
 
 @patch("src.db.client.boto3")
 @patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_not_found(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns 404 when project doesn't exist."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {}
+
+    client = _make_client(_make_tenant())
+
+    response = client.get("/projects/nonexistent")
+
+    assert response.status_code == 404
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_returns_draft_state(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns project with draft state when docs not complete."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    project_data = {
+        "PK": "T#tenant-abc",
+        "SK": "P#my-project",
+        "project_id": "my-project",
+        "name": "My Project",
+        "one_liner": "Test project",
+        "status": "draft",
+        "murders": ["dev"],
+        "created_at": "2024-01-01T00:00:00+00:00",
+    }
+    mock_table.get_item.return_value = {"Item": project_data}
+
+    # Mock query_project to return incomplete docs (only 2 of 4)
+    def mock_query_project(project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
+        if sk_prefix == "DOC#":
+            return [
+                {"SK": "DOC#vision", "doc_type": "vision", "status": "complete"},
+                {"SK": "DOC#architecture", "doc_type": "architecture", "status": "in_progress"},
+            ]
+        return []
+
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.get_item.return_value = project_data
+        mock_db_instance.query_project.side_effect = mock_query_project
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects/my-project")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["project_id"] == "my-project"
+        assert data["name"] == "My Project"
+        assert data["status"] == "draft"
+        assert data["current_state"] == "draft"
+        assert data["murders"] == ["dev"]
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_returns_active_state(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns project with active state when docs complete and no waves."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    project_data = {
+        "PK": "T#tenant-abc",
+        "SK": "P#active-project",
+        "project_id": "active-project",
+        "name": "Active Project",
+        "one_liner": "A project in active state",
+        "status": "draft",
+        "murders": ["dev"],
+        "created_at": "2024-01-01T00:00:00+00:00",
+    }
+    mock_table.get_item.return_value = {"Item": project_data}
+
+    # Mock query_project to return all 4 docs complete and no waves
+    def mock_query_project(project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
+        if sk_prefix == "DOC#":
+            return [
+                {"SK": "DOC#vision", "doc_type": "vision", "status": "complete"},
+                {"SK": "DOC#architecture", "doc_type": "architecture", "status": "complete"},
+                {"SK": "DOC#glossary", "doc_type": "glossary", "status": "complete"},
+                {"SK": "DOC#design", "doc_type": "design", "status": "complete"},
+            ]
+        return []
+
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.get_item.return_value = project_data
+        mock_db_instance.query_project.side_effect = mock_query_project
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects/active-project")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["project_id"] == "active-project"
+        assert data["name"] == "Active Project"
+        assert data["current_state"] == "active"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_returns_running_state(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns project with running state when docs complete and wave executing."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    project_data = {
+        "PK": "T#tenant-abc",
+        "SK": "P#running-project",
+        "project_id": "running-project",
+        "name": "Running Project",
+        "one_liner": "A project in running state",
+        "status": "draft",
+        "murders": ["dev"],
+        "created_at": "2024-01-01T00:00:00+00:00",
+    }
+    mock_table.get_item.return_value = {"Item": project_data}
+
+    # Mock query_project to return all 4 docs complete and executing wave
+    def mock_query_project(project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
+        if sk_prefix == "DOC#":
+            return [
+                {"SK": "DOC#vision", "doc_type": "vision", "status": "complete"},
+                {"SK": "DOC#architecture", "doc_type": "architecture", "status": "complete"},
+                {"SK": "DOC#glossary", "doc_type": "glossary", "status": "complete"},
+                {"SK": "DOC#design", "doc_type": "design", "status": "complete"},
+            ]
+        elif sk_prefix == "S#":
+            return [
+                {"SK": "S#wave-1", "level": "wave", "status": "executing"},
+            ]
+        return []
+
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.get_item.return_value = project_data
+        mock_db_instance.query_project.side_effect = mock_query_project
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects/running-project")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["project_id"] == "running-project"
+        assert data["name"] == "Running Project"
+        assert data["current_state"] == "running"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_returns_idle_state(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns project with idle state when docs complete and all waves terminal."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    project_data = {
+        "PK": "T#tenant-abc",
+        "SK": "P#idle-project",
+        "project_id": "idle-project",
+        "name": "Idle Project",
+        "one_liner": "A project in idle state",
+        "status": "draft",
+        "murders": ["dev"],
+        "created_at": "2024-01-01T00:00:00+00:00",
+    }
+    mock_table.get_item.return_value = {"Item": project_data}
+
+    # Mock query_project to return all 4 docs complete and terminal waves
+    def mock_query_project(project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
+        if sk_prefix == "DOC#":
+            return [
+                {"SK": "DOC#vision", "doc_type": "vision", "status": "complete"},
+                {"SK": "DOC#architecture", "doc_type": "architecture", "status": "complete"},
+                {"SK": "DOC#glossary", "doc_type": "glossary", "status": "complete"},
+                {"SK": "DOC#design", "doc_type": "design", "status": "complete"},
+            ]
+        elif sk_prefix == "S#":
+            return [
+                {"SK": "S#wave-1", "level": "wave", "status": "delivered"},
+            ]
+        return []
+
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.get_item.return_value = project_data
+        mock_db_instance.query_project.side_effect = mock_query_project
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects/idle-project")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["project_id"] == "idle-project"
+        assert data["name"] == "Idle Project"
+        assert data["current_state"] == "idle"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_returns_completed_state(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns project with completed state when docs complete, all waves terminal, and MVI shipped."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    project_data = {
+        "PK": "T#tenant-abc",
+        "SK": "P#completed-project",
+        "project_id": "completed-project",
+        "name": "Completed Project",
+        "one_liner": "A project in completed state",
+        "status": "draft",
+        "murders": ["dev"],
+        "created_at": "2024-01-01T00:00:00+00:00",
+    }
+    mock_table.get_item.return_value = {"Item": project_data}
+
+    # Mock query_project to return all 4 docs complete, terminal waves, and shipped MVI
+    def mock_query_project(project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
+        if sk_prefix == "DOC#":
+            return [
+                {"SK": "DOC#vision", "doc_type": "vision", "status": "complete"},
+                {"SK": "DOC#architecture", "doc_type": "architecture", "status": "complete"},
+                {"SK": "DOC#glossary", "doc_type": "glossary", "status": "complete"},
+                {"SK": "DOC#design", "doc_type": "design", "status": "complete"},
+            ]
+        elif sk_prefix == "S#":
+            return [
+                {"SK": "S#wave-1", "level": "wave", "status": "delivered"},
+                {"SK": "S#wave-1#m1", "level": "murder", "status": "shipped"},
+            ]
+        return []
+
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.get_item.return_value = project_data
+        mock_db_instance.query_project.side_effect = mock_query_project
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects/completed-project")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["project_id"] == "completed-project"
+        assert data["name"] == "Completed Project"
+        assert data["current_state"] == "completed"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
 def test_update_project_auto_mode(mock_boto3: Mock) -> None:
     """PATCH /projects/{id} updates auto_mode on root snapshot."""
     mock_table = Mock()

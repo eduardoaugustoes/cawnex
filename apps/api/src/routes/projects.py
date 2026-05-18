@@ -12,6 +12,7 @@ from src.auth.dependencies import get_tenant
 from src.auth.tenant import TenantContext
 from src.db.client import TenantDB
 from src.db.project_state import compute_current_state
+from src.models import ProjectReadResponse
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -150,6 +151,34 @@ async def list_projects(
             }
         )
     return result
+
+
+@router.get("/{project_id}", response_model=ProjectReadResponse)
+async def get_project(
+    project_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
+) -> Dict[str, Any]:
+    """Get a single project by ID with computed state."""
+    db = TenantDB(tenant)
+    item = db.get_item(sk=f"P#{project_id}")
+    if not item:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        current_state = compute_current_state(project_id, db)
+    except Exception:
+        # If state computation fails, default to draft
+        current_state = "draft"
+
+    return {
+        "project_id": project_id,
+        "name": item.get("name", ""),
+        "one_liner": item.get("one_liner", item.get("description", "")),
+        "status": item.get("status", "draft"),
+        "current_state": current_state,
+        "murders": item.get("murders", ["dev"]),
+        "created_at": item.get("created_at", ""),
+    }
 
 
 VALID_AUTO_MODES = {"off", "auto", "supervised"}
