@@ -88,6 +88,105 @@ def test_create_project_defaults_murders_to_dev(mock_boto3: Mock) -> None:
 
 @patch("src.db.client.boto3")
 @patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_returns_404_when_not_found(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns 404 when project doesn't exist."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.get_item.return_value = {}
+
+    client = _make_client(_make_tenant())
+
+    response = client.get("/projects/nonexistent")
+
+    assert response.status_code == 404
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_returns_current_state_draft(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns current_state=draft for a project without docs."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    seeded: Dict[str, Any] = {
+        "PK": "T#tenant-abc",
+        "SK": "P#my-project-abc123",
+        "project_id": "my-project-abc123",
+        "name": "My Project",
+        "one_liner": "A cool project",
+        "status": "draft",
+        "murders": ["dev"],
+        "created_at": "2024-01-01T00:00:00+00:00",
+    }
+
+    # Mock get_item for project lookup
+    # Mock query_project to return no docs (draft state)
+    def mock_query_project(project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
+        if sk_prefix == "DOC#":
+            return []  # No docs, so state is draft
+        return []
+
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.get_item.return_value = seeded
+        mock_db_instance.query_project.side_effect = mock_query_project
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects/my-project-abc123")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["project_id"] == "my-project-abc123"
+        assert data["name"] == "My Project"
+        assert data["status"] == "draft"
+        assert data["current_state"] == "draft"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_returns_current_state_active(mock_boto3: Mock) -> None:
+    """GET /projects/{id} returns current_state=active when docs complete, no waves."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    seeded: Dict[str, Any] = {
+        "PK": "T#tenant-abc",
+        "SK": "P#active-proj",
+        "project_id": "active-proj",
+        "name": "Active Project",
+        "one_liner": "Test",
+        "status": "draft",
+        "murders": ["dev"],
+        "created_at": "2024-01-01T00:00:00+00:00",
+    }
+
+    def mock_query_project(project_id: str, sk_prefix: str) -> List[Dict[str, Any]]:
+        if sk_prefix == "DOC#":
+            return [
+                {"SK": "DOC#vision", "doc_type": "vision", "status": "complete"},
+                {"SK": "DOC#architecture", "doc_type": "architecture", "status": "complete"},
+                {"SK": "DOC#glossary", "doc_type": "glossary", "status": "complete"},
+                {"SK": "DOC#design", "doc_type": "design", "status": "complete"},
+            ]
+        return []  # No waves
+
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.get_item.return_value = seeded
+        mock_db_instance.query_project.side_effect = mock_query_project
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects/active-proj")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current_state"] == "active"
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
 def test_list_projects_returns_empty(mock_boto3: Mock) -> None:
     """GET /projects returns empty list when no projects exist."""
     mock_table = Mock()

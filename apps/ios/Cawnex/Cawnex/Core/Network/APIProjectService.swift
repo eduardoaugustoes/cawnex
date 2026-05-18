@@ -32,7 +32,7 @@ final class APIProjectService: ProjectService {
             id: response.project_id,
             name: response.name,
             description: description,
-            status: ProjectStatus(rawValue: response.status.capitalized) ?? .draft,
+            status: decodeProjectStatus(response.current_state),
             tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
             creditsSpent: 0,
             humanEquivSaved: 0
@@ -40,6 +40,15 @@ final class APIProjectService: ProjectService {
         await MainActor.run { store.projects.append(project) }
         return project
     }
+}
+
+// MARK: - Helper Functions
+
+/// Decode a current_state string to ProjectStatus enum.
+/// Maps lowercase state strings (draft/active/running/idle/completed) to capitalized enum cases.
+private func decodeProjectStatus(_ stateString: String) -> ProjectStatus {
+    let capitalized = stateString.capitalized
+    return ProjectStatus(rawValue: capitalized) ?? .draft
 }
 
 // MARK: - DTOs
@@ -54,6 +63,7 @@ private struct CreateProjectResponseDTO: Decodable {
     let project_id: String
     let name: String
     let status: String
+    let current_state: String
     let murders: [String]
     let created_at: String
 }
@@ -63,15 +73,17 @@ private struct ProjectDTO: Decodable {
     let name: String
     let one_liner: String
     let status: String
+    let current_state: String
     let murders: [String]
     let created_at: String
 
     func toProject() -> Project {
-        Project(
+        let status = decodeProjectStatus(current_state)
+        return Project(
             id: project_id,
             name: name,
             description: one_liner,
-            status: ProjectStatus(rawValue: status.capitalized) ?? .draft,
+            status: status,
             tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
             creditsSpent: 0,
             humanEquivSaved: 0

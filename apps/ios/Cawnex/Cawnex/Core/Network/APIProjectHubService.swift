@@ -33,12 +33,14 @@ final class APIProjectHubService: ProjectHubService {
             ? Int(truncating: (humanEquivSaved / creditsSpent) as NSDecimalNumber)
             : 0
 
+        let projectStatus = decodeProjectStatus(response.project.current_state)
+
         return ProjectHubDetail(
             project: Project(
                 id: response.project.id,
                 name: response.project.name,
                 description: response.project.one_liner,
-                status: ProjectStatus(rawValue: response.project.status.capitalized) ?? .draft,
+                status: projectStatus,
                 tasks: TaskCounts(done: response.stats.tasks_done, active: waves?.active_count ?? 0, refined: 0, draft: 0),
                 creditsSpent: creditsSpent,
                 humanEquivSaved: humanEquivSaved
@@ -71,6 +73,15 @@ final class APIProjectHubService: ProjectHubService {
     }
 }
 
+// MARK: - Helper Functions
+
+/// Decode a current_state string to ProjectStatus enum.
+/// Maps lowercase state strings (draft/active/running/idle/completed) to capitalized enum cases.
+private func decodeProjectStatus(_ stateString: String) -> ProjectStatus {
+    let capitalized = stateString.capitalized
+    return ProjectStatus(rawValue: capitalized) ?? .draft
+}
+
 // MARK: - DTOs
 
 private struct HubProjectDTO: Decodable {
@@ -78,6 +89,7 @@ private struct HubProjectDTO: Decodable {
     let name: String
     let one_liner: String
     let status: String
+    let current_state: String
     let murders: [String]?
 }
 
