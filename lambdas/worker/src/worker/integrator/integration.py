@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from worker.integrator.findings import MergeConflict
+from worker.integrator.worktree import _git_env
 
 logger = logging.getLogger("integrator.integration")
 
@@ -43,6 +44,7 @@ def attempt_integration_merge(
             "origin/main",
         ],
         capture_output=True,
+        env=_git_env(),
     )
     if add_result.returncode != 0:
         return IntegrationResult(
@@ -68,6 +70,7 @@ def attempt_integration_merge(
                 f"origin/pr-{pr_number}",
             ],
             capture_output=True,
+            env=_git_env(),
         )
         if merge_result.returncode != 0:
             files_result = subprocess.run(
@@ -80,6 +83,7 @@ def attempt_integration_merge(
                     "--diff-filter=U",
                 ],
                 capture_output=True,
+                env=_git_env(),
             )
             files = [f for f in files_result.stdout.decode().splitlines() if f]
 
@@ -88,6 +92,7 @@ def attempt_integration_merge(
                 hunk_result = subprocess.run(
                     ["git", "-C", integration_path, "diff", files[0]],
                     capture_output=True,
+                    env=_git_env(),
                 )
                 hunk_text = hunk_result.stdout.decode()[:500]
                 if hunk_text:
@@ -108,6 +113,7 @@ def attempt_integration_merge(
             subprocess.run(
                 ["git", "-C", integration_path, "merge", "--abort"],
                 capture_output=True,
+                env=_git_env(),
             )
             continue
 

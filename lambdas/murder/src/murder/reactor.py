@@ -536,6 +536,13 @@ def _fail_mvi_budget(
 
     logger.event("budget_exceeded", mvi_id=mvi_id, spent=budget.spent, limit=budget.limit)
 
+    # Without this, the wave gets stuck in `executing` forever when budget
+    # cap kills the last in-flight MVI — the regular _handle_fail_mvi path
+    # would have advanced the wave, but the budget path bypassed it.
+    if _maybe_dispatch_next_mvi(blackboard, pk, wave_id, logger):
+        return
+    _maybe_transition_wave(blackboard, pk, wave_id, logger)
+
 
 # --- Human task handling ---
 

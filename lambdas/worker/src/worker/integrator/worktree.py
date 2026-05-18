@@ -3,9 +3,26 @@
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 
 logger = logging.getLogger("integrator.worktree")
+
+
+def _git_env() -> dict[str, str]:
+    """Env vars that make git operate on EFS-owned repos.
+
+    The worker's repos live under /mnt/repos owned by uid 1000 (the EFS
+    access point's posixUser). Without safe.directory=*, git refuses with
+    'fatal: detected dubious ownership' when the integrator's process
+    happens to run as a different UID than ensure_repo's clone.
+    """
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_KEY_0"] = "safe.directory"
+    env["GIT_CONFIG_VALUE_0"] = "*"
+    return env
 
 
 class WorktreeError(Exception):
@@ -21,6 +38,7 @@ def add_pr_worktree(repo_path: str, pr_number: int) -> str:
     fetch = subprocess.run(
         ["git", "-C", repo_path, "fetch", "origin", pr_ref],
         capture_output=True,
+        env=_git_env(),
     )
     if fetch.returncode != 0:
         raise WorktreeError(
@@ -31,6 +49,7 @@ def add_pr_worktree(repo_path: str, pr_number: int) -> str:
     add = subprocess.run(
         ["git", "-C", repo_path, "worktree", "add", worktree_path, "FETCH_HEAD"],
         capture_output=True,
+        env=_git_env(),
     )
     if add.returncode != 0:
         raise WorktreeError(
@@ -45,6 +64,7 @@ def remove_worktree(repo_path: str, worktree_path: str) -> None:
     result = subprocess.run(
         ["git", "-C", repo_path, "worktree", "remove", "--force", worktree_path],
         capture_output=True,
+        env=_git_env(),
     )
     if result.returncode != 0:
         logger.error(
