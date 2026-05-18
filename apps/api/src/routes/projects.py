@@ -139,7 +139,10 @@ async def list_projects(
         try:
             current_state = compute_current_state(project_id, db)
         except Exception as e:
-            # If state computation fails, log and default to draft
+            # If state computation fails, log and default to draft.
+            # Logging is the mitigation for silent errors that could hide
+            # data inconsistencies — operators need to know when state
+            # computation fails so they can investigate and fix root causes.
             logger.warning(
                 "Failed to compute current_state for project %s: %s",
                 project_id,
@@ -175,7 +178,10 @@ async def get_project(
     try:
         current_state = compute_current_state(project_id, db)
     except Exception as e:
-        # If state computation fails, log and default to draft
+        # If state computation fails, log and default to draft.
+        # Logging is the mitigation for silent errors that could hide
+        # data inconsistencies — operators need to know when state
+        # computation fails so they can investigate and fix root causes.
         logger.warning(
             "Failed to compute current_state for project %s: %s",
             project_id,

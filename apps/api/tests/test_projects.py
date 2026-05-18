@@ -300,6 +300,96 @@ def test_get_project_not_found(mock_boto3: Mock) -> None:
     assert response.status_code == 404
 
 
+@patch("src.routes.projects.logger")
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_list_projects_logs_compute_state_exception(mock_boto3: Mock, mock_logger: Mock) -> None:
+    """GET /projects logs compute_current_state exceptions at WARNING level."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    seeded: List[Dict[str, Any]] = [
+        {
+            "PK": "T#tenant-abc",
+            "SK": "P#proj-1",
+            "project_id": "proj-1",
+            "name": "Test Project",
+            "one_liner": "Test",
+            "status": "draft",
+            "murders": ["dev"],
+            "created_at": "2024-01-01T00:00:00+00:00",
+        }
+    ]
+    mock_table.query.return_value = {"Items": seeded}
+
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.query.return_value = seeded
+        # Simulate an exception in compute_current_state
+        mock_db_instance.query_project.side_effect = RuntimeError("DB connection failed")
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects")
+
+        # Request should succeed with graceful degradation
+        assert response.status_code == 200
+        items = response.json()
+        assert items[0]["current_state"] == "draft"
+
+        # Verify logger.warning was called with correct arguments
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert "Failed to compute current_state for project" in call_args[0][0]
+        assert "proj-1" in call_args[0]
+        assert "DB connection failed" in call_args[0]
+
+
+@patch("src.routes.projects.logger")
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_get_project_logs_compute_state_exception(mock_boto3: Mock, mock_logger: Mock) -> None:
+    """GET /projects/{id} logs compute_current_state exceptions at WARNING level."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+
+    project_data: List[Dict[str, Any]] = [
+        {
+            "PK": "T#tenant-abc",
+            "SK": "P#proj-1",
+            "project_id": "proj-1",
+            "name": "Test Project",
+            "one_liner": "Test",
+            "status": "draft",
+            "murders": ["dev"],
+            "created_at": "2024-01-01T00:00:00+00:00",
+        }
+    ]
+    mock_table.query.return_value = {"Items": project_data}
+
+    with patch("src.routes.projects.TenantDB") as mock_db_class:
+        mock_db_instance = Mock()
+        mock_db_instance.query.return_value = project_data
+        # Simulate an exception in compute_current_state
+        mock_db_instance.query_project.side_effect = AttributeError("Missing attribute")
+        mock_db_class.return_value = mock_db_instance
+
+        client = _make_client(_make_tenant())
+        response = client.get("/projects/proj-1")
+
+        # Request should succeed with graceful degradation
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current_state"] == "draft"
+
+        # Verify logger.warning was called with correct arguments
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert "Failed to compute current_state for project" in call_args[0][0]
+        assert "proj-1" in call_args[0]
+        assert "Missing attribute" in call_args[0]
+
+
 @patch("src.db.client.boto3")
 @patch.dict("os.environ", {"TABLE_NAME": "test-table"})
 def test_update_project_auto_mode(mock_boto3: Mock) -> None:
