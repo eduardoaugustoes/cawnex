@@ -239,6 +239,38 @@ class TestReactToCrowCompletion:
         assert updated["status"] == "ready_to_ship"
         assert updated["can_ship"] is True
 
+    def test_mvi_ready_promotes_next_draft_mvi_to_queued(
+        self, blackboard: Blackboard, logger: StructuredLogger
+    ) -> None:
+        """Sequential dispatch: when MVI 01 reaches ready_to_ship, MVI 02
+        (currently draft) should advance to queued so its planner fires.
+        Prevents the parallel-planner trampling bug from real waves."""
+        _seed_wave(blackboard)
+        _seed_mvi(blackboard, mvi_id="01", status=MVIStatus.EXECUTING)
+        _seed_mvi(blackboard, mvi_id="02", status=MVIStatus.DRAFT)
+        _seed_mvi(blackboard, mvi_id="03", status=MVIStatus.DRAFT)
+        crow = _seed_crow(
+            blackboard,
+            mvi_id="01",
+            crow_id="cr_rev_01",
+            crow_type=CrowType.REVIEWER,
+            outcome={"approved": True},
+        )
+        crow_item = blackboard.read(crow.pk, crow.sk)
+        assert crow_item is not None
+
+        react_to_crow_completion(blackboard, crow_item, logger)
+
+        pk = build_pk("t1", "p1")
+        m02 = blackboard.read(pk, build_sk(wave_id="w01", mvi_id="02"))
+        m03 = blackboard.read(pk, build_sk(wave_id="w01", mvi_id="03"))
+        assert m02 is not None and m02["status"] == "queued", (
+            "Next draft MVI should be promoted to queued"
+        )
+        assert m03 is not None and m03["status"] == "draft", (
+            "Only the NEXT draft should advance; others stay draft"
+        )
+
     def test_reviewer_rejected_assigns_fixer(
         self, blackboard: Blackboard, logger: StructuredLogger
     ) -> None:

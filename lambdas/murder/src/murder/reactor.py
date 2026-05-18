@@ -421,7 +421,11 @@ def _handle_mvi_ready(
 
     logger.event("mvi_ready_to_ship", mvi_id=mvi_id, cost=total_cost.credits)
 
-    # Check if all MVIs in the wave are terminal — transition wave to review
+    # Promote the next draft MVI if any — sequential dispatch lets later
+    # MVIs see this one's PR in their planner context. If no draft remains,
+    # the wave can transition to review (all MVIs terminal).
+    if _maybe_dispatch_next_mvi(blackboard, pk, wave_id, logger):
+        return
     _maybe_transition_wave(blackboard, pk, wave_id, logger)
 
     # If wave reached review with all MVIs ready_to_ship, kick off the Integrator.
@@ -440,6 +444,11 @@ def _handle_fail_mvi(
     blackboard.update(pk, mvi_sk, {"status": MVIStatus.FAILED.value})
     logger.event("mvi_failed", mvi_id=mvi_id, reason=reason)
 
+    # Even on failure, try to advance the next MVI — a failed dependency
+    # doesn't necessarily kill the rest of the wave, and the founder can
+    # decide what to do with the partial result at the council step.
+    if _maybe_dispatch_next_mvi(blackboard, pk, wave_id, logger):
+        return
     _maybe_transition_wave(blackboard, pk, wave_id, logger)
 
 
@@ -865,6 +874,49 @@ def react_to_wave_steered(
 
 
 # --- Wave lifecycle ---
+
+def _maybe_dispatch_next_mvi(
+    blackboard: Blackboard,
+    pk: str,
+    wave_id: str,
+    logger: StructuredLogger,
+) -> bool:
+    """Promote the next draft MVI to queued so its planner can fire.
+
+    Returns True if an MVI was promoted (caller should NOT advance the
+    wave yet). Returns False if no draft remains (caller can transition
+    the wave if all MVIs are terminal).
+
+    Sequential ordering: when wave activation only queues the first MVI,
+    each MVI's terminal transition (ready_to_ship/failed) here advances
+    the next one. Without this gate, all MVIs planned in parallel — so
+    MVI 2 + 3 started before MVI 1 shipped and produced empty changes
+    because their dependencies (MVI 1's API + DTO) didn't exist yet.
+    """
+    mvi_prefix = f"S#{wave_id}#m"
+    mvi_items = blackboard.query(pk, mvi_prefix)
+    mvis = [m for m in mvi_items if m.get("level") == "murder"]
+    if not mvis:
+        return False
+
+    # Stable order: SK lexicographic, which matches insertion order from
+    # the API's wave-create route. The API writes mvi snapshots in the
+    # order the founder selected them in the picker.
+    mvis.sort(key=lambda m: m.get("SK", ""))
+
+    for m in mvis:
+        if m.get("status") == "draft":
+            mvi_sk = m.get("SK", "")
+            blackboard.update(pk, mvi_sk, {"status": "queued"})
+            logger.event(
+                "next_mvi_dispatched",
+                wave_id=wave_id,
+                mvi_sk=mvi_sk,
+            )
+            return True
+
+    return False
+
 
 def _maybe_transition_wave(
     blackboard: Blackboard,
