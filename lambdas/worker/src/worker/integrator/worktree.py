@@ -30,13 +30,20 @@ class WorktreeError(Exception):
 
 
 def add_pr_worktree(repo_path: str, pr_number: int) -> str:
-    """Fetch PR head and add a worktree at .pr-{pr_number}.
+    """Fetch PR head into a named local ref and add a worktree at .pr-{pr_number}.
+
+    The refspec `refs/pull/N/head:refs/remotes/origin/pr-N` creates a
+    persistent local remote-tracking ref so the integration merge step
+    can `git merge origin/pr-N`. Without the colon + destination, the
+    fetch only updates FETCH_HEAD and `origin/pr-N` doesn't exist —
+    integration merges then fail with "merge: origin/pr-N - not something
+    we can merge", which produced phantom conflicts with PR #0.
 
     Returns the absolute worktree path. Raises WorktreeError on failure.
     """
-    pr_ref = f"refs/pull/{pr_number}/head"
+    pr_refspec = f"+refs/pull/{pr_number}/head:refs/remotes/origin/pr-{pr_number}"
     fetch = subprocess.run(
-        ["git", "-C", repo_path, "fetch", "origin", pr_ref],
+        ["git", "-C", repo_path, "fetch", "origin", pr_refspec],
         capture_output=True,
         env=_git_env(),
     )
@@ -47,7 +54,10 @@ def add_pr_worktree(repo_path: str, pr_number: int) -> str:
 
     worktree_path = f"{repo_path}/.pr-{pr_number}"
     add = subprocess.run(
-        ["git", "-C", repo_path, "worktree", "add", worktree_path, "FETCH_HEAD"],
+        [
+            "git", "-C", repo_path, "worktree", "add",
+            worktree_path, f"origin/pr-{pr_number}",
+        ],
         capture_output=True,
         env=_git_env(),
     )

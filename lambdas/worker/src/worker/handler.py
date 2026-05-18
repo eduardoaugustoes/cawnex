@@ -32,6 +32,10 @@ def dispatch_crow(task: dict[str, Any], blackboard: Any) -> None:
             wave_id=task["wave_id"],
             repo_path=task["repo_path"],
             pr_to_mvi={int(k): v for k, v in pr_to_mvi_raw.items()},
+            # Pass through the full partition key the reactor wrote the
+            # task under so the INTEGRATION row lands in the same
+            # partition (T#{tenant}#P#{project}) the wave + Murder live in.
+            pk=task.get("PK"),
         )
     raise ValueError(
         f"dispatch_crow does not handle crow_kind={task.get('crow_kind')!r}; "

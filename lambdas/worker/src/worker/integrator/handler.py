@@ -23,17 +23,27 @@ def run_integrator(
     wave_id: str,
     repo_path: str,
     pr_to_mvi: dict[int, str],
+    pk: str | None = None,
 ) -> None:
     """Run the full integrator flow for a wave.
 
     Always writes an IntegratorFindings record to DDB so the Murder reactor
     has something to route on, even on failure paths.
+
+    `pk` is the full DDB partition key (T#{tenant}#P#{project}) for the
+    INTEGRATION row write. If omitted (legacy callers) we fall back to
+    f"P#{project_id}" which only works for the legacy untenanted path.
     """
     started_at = datetime.now(timezone.utc).isoformat()
     start = time.time()
     integration_branch = f"council-review-{wave_id}"
     worktree_paths: dict[int, str] = {}
     integration_path = f"{repo_path}/.integration"
+    # IMPORTANT: the INTEGRATION row must land in the same partition the
+    # wave + Murder reactor live in, otherwise Murder's DDB-stream handler
+    # will fire react_to_integration_complete with a row that points to a
+    # non-existent partition and Council will never get a session.
+    target_pk = pk or f"P#{project_id}"
 
     fetch_error: WorktreeError | None = None
     try:
@@ -54,7 +64,7 @@ def run_integrator(
         )
 
     findings = IntegratorFindings(
-        PK=f"P#{project_id}",
+        PK=target_pk,
         SK=f"INTEGRATION#{wave_id}",
         wave_id=wave_id,
         pr_numbers=sorted(pr_to_mvi.keys()),
