@@ -612,20 +612,17 @@ export class CawnexStack extends cdk.Stack {
       readOnly: true,
     });
 
-    // Read-only on the main table for everything except COUNCIL# + MEM# rows.
-    table.grantReadData(councilTaskDef.taskRole);
+    // Council needs to read the wave + INTEGRATION + session rows and
+    // update its own session rows. The previous LeadingKeys condition
+    // ("COUNCIL#*", "MEM#*", "E#*") assumed PKs started with those
+    // prefixes — but the actual partition key is T#{tenant}#P#{project},
+    // with COUNCIL/MEM/E being SK prefixes. The condition denied every
+    // update in production. Drop the condition and grant write across
+    // the table; the Council Fargate task role is isolated to this
+    // service, so the SK-prefix-based authorization belongs in the
+    // application code anyway.
+    table.grantReadWriteData(councilTaskDef.taskRole);
     eventsTable.grantReadWriteData(councilTaskDef.taskRole);
-    councilTaskDef.taskRole.addToPrincipalPolicy(
-      new iam.PolicyStatement({
-        actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
-        resources: [table.tableArn],
-        conditions: {
-          "ForAllValues:StringLike": {
-            "dynamodb:LeadingKeys": ["COUNCIL#*", "MEM#*", "E#*"],
-          },
-        },
-      })
-    );
     repoFs.grantRead(councilTaskDef.taskRole);
 
     const _councilService = new ecs.FargateService(this, "CouncilService", {
