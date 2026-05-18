@@ -353,20 +353,32 @@ async def activate_wave(
         updates={"status": "executing", "activated_at": now},
     )
 
-    # Queue MVIs — transition draft/refined to queued (triggers Murder via DDB Stream)
+    # Queue MVIs sequentially. Only the FIRST eligible MVI is moved to
+    # `queued` (which fires its planner via the DDB Stream). The murder
+    # reactor's _maybe_dispatch_next_mvi advances the next-in-line MVI
+    # each time the previous one terminalizes (ready_to_ship or failed).
+    # This eliminates the parallel-planner trampling bug where MVI 2
+    # planned before MVI 1's API surface existed.
     items = db.query_project(project_id=project_id, sk_prefix=f"S#{wave_id}#m")
+    mvi_items = [i for i in items if i.get("level") == "murder"]
+    mvi_items.sort(key=lambda i: i.get("SK", ""))
+
     queued_count = 0
-    for item in items:
-        if item.get("level") != "murder":
-            continue
+    eligible_count = 0
+    for item in mvi_items:
         mvi_status = item.get("status", "")
-        if mvi_status in ("draft", "refined"):
+        if mvi_status not in ("draft", "refined"):
+            continue
+        eligible_count += 1
+        if queued_count == 0:
             db.update_project_item(
                 project_id=project_id,
                 sk=item["SK"],
                 updates={"status": "queued"},
             )
-            queued_count += 1
+            queued_count = 1
+    # Note: queued_count is always 0 or 1; eligible_count is the total
+    # MVIs that will run, used for the event message below.
 
     # Write synthetic events for warm-up visibility
     _write_event(
@@ -374,7 +386,7 @@ async def activate_wave(
         project_id,
         wave_id,
         "wave_activated",
-        f"Wave activated — {queued_count} MVIs queued for execution",
+        f"Wave activated — {eligible_count} MVIs queued for sequential execution",
         "blue",
     )
     _write_event(
@@ -389,10 +401,14 @@ async def activate_wave(
     # Scale up ECS worker
     _scale_ecs(1)
 
+    # mvis_queued: number actually moved to `queued` (always 0 or 1 under
+    # sequential dispatch). mvis_eligible: total MVIs that will run as
+    # this wave progresses — what the founder/UI should display.
     return {
         "wave_id": wave_id,
         "status": "executing",
         "mvis_queued": queued_count,
+        "mvis_eligible": eligible_count,
     }
 
 

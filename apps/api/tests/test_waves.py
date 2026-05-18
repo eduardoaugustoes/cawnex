@@ -248,7 +248,10 @@ def test_activate_wave_queues_mvis(mock_db_boto3: Mock, mock_waves_boto3: Mock) 
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "executing"
-    assert data["mvis_queued"] == 2
+    # Sequential dispatch: only the first MVI is moved to `queued`. The
+    # reactor advances the rest as each terminalizes.
+    assert data["mvis_queued"] == 1
+    assert data["mvis_eligible"] == 2
 
     # Verify ECS scale-up was called
     mock_ecs.update_service.assert_called_once()
