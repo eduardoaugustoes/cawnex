@@ -24,11 +24,19 @@ async def poll_once(blackboard: Blackboard) -> int:
     if not items:
         return 0
     item = items[0]
-    project_id = item["PK"].replace("P#", "")
+    # Pass the full DDB partition key through. The session row's PK is the
+    # truth (T#{tenant}#P#{project} on real waves, P#{project} on legacy
+    # smoke-test rows). Reconstructing via f"P#{project_id}" downstream
+    # broke for tenanted PKs — the literal P# substring is still present
+    # AFTER stripping it, and re-prefixing produced unreachable PKs.
+    pk = item["PK"]
+    # project_id is kept for log context only.
+    project_id = pk.split("#P#")[-1] if "#P#" in pk else pk.replace("P#", "", 1)
     await process_pending_session(
         blackboard=blackboard,
         project_id=project_id,
         session_sk=item["SK"],
+        pk=pk,
     )
     return 1
 

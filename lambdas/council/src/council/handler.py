@@ -337,9 +337,16 @@ async def process_pending_session(
     blackboard: Any,
     project_id: str,
     session_sk: str,
+    pk: str | None = None,
 ) -> None:
-    """Process one pending Council session: load packet, run advisors, write decision."""
-    pk = f"P#{project_id}"
+    """Process one pending Council session: load packet, run advisors, write decision.
+
+    `pk` is the full DDB partition key (T#{tenant}#P#{project} or legacy
+    P#{project}). Falls back to f"P#{project_id}" only when omitted to
+    preserve backward compatibility with the smoke-test entry path.
+    """
+    if pk is None:
+        pk = f"P#{project_id}"
     session = blackboard.read(pk, session_sk)
     if not session or session.get("status") != "pending":
         return
