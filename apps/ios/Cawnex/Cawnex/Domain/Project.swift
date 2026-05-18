@@ -54,6 +54,26 @@ enum ProjectStatus: String, Equatable, CaseIterable, Hashable {
     }
 }
 
+// MARK: - Project State
+
+enum ProjectState: String, Equatable, CaseIterable, Hashable {
+    case draft = "draft"
+    case active = "active"
+    case running = "running"
+    case idle = "idle"
+    case completed = "completed"
+
+    var label: String {
+        switch self {
+        case .draft: "Draft"
+        case .active: "Active"
+        case .running: "Running"
+        case .idle: "Idle"
+        case .completed: "Completed"
+        }
+    }
+}
+
 // MARK: - Project
 
 struct Project: Identifiable, Equatable {
@@ -61,6 +81,7 @@ struct Project: Identifiable, Equatable {
     let name: String
     let description: String
     let status: ProjectStatus
+    let state: ProjectState
     let tasks: TaskCounts
     let creditsSpent: Decimal
     let humanEquivSaved: Decimal
@@ -72,6 +93,7 @@ extension Project {
         name: "Cawnex",
         description: "Multi-agent AI orchestration platform",
         status: .active,
+        state: .active,
         tasks: TaskCounts(done: 5, active: 3, refined: 4, draft: 6),
         creditsSpent: 182,
         humanEquivSaved: 14000

@@ -27,6 +27,7 @@ final class InMemoryProjectService: ProjectService {
             name: name,
             description: description,
             status: .active,
+            state: .active,
             tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
             creditsSpent: 0,
             humanEquivSaved: 0

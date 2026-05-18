@@ -18,7 +18,9 @@ final class APIProjectService: ProjectService {
     }
 
     func getProject(_ id: String) async throws -> Project? {
-        store.projects.first { $0.id == id }
+        let response: ProjectReadDTO = try await client.get("/projects/\(id)")
+        let project = response.toProject()
+        return project
     }
 
     func createProject(name: String, description: String, murders: Set<MurderType>) async throws -> Project {
@@ -33,6 +35,7 @@ final class APIProjectService: ProjectService {
             name: response.name,
             description: description,
             status: ProjectStatus(rawValue: response.status.capitalized) ?? .draft,
+            state: .draft,
             tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
             creditsSpent: 0,
             humanEquivSaved: 0
@@ -72,6 +75,31 @@ private struct ProjectDTO: Decodable {
             name: name,
             description: one_liner,
             status: ProjectStatus(rawValue: status.capitalized) ?? .draft,
+            state: .draft,
+            tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
+            creditsSpent: 0,
+            humanEquivSaved: 0
+        )
+    }
+}
+
+private struct ProjectReadDTO: Decodable {
+    let project_id: String
+    let name: String
+    let one_liner: String
+    let status: String
+    let current_state: String
+    let murders: [String]
+    let created_at: String
+
+    func toProject() -> Project {
+        let state = ProjectState(rawValue: current_state) ?? .draft
+        return Project(
+            id: project_id,
+            name: name,
+            description: one_liner,
+            status: ProjectStatus(rawValue: status.capitalized) ?? .draft,
+            state: state,
             tasks: TaskCounts(done: 0, active: 0, refined: 0, draft: 0),
             creditsSpent: 0,
             humanEquivSaved: 0
