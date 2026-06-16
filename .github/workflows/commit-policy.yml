@@ -1,0 +1,15 @@
+name: commit-policy
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: [main]
+
+jobs:
+  commit-policy:
+    uses: proinsighttech/dev-standards/.github/workflows/commit-policy.yml@v1.0.0
+    with:
+      canonical_author_name: "eduardoaugustoes"
+      canonical_author_email: "s.eduardoaugusto@gmail.com"
+
