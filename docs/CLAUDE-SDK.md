@@ -47,9 +47,9 @@
 ```json
 {
   "token_type": "Bearer",
-  "access_token": "sk-ant-oat01-lYxV_KPy_HHqs...",
+  "access_token": "sk-ant-oat01-EXAMPLE...",
   "expires_in": 28800,
-  "refresh_token": "sk-ant-ort01-YrGUQ8bkFAf-...",
+  "refresh_token": "sk-ant-ort01-EXAMPLE...",
   "scope": "user:inference user:profile",
   "organization": {
     "uuid": "1dfabe8f-f7af-439b-8655-c1e03676bccf",
