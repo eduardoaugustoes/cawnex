@@ -4493,6 +4493,18 @@ exports[`CDK template snapshots matches the CawnexAuthStack (dev) snapshot 1`] =
         "Ref": "UserPoolDomainD0EA232A",
       },
     },
+    "CustomEmailSenderArn": {
+      "Description": "Custom Email Sender Lambda ARN",
+      "Export": {
+        "Name": "CawnexAuthStack-dev-CustomEmailSenderArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "CustomEmailSenderFnD84756D8",
+          "Arn",
+        ],
+      },
+    },
     "Region": {
       "Description": "AWS region for SDK configuration",
       "Export": {
@@ -4581,6 +4593,122 @@ exports[`CDK template snapshots matches the CawnexAuthStack (dev) snapshot 1`] =
     },
   },
   "Resources": {
+    "CustomEmailSenderFnD84756D8": {
+      "DependsOn": [
+        "CustomEmailSenderFnServiceRoleDefaultPolicyF0769D3D",
+        "CustomEmailSenderFnServiceRole38AB7F79",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "<content-hash>.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "CONFIG_SET_NAME": "cawnex-dev",
+            "DOMAIN_NAME": "cawnex.ai",
+            "STAGE": "dev",
+          },
+        },
+        "FunctionName": "cawnex-custom-email-sender-dev",
+        "Handler": "handler.handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomEmailSenderFnServiceRole38AB7F79",
+            "Arn",
+          ],
+        },
+        "Runtime": "python3.12",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "CustomEmailSenderFnLogRetentionD79CF12E": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "CustomEmailSenderFnD84756D8",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "CustomEmailSenderFnServiceRole38AB7F79": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "CustomEmailSenderFnServiceRoleDefaultPolicyF0769D3D": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "ses:SendEmail",
+                "ses:SendTemplatedEmail",
+                "ses:SendRawEmail",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                "arn:aws:ses:us-east-1:123456789012:identity/cawnex.ai",
+                "arn:aws:ses:us-east-1:123456789012:configuration-set/cawnex-dev",
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "CustomEmailSenderFnServiceRoleDefaultPolicyF0769D3D",
+        "Roles": [
+          {
+            "Ref": "CustomEmailSenderFnServiceRole38AB7F79",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
     "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
       "DependsOn": [
         "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
@@ -4762,6 +4890,9 @@ exports[`CDK template snapshots matches the CawnexAuthStack (dev) snapshot 1`] =
         },
         "Environment": {
           "Variables": {
+            "CUSTOM_EMAIL_SENDER_FUNCTION": {
+              "Ref": "CustomEmailSenderFnD84756D8",
+            },
             "STAGE": "dev",
             "TABLE_NAME": {
               "Ref": "MainTable74195DAB",
@@ -4871,6 +5002,16 @@ exports[`CDK template snapshots matches the CawnexAuthStack (dev) snapshot 1`] =
                   ],
                 },
               ],
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "CustomEmailSenderFnD84756D8",
+                  "Arn",
+                ],
+              },
             },
             {
               "Action": "cognito-idp:AdminUpdateUserAttributes",

@@ -28,6 +28,9 @@ export class CawnexAuthStack extends cdk.Stack {
   /** DynamoDB Table Stream ARN — for Murder Lambda event source */
   public readonly tableStreamArn: string;
 
+  /** Custom Email Sender Lambda — sends welcome emails via SES */
+  public readonly customEmailSenderFn: lambda.Function;
+
   constructor(scope: Construct, id: string, props: CawnexAuthStackProps) {
     super(scope, id, props);
 
@@ -172,6 +175,40 @@ export class CawnexAuthStack extends cdk.Stack {
     });
 
     // ─────────────────────────────────────────────
+    // Custom Email Sender Lambda — sends welcome emails via SES
+    // ─────────────────────────────────────────────
+    this.customEmailSenderFn = new lambda.Function(this, "CustomEmailSenderFn", {
+      functionName: `cawnex-custom-email-sender-${stage}`,
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: "handler.handler",
+      code: lambda.Code.fromAsset("../lambdas/custom-email-sender"),
+      memorySize: 256,
+      timeout: cdk.Duration.seconds(30),
+      architecture: lambda.Architecture.ARM_64,
+      environment: {
+        DOMAIN_NAME: domainName || "cawnex.ai",
+        CONFIG_SET_NAME: `cawnex-${stage}`,
+        STAGE: stage,
+      },
+      logRetention: logs.RetentionDays.ONE_MONTH,
+    });
+
+    // Grant SES permissions to custom email sender
+    this.customEmailSenderFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "ses:SendEmail",
+          "ses:SendTemplatedEmail",
+          "ses:SendRawEmail",
+        ],
+        resources: [
+          sesIdentityArn || `arn:aws:ses:${this.region}:${this.account}:identity/${domainName || "cawnex.ai"}`,
+          `arn:aws:ses:${this.region}:${this.account}:configuration-set/cawnex-${stage}`,
+        ],
+      })
+    );
+
+    // ─────────────────────────────────────────────
     // Post-confirmation Lambda — creates tenant on first sign-up
     // ─────────────────────────────────────────────
     const postConfirmationFn = new lambda.Function(this, "PostConfirmationFn", {
@@ -185,12 +222,21 @@ export class CawnexAuthStack extends cdk.Stack {
       environment: {
         TABLE_NAME: this.table.tableName,
         STAGE: stage,
+        CUSTOM_EMAIL_SENDER_FUNCTION: this.customEmailSenderFn.functionName,
       },
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
 
     // Grant permissions to write to DynamoDB
     this.table.grantWriteData(postConfirmationFn);
+
+    // Grant post-confirmation Lambda permission to invoke the email sender
+    postConfirmationFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["lambda:InvokeFunction"],
+        resources: [this.customEmailSenderFn.functionArn],
+      })
+    );
 
     // Grant cognito-idp:AdminUpdateUserAttributes using account-scoped ARN
     // to avoid circular dependency (UserPool → Lambda → IAM ref UserPool ARN → UserPool)
@@ -259,6 +305,12 @@ export class CawnexAuthStack extends cdk.Stack {
       value: userPoolDomain.domainName,
       exportName: `CawnexAuthStack-${stage}-CognitoDomain`,
       description: "Cognito hosted UI domain",
+    });
+
+    new cdk.CfnOutput(this, "CustomEmailSenderArn", {
+      value: this.customEmailSenderFn.functionArn,
+      exportName: `CawnexAuthStack-${stage}-CustomEmailSenderArn`,
+      description: "Custom Email Sender Lambda ARN",
     });
 
     new cdk.CfnOutput(this, "Region", {
