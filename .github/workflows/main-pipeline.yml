@@ -288,7 +288,12 @@ jobs:
           echo "**Changes since last deployment tag:** ${{ needs.detect-changes.outputs.last_deploy_tag || 'initial' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "${{ needs.detect-changes.outputs.infrastructure }}" == "true" ]]; then
+          if [[ "${{ needs.detect-changes.outputs.infrastructure }}" == "true" ||
+                "${{ needs.detect-changes.outputs.auth_lambdas }}" == "true" ||
+                "${{ needs.detect-changes.outputs.murder_crow }}" == "true" ||
+                "${{ needs.detect-changes.outputs.council }}" == "true" ||
+                "${{ needs.detect-changes.outputs.monarch }}" == "true" ||
+                "${{ needs.detect-changes.outputs.stream }}" == "true" ]]; then
             echo "🏗️ **Infrastructure changes detected - Full deployment**" >> $GITHUB_STEP_SUMMARY
             echo "type=infrastructure" >> $GITHUB_OUTPUT
 
@@ -336,20 +341,6 @@ jobs:
               --function-name cawnex-api-dev \
               --zip-file fileb://lambda-deployment.zip
             echo "✅ Fast API deployment completed" >> $GITHUB_STEP_SUMMARY
-
-          elif [[ "${{ needs.detect-changes.outputs.auth_lambdas }}" == "true" ]]; then
-            echo "🔐 **Auth Lambda changes detected - Fast auth deployment**" >> $GITHUB_STEP_SUMMARY
-            echo "type=auth" >> $GITHUB_OUTPUT
-
-            # Fast auth deployment logic
-            echo "✅ Auth deployment logic would go here" >> $GITHUB_STEP_SUMMARY
-
-          elif [[ "${{ needs.detect-changes.outputs.murder_crow }}" == "true" ]]; then
-            echo "🤖 **Murder/Crow changes detected - Fast AI system deployment**" >> $GITHUB_STEP_SUMMARY
-            echo "type=murder_crow" >> $GITHUB_OUTPUT
-
-            # Fast Murder/Crow deployment logic
-            echo "✅ Murder/Crow deployment logic would go here" >> $GITHUB_STEP_SUMMARY
 
           else
             echo "🎯 **Component-specific deployment**" >> $GITHUB_STEP_SUMMARY
