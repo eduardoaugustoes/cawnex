@@ -58,6 +58,7 @@ const authStack = new CawnexAuthStack(app, `CawnexAuthStack-${stage}`, {
   stage,
   domainName: domainName,
   sesIdentityArn: domainStack?.sesIdentity?.emailIdentityArn,
+  sesConfigSetName: domainStack?.sesConfigSetName,
   env,
   description: `Cawnex Authentication Stack (${stage})`,
 });

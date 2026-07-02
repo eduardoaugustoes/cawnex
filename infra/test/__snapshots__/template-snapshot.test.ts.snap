@@ -4608,7 +4608,6 @@ exports[`CDK template snapshots matches the CawnexAuthStack (dev) snapshot 1`] =
         },
         "Environment": {
           "Variables": {
-            "CONFIG_SET_NAME": "cawnex-dev",
             "DOMAIN_NAME": "cawnex.ai",
             "STAGE": "dev",
           },

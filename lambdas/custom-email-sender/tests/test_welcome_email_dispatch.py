@@ -6,6 +6,7 @@ this Lambda with {"action": "send_welcome_email", ...} but handler() only
 dispatched on triggerSource, so the welcome email silently no-op'd.
 """
 
+import os
 from unittest.mock import MagicMock, patch
 
 import handler
@@ -68,3 +69,23 @@ class TestWelcomeEmailDispatch:
 
         ses_client.send_email.assert_not_called()
         assert result == event
+
+    @patch.object(handler, "ses_client")
+    def test_omits_configuration_set_name_when_env_var_unset(
+        self, ses_client: MagicMock
+    ) -> None:
+        """CONFIG_SET_NAME is only set when a domain stack is deployed (see
+        infra/lib/cawnex-auth-stack.ts). On dev, no SES configuration set
+        exists, so the SES call must omit ConfigurationSetName entirely —
+        passing an unset name would raise ConfigurationSetDoesNotExist."""
+        ses_client.send_email.return_value = {"MessageId": "test-message-id"}
+
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("CONFIG_SET_NAME", None)
+
+            event = _post_confirmation_payload(user_email="founder@example.com")
+            result = handler.handler(event, None)
+
+        assert result is True
+        kwargs = ses_client.send_email.call_args.kwargs
+        assert "ConfigurationSetName" not in kwargs

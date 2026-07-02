@@ -20,6 +20,9 @@ export class CawnexDomainStack extends cdk.Stack {
   /** Wildcard SSL Certificate */
   public readonly certificate: acm.Certificate;
 
+  /** SES Configuration Set name — exported for cross-stack reference */
+  public readonly sesConfigSetName: string;
+
   constructor(scope: Construct, id: string, props: CawnexDomainStackProps) {
     super(scope, id, props);
 
@@ -177,6 +180,7 @@ export class CawnexDomainStack extends cdk.Stack {
       configurationSetName: `cawnex-${stage}`,
       sendingEnabled: true,
     });
+    this.sesConfigSetName = configSet.configurationSetName;
 
     new cdk.CfnOutput(this, "SESConfigSetName", {
       value: configSet.configurationSetName,

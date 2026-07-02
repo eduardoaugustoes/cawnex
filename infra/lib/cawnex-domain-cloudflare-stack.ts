@@ -11,6 +11,9 @@ export class CawnexDomainCloudflareStack extends cdk.Stack {
   /** SES Domain Identity for email sending */
   public readonly sesIdentity: ses.EmailIdentity;
 
+  /** SES Configuration Set name — exported for cross-stack reference */
+  public readonly sesConfigSetName: string;
+
   constructor(
     scope: Construct,
     id: string,
@@ -36,6 +39,7 @@ export class CawnexDomainCloudflareStack extends cdk.Stack {
       configurationSetName: `cawnex-${stage}`,
       sendingEnabled: true,
     });
+    this.sesConfigSetName = configSet.configurationSetName;
 
     // ─────────────────────────────────────────────
     // Outputs for Manual DNS Configuration

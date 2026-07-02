@@ -10,6 +10,7 @@ interface CawnexAuthStackProps extends cdk.StackProps {
   stage: "dev" | "staging" | "prod";
   domainName?: string; // Optional - for SES integration
   sesIdentityArn?: string; // Optional - SES identity ARN
+  sesConfigSetName?: string; // Optional - SES configuration set name (only exists when a domain stack is deployed)
 }
 
 export class CawnexAuthStack extends cdk.Stack {
@@ -34,7 +35,7 @@ export class CawnexAuthStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: CawnexAuthStackProps) {
     super(scope, id, props);
 
-    const { stage, domainName, sesIdentityArn } = props;
+    const { stage, domainName, sesIdentityArn, sesConfigSetName } = props;
 
     // ─────────────────────────────────────────────
     // DynamoDB — Single-table design, multi-tenant
@@ -187,8 +188,8 @@ export class CawnexAuthStack extends cdk.Stack {
       architecture: lambda.Architecture.ARM_64,
       environment: {
         DOMAIN_NAME: domainName || "cawnex.ai",
-        CONFIG_SET_NAME: `cawnex-${stage}`,
         STAGE: stage,
+        ...(sesConfigSetName ? { CONFIG_SET_NAME: sesConfigSetName } : {}),
       },
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
