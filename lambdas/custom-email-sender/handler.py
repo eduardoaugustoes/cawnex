@@ -207,6 +207,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Lambda handler for custom email sending."""
     logger.info(f"Received event: {json.dumps(event, default=str)}")
 
+    if event.get('action') == 'send_welcome_email':
+        return send_welcome_email_direct(
+            event['user_email'],
+            event.get('user_name', ''),
+            event.get('tenant_id', '')
+        )
+
     trigger_source = event.get('triggerSource', '')
 
     try:
