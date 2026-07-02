@@ -2,6 +2,8 @@
 
 Deserializes stream records, filters for relevant events,
 and routes to the appropriate reactor function.
+
+Deployed via the main pipeline's full CDK path (no fast path).
 """
 
 from __future__ import annotations
