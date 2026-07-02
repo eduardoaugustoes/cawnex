@@ -3,11 +3,13 @@
 import json
 import logging
 
+import pytest
+
 from worker.logging import StructuredLogger
 
 
 class TestStructuredLogger:
-    def test_event_emits_json(self, caplog: logging.LogCaptureFixture) -> None:
+    def test_event_emits_json(self, caplog: pytest.LogCaptureFixture) -> None:
         logger = StructuredLogger(component="worker", tenant="acme", project="cawnex")
         with caplog.at_level(logging.INFO, logger="cawnex.worker"):
             logger.event("crow_started", crow_id="cr01")
@@ -18,7 +20,7 @@ class TestStructuredLogger:
         assert payload["tenant"] == "acme"
         assert payload["crow_id"] == "cr01"
 
-    def test_error_emits_json(self, caplog: logging.LogCaptureFixture) -> None:
+    def test_error_emits_json(self, caplog: pytest.LogCaptureFixture) -> None:
         logger = StructuredLogger(component="worker")
         with caplog.at_level(logging.ERROR, logger="cawnex.worker"):
             logger.error("crow_failed", reason="timeout")
@@ -27,7 +29,7 @@ class TestStructuredLogger:
         assert payload["event"] == "crow_failed"
         assert payload["reason"] == "timeout"
 
-    def test_warning_emits_json(self, caplog: logging.LogCaptureFixture) -> None:
+    def test_warning_emits_json(self, caplog: pytest.LogCaptureFixture) -> None:
         logger = StructuredLogger(component="worker")
         with caplog.at_level(logging.WARNING, logger="cawnex.worker"):
             logger.warning("retry_scheduled", attempt=2)
@@ -36,7 +38,7 @@ class TestStructuredLogger:
         assert payload["event"] == "retry_scheduled"
         assert payload["attempt"] == 2
 
-    def test_context_excluded_when_empty(self, caplog: logging.LogCaptureFixture) -> None:
+    def test_context_excluded_when_empty(self, caplog: pytest.LogCaptureFixture) -> None:
         logger = StructuredLogger(component="worker")
         with caplog.at_level(logging.INFO, logger="cawnex.worker"):
             logger.event("test_event")
@@ -44,7 +46,7 @@ class TestStructuredLogger:
         assert "tenant" not in payload
         assert "project" not in payload
 
-    def test_execution_id_in_context(self, caplog: logging.LogCaptureFixture) -> None:
+    def test_execution_id_in_context(self, caplog: pytest.LogCaptureFixture) -> None:
         logger = StructuredLogger(
             component="worker",
             tenant="acme",
