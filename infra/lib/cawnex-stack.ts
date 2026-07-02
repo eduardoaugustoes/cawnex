@@ -21,6 +21,7 @@ import * as kms from "aws-cdk-lib/aws-kms";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as pipes from "aws-cdk-lib/aws-pipes";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 
 interface CawnexStackProps extends cdk.StackProps {
   stage: "dev" | "staging" | "prod";
@@ -134,6 +135,16 @@ export class CawnexStack extends cdk.Stack {
     const taskDlq = new sqs.Queue(this, "TaskDLQ", {
       queueName: `cawnex-tasks-dlq-${stage}`,
       retentionPeriod: cdk.Duration.days(14),
+    });
+
+    // Any message landing here means a task exhausted its retries — visibility
+    // only, no action (no SNS topic exists yet).
+    new cloudwatch.Alarm(this, "TaskDLQAlarm", {
+      alarmName: `cawnex-tasks-dlq-${stage}-not-empty`,
+      metric: taskDlq.metricApproximateNumberOfMessagesVisible(),
+      threshold: 0,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      evaluationPeriods: 1,
     });
 
     const taskQueue = new sqs.Queue(this, "TaskQueue", {
@@ -316,6 +327,16 @@ export class CawnexStack extends cdk.Stack {
       })
     );
 
+    // Murder drives wave orchestration — any error here stalls a wave.
+    // Visibility only, no action (no SNS topic exists yet).
+    new cloudwatch.Alarm(this, "MurderFunctionErrorsAlarm", {
+      alarmName: `cawnex-murder-${stage}-errors`,
+      metric: murderFn.metricErrors(),
+      threshold: 0,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      evaluationPeriods: 1,
+    });
+
     // ─────────────────────────────────────────────
     // Lambda — Monarch (async project setup chain)
     // ─────────────────────────────────────────────
@@ -374,6 +395,16 @@ export class CawnexStack extends cdk.Stack {
         ],
       })
     );
+
+    // Monarch drives async project setup — any error here stalls onboarding.
+    // Visibility only, no action (no SNS topic exists yet).
+    new cloudwatch.Alarm(this, "MonarchFunctionErrorsAlarm", {
+      alarmName: `cawnex-monarch-${stage}-errors`,
+      metric: monarchFn.metricErrors(),
+      threshold: 0,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      evaluationPeriods: 1,
+    });
 
     // ─────────────────────────────────────────────
     // Council secret — referenced by the Council Fargate task definition below.

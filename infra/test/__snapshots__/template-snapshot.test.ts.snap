@@ -1,0 +1,5078 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`CDK template snapshots matches the Cawnex main stack (dev) snapshot 1`] = `
+{
+  "Description": "Cawnex Main Stack (dev)",
+  "Outputs": {
+    "ApiUrl": {
+      "Description": "API Gateway URL",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "HttpApiF5A9A8A7",
+            },
+            ".execute-api.us-east-1.",
+            {
+              "Ref": "AWS::URLSuffix",
+            },
+            "/",
+          ],
+        ],
+      },
+    },
+    "AssetsBucketName": {
+      "Description": "S3 bucket for human task file uploads",
+      "Value": {
+        "Ref": "AssetsBucket5CB76180",
+      },
+    },
+    "BucketName": {
+      "Value": {
+        "Ref": "ArtifactsBucket2AAC5544",
+      },
+    },
+    "CloudFrontUrl": {
+      "Description": "CloudFront Distribution URL",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Fn::GetAtt": [
+                "CDN2330F4C0",
+                "DomainName",
+              ],
+            },
+          ],
+        ],
+      },
+    },
+    "CognitoDomain": {
+      "Value": {
+        "Fn::ImportValue": "CawnexAuthStack-dev-CognitoDomain",
+      },
+    },
+    "EventsTableName": {
+      "Description": "DynamoDB events table (separate from main, TTL enabled)",
+      "Value": {
+        "Ref": "EventsTableD24865E5",
+      },
+    },
+    "QueueUrl": {
+      "Value": {
+        "Ref": "TaskQueueF51BE51C",
+      },
+    },
+    "Region": {
+      "Description": "AWS region for SDK configuration",
+      "Value": "us-east-1",
+    },
+    "RepoFileSystemId": {
+      "Description": "EFS filesystem for git repos",
+      "Value": {
+        "Ref": "RepoFileSystemF033F757",
+      },
+    },
+    "StreamEventsQueueUrl": {
+      "Description": "SQS queue where the EventBridge Pipe lands DDB Streams records",
+      "Value": {
+        "Ref": "StreamEventsQueue114AC04A",
+      },
+    },
+    "StreamPipeSecretArn": {
+      "Description": "Secret holding the stream service PIPE_SECRET",
+      "Value": {
+        "Ref": "StreamPipeSecret54DA1F4A",
+      },
+    },
+    "StreamServiceURL": {
+      "Description": "Stream service ALB DNS",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "http://",
+            {
+              "Fn::GetAtt": [
+                "StreamALB2D1F74F4",
+                "DNSName",
+              ],
+            },
+          ],
+        ],
+      },
+    },
+    "TableName": {
+      "Value": {
+        "Fn::Select": [
+          1,
+          {
+            "Fn::Split": [
+              "/",
+              {
+                "Fn::Select": [
+                  5,
+                  {
+                    "Fn::Split": [
+                      ":",
+                      {
+                        "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+    "UserPoolId": {
+      "Description": "Cognito User Pool ID",
+      "Value": {
+        "Fn::ImportValue": "CawnexAuthStack-dev-UserPoolId",
+      },
+    },
+    "VaultKeyId": {
+      "Description": "KMS key for vault encryption",
+      "Value": {
+        "Ref": "VaultKey6B75F33E",
+      },
+    },
+    "WebClientId": {
+      "Description": "Cognito Web app client ID",
+      "Value": {
+        "Fn::ImportValue": "CawnexAuthStack-dev-WebClientId",
+      },
+    },
+    "iOSClientId": {
+      "Description": "Cognito iOS app client ID",
+      "Value": {
+        "Fn::ImportValue": "CawnexAuthStack-dev-iOSClientId",
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "ApiFunctionCE271BD4": {
+      "DependsOn": [
+        "ApiFunctionServiceRoleDefaultPolicy20A32B8D",
+        "ApiFunctionServiceRole52B9747B",
+      ],
+      "Properties": {
+        "Architectures": [
+          "x86_64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "<content-hash>.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "ANTHROPIC_AUTH_SECRET_ARN": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition",
+                  },
+                  ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/anthropic-auth-token",
+                ],
+              ],
+            },
+            "ASSETS_BUCKET_NAME": {
+              "Ref": "AssetsBucket5CB76180",
+            },
+            "AWS_REGION_NAME": "us-east-1",
+            "BUCKET_NAME": {
+              "Ref": "ArtifactsBucket2AAC5544",
+            },
+            "COGNITO_DOMAIN": {
+              "Fn::ImportValue": "CawnexAuthStack-dev-CognitoDomain",
+            },
+            "ECS_CLUSTER_NAME": "cawnex-dev",
+            "ECS_SERVICE_NAME": "cawnex-worker-dev",
+            "EVENTS_TABLE_NAME": {
+              "Ref": "EventsTableD24865E5",
+            },
+            "GITHUB_TOKEN": {
+              "Fn::Join": [
+                "",
+                [
+                  "{{resolve:secretsmanager:arn:",
+                  {
+                    "Ref": "AWS::Partition",
+                  },
+                  ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/github-token:SecretString:::}}",
+                ],
+              ],
+            },
+            "IOS_CLIENT_ID": {
+              "Fn::ImportValue": "CawnexAuthStack-dev-iOSClientId",
+            },
+            "QUEUE_URL": {
+              "Ref": "TaskQueueF51BE51C",
+            },
+            "STAGE": "dev",
+            "TABLE_NAME": {
+              "Fn::ImportValue": "CawnexAuthStack-dev-TableName",
+            },
+            "USER_POOL_CLIENT_ID": {
+              "Fn::ImportValue": "CawnexAuthStack-dev-WebClientId",
+            },
+            "USER_POOL_ID": {
+              "Fn::ImportValue": "CawnexAuthStack-dev-UserPoolId",
+            },
+            "VAULT_KMS_KEY_ID": {
+              "Ref": "VaultKey6B75F33E",
+            },
+          },
+        },
+        "FunctionName": "cawnex-api-dev",
+        "Handler": "handler.handler",
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "ApiFunctionServiceRole52B9747B",
+            "Arn",
+          ],
+        },
+        "Runtime": "python3.12",
+        "Timeout": 29,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "ApiFunctionLogRetentionDCC3A405": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "ApiFunctionCE271BD4",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "ApiFunctionServiceRole52B9747B": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ApiFunctionServiceRoleDefaultPolicy20A32B8D": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/anthropic-auth-token-??????",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging",
+                "s3:Abort*",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "ArtifactsBucket2AAC5544",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "ArtifactsBucket2AAC5544",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging",
+                "s3:Abort*",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "AssetsBucket5CB76180",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "AssetsBucket5CB76180",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "kms:Encrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "VaultKey6B75F33E",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "TaskQueueF51BE51C",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "ecs:UpdateService",
+                "ecs:DescribeServices",
+              ],
+              "Effect": "Allow",
+              "Resource": "arn:aws:ecs:us-east-1:123456789012:service/cawnex-dev/cawnex-worker-dev",
+            },
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/github-token-??????",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ApiFunctionServiceRoleDefaultPolicy20A32B8D",
+        "Roles": [
+          {
+            "Ref": "ApiFunctionServiceRole52B9747B",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "ArtifactsBucket2AAC5544": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256",
+              },
+            },
+          ],
+        },
+        "BucketName": "cawnex-artifacts-dev-123456789012",
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ExpirationInDays": 7,
+              "Id": "expire-temp",
+              "Prefix": "tmp/",
+              "Status": "Enabled",
+            },
+          ],
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true,
+        },
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true",
+          },
+        ],
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "ArtifactsBucketAutoDeleteObjectsCustomResource0E3B4320": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "ArtifactsBucketPolicy852CB646",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "ArtifactsBucket2AAC5544",
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3AutoDeleteObjects",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "ArtifactsBucketPolicy852CB646": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "ArtifactsBucket2AAC5544",
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:PutBucketPolicy",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn",
+                  ],
+                },
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "ArtifactsBucket2AAC5544",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "ArtifactsBucket2AAC5544",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::S3::BucketPolicy",
+    },
+    "AssetsBucket5CB76180": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256",
+              },
+            },
+          ],
+        },
+        "BucketName": "cawnex-assets-dev-123456789012",
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "AllowedHeaders": [
+                "*",
+              ],
+              "AllowedMethods": [
+                "PUT",
+                "GET",
+              ],
+              "AllowedOrigins": [
+                "*",
+              ],
+              "MaxAge": 3600,
+            },
+          ],
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ExpirationInDays": 1,
+              "Id": "expire-temp-uploads",
+              "Prefix": "tmp/",
+              "Status": "Enabled",
+            },
+          ],
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true,
+        },
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true",
+          },
+        ],
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "AssetsBucketAutoDeleteObjectsCustomResource51BA1286": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "AssetsBucketPolicyFFACF6C4",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "AssetsBucket5CB76180",
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3AutoDeleteObjects",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "AssetsBucketPolicyFFACF6C4": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "AssetsBucket5CB76180",
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:PutBucketPolicy",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn",
+                  ],
+                },
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "AssetsBucket5CB76180",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "AssetsBucket5CB76180",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::S3::BucketPolicy",
+    },
+    "CDN2330F4C0": {
+      "Properties": {
+        "DistributionConfig": {
+          "Comment": "cawnex-dev",
+          "DefaultCacheBehavior": {
+            "AllowedMethods": [
+              "GET",
+              "HEAD",
+              "OPTIONS",
+              "PUT",
+              "PATCH",
+              "POST",
+              "DELETE",
+            ],
+            "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+            "Compress": true,
+            "OriginRequestPolicyId": "b689b0a8-53d0-40ab-baf2-68738e2966ac",
+            "TargetOriginId": "CawnexdevCDNOrigin11E1DEE12",
+            "ViewerProtocolPolicy": "redirect-to-https",
+          },
+          "Enabled": true,
+          "HttpVersion": "http2",
+          "IPV6Enabled": true,
+          "Origins": [
+            {
+              "CustomOriginConfig": {
+                "OriginProtocolPolicy": "https-only",
+                "OriginSSLProtocols": [
+                  "TLSv1.2",
+                ],
+              },
+              "DomainName": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Ref": "HttpApiF5A9A8A7",
+                    },
+                    ".execute-api.us-east-1.amazonaws.com",
+                  ],
+                ],
+              },
+              "Id": "CawnexdevCDNOrigin11E1DEE12",
+            },
+          ],
+        },
+      },
+      "Type": "AWS::CloudFront::Distribution",
+    },
+    "CheckerFunction9F418EFF": {
+      "DependsOn": [
+        "CheckerFunctionServiceRoleDefaultPolicyAC0C429A",
+        "CheckerFunctionServiceRoleC11DCA30",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "<content-hash>.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "QUEUE_URL": {
+              "Ref": "TaskQueueF51BE51C",
+            },
+            "STAGE": "dev",
+            "TABLE_NAME": {
+              "Fn::ImportValue": "CawnexAuthStack-dev-TableName",
+            },
+          },
+        },
+        "FunctionName": "cawnex-checker-dev",
+        "Handler": "handler.lambda_handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "CheckerFunctionServiceRoleC11DCA30",
+            "Arn",
+          ],
+        },
+        "Runtime": "python3.12",
+        "Timeout": 60,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "CheckerFunctionLogRetention7FF5761D": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "CheckerFunction9F418EFF",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "CheckerFunctionServiceRoleC11DCA30": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "CheckerFunctionServiceRoleDefaultPolicyAC0C429A": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "TaskQueueF51BE51C",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "CheckerFunctionServiceRoleDefaultPolicyAC0C429A",
+        "Roles": [
+          {
+            "Ref": "CheckerFunctionServiceRoleC11DCA30",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "CheckerSchedule940B3964": {
+      "Properties": {
+        "Name": "cawnex-checker-dev",
+        "ScheduleExpression": "rate(1 hour)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "CheckerFunction9F418EFF",
+                "Arn",
+              ],
+            },
+            "Id": "Target0",
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "CheckerScheduleAllowEventRuleCawnexdevCheckerFunctionB6C68F1DA66BB597": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "CheckerFunction9F418EFF",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "CheckerSchedule940B3964",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "ClusterEB0386A7": {
+      "Properties": {
+        "ClusterName": "cawnex-dev",
+        "ClusterSettings": [
+          {
+            "Name": "containerInsights",
+            "Value": "disabled",
+          },
+        ],
+      },
+      "Type": "AWS::ECS::Cluster",
+    },
+    "CouncilServiceE074D872": {
+      "DependsOn": [
+        "CouncilTaskTaskRoleDefaultPolicyF9421622",
+        "CouncilTaskTaskRole009B8BA2",
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "ClusterEB0386A7",
+        },
+        "DeploymentConfiguration": {
+          "Alarms": {
+            "AlarmNames": [],
+            "Enable": false,
+            "Rollback": false,
+          },
+          "MaximumPercent": 200,
+          "MinimumHealthyPercent": 50,
+        },
+        "DesiredCount": 0,
+        "EnableECSManagedTags": false,
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [
+              {
+                "Fn::GetAtt": [
+                  "CouncilServiceSGA334E1BC",
+                  "GroupId",
+                ],
+              },
+            ],
+            "Subnets": [
+              {
+                "Ref": "VpcpublicSubnet1Subnet2BB74ED7",
+              },
+              {
+                "Ref": "VpcpublicSubnet2SubnetE34B022A",
+              },
+            ],
+          },
+        },
+        "PlatformVersion": "1.4.0",
+        "ServiceName": "cawnex-council-dev",
+        "TaskDefinition": {
+          "Ref": "CouncilTask2B96509C",
+        },
+      },
+      "Type": "AWS::ECS::Service",
+    },
+    "CouncilServiceSGA334E1BC": {
+      "Properties": {
+        "GroupDescription": "Council Fargate egress-only",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "CouncilTask2B96509C": {
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Environment": [
+              {
+                "Name": "TABLE_NAME",
+                "Value": {
+                  "Fn::ImportValue": "CawnexAuthStack-dev-TableName",
+                },
+              },
+              {
+                "Name": "EVENTS_TABLE_NAME",
+                "Value": {
+                  "Ref": "EventsTableD24865E5",
+                },
+              },
+              {
+                "Name": "STAGE",
+                "Value": "dev",
+              },
+              {
+                "Name": "AWS_REGION",
+                "Value": "us-east-1",
+              },
+            ],
+            "Essential": true,
+            "Image": {
+              "Fn::Sub": "123456789012.dkr.ecr.us-east-1.\${AWS::URLSuffix}/cdk-hnb659fds-container-assets-123456789012-us-east-1:<content-hash>",
+            },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "CouncilTaskcouncilLogGroup324D6667",
+                },
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "council",
+              },
+            },
+            "MountPoints": [
+              {
+                "ContainerPath": "/mnt/repos",
+                "ReadOnly": true,
+                "SourceVolume": "repos",
+              },
+            ],
+            "Name": "council",
+            "Secrets": [
+              {
+                "Name": "ANTHROPIC_AUTH_TOKEN",
+                "ValueFrom": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/anthropic-auth-token",
+                    ],
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        "Cpu": "512",
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "CouncilTaskExecutionRole103EF48A",
+            "Arn",
+          ],
+        },
+        "Family": "cawnex-council-dev",
+        "Memory": "1024",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE",
+        ],
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "CouncilTaskTaskRole009B8BA2",
+            "Arn",
+          ],
+        },
+        "Volumes": [
+          {
+            "EFSVolumeConfiguration": {
+              "AuthorizationConfig": {
+                "AccessPointId": {
+                  "Ref": "RepoFileSystemCouncilTenantAP47B6F53E",
+                },
+                "IAM": "ENABLED",
+              },
+              "FilesystemId": {
+                "Ref": "RepoFileSystemF033F757",
+              },
+              "TransitEncryption": "ENABLED",
+            },
+            "Name": "repos",
+          },
+        ],
+      },
+      "Type": "AWS::ECS::TaskDefinition",
+    },
+    "CouncilTaskExecutionRole103EF48A": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "CouncilTaskExecutionRoleDefaultPolicy0A432BA0": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":ecr:us-east-1:123456789012:repository/cdk-hnb659fds-container-assets-123456789012-us-east-1",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "ecr:GetAuthorizationToken",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "CouncilTaskcouncilLogGroup324D6667",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/anthropic-auth-token-??????",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "CouncilTaskExecutionRoleDefaultPolicy0A432BA0",
+        "Roles": [
+          {
+            "Ref": "CouncilTaskExecutionRole103EF48A",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "CouncilTaskTaskRole009B8BA2": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "CouncilTaskTaskRoleDefaultPolicyF9421622": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "elasticfilesystem:ClientMount",
+              "Condition": {
+                "Bool": {
+                  "elasticfilesystem:AccessedViaMountTarget": "true",
+                },
+              },
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "RepoFileSystemF033F757",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "CouncilTaskTaskRoleDefaultPolicyF9421622",
+        "Roles": [
+          {
+            "Ref": "CouncilTaskTaskRole009B8BA2",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "CouncilTaskcouncilLogGroup324D6667": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F": {
+      "DependsOn": [
+        "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "<content-hash>.zip",
+        },
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Lambda function for auto-deleting objects in ",
+              {
+                "Ref": "ArtifactsBucket2AAC5544",
+              },
+              " S3 bucket.",
+            ],
+          ],
+        },
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Sub": "arn:\${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "EventsTableD24865E5": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "GSI1PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "GSI1SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "GSI1",
+            "KeySchema": [
+              {
+                "AttributeName": "GSI1PK",
+                "KeyType": "HASH",
+              },
+              {
+                "AttributeName": "GSI1SK",
+                "KeyType": "RANGE",
+              },
+            ],
+            "Projection": {
+              "ProjectionType": "ALL",
+            },
+          },
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "StreamSpecification": {
+          "StreamViewType": "NEW_IMAGE",
+        },
+        "TableName": "cawnex-events-dev",
+        "TimeToLiveSpecification": {
+          "AttributeName": "expires_at",
+          "Enabled": true,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "HttpApiANYproxy435A1FB9": {
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7",
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "HttpApiCognitoAuthorizer935FA0F6",
+        },
+        "RouteKey": "ANY /{proxy+}",
+        "Target": {
+          "Fn::Join": [
+            "",
+            [
+              "integrations/",
+              {
+                "Ref": "HttpApiGEThealthApiIntegration8B197B8C",
+              },
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::ApiGatewayV2::Route",
+    },
+    "HttpApiANYproxyApiIntegrationPermissionCB2DDF98": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiFunctionCE271BD4",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:us-east-1:123456789012:",
+              {
+                "Ref": "HttpApiF5A9A8A7",
+              },
+              "/*/*/{proxy+}",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "HttpApiCognitoAuthorizer935FA0F6": {
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7",
+        },
+        "AuthorizerType": "JWT",
+        "IdentitySource": [
+          "$request.header.Authorization",
+        ],
+        "JwtConfiguration": {
+          "Audience": [
+            {
+              "Fn::ImportValue": "CawnexAuthStack-dev-iOSClientId",
+            },
+            {
+              "Fn::ImportValue": "CawnexAuthStack-dev-WebClientId",
+            },
+          ],
+          "Issuer": {
+            "Fn::Join": [
+              "",
+              [
+                "https://cognito-idp.us-east-1.amazonaws.com/",
+                {
+                  "Fn::ImportValue": "CawnexAuthStack-dev-UserPoolId",
+                },
+              ],
+            ],
+          },
+        },
+        "Name": "CognitoAuthorizer",
+      },
+      "Type": "AWS::ApiGatewayV2::Authorizer",
+    },
+    "HttpApiDefaultStage3EEB07D6": {
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7",
+        },
+        "AutoDeploy": true,
+        "StageName": "$default",
+      },
+      "Type": "AWS::ApiGatewayV2::Stage",
+    },
+    "HttpApiF5A9A8A7": {
+      "Properties": {
+        "CorsConfiguration": {
+          "AllowHeaders": [
+            "Authorization",
+            "Content-Type",
+          ],
+          "AllowMethods": [
+            "*",
+          ],
+          "AllowOrigins": [
+            "http://localhost:5173",
+          ],
+          "MaxAge": 3600,
+        },
+        "Name": "cawnex-api-dev",
+        "ProtocolType": "HTTP",
+      },
+      "Type": "AWS::ApiGatewayV2::Api",
+    },
+    "HttpApiGETconfigApiIntegrationPermission3DACB4E1": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiFunctionCE271BD4",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:us-east-1:123456789012:",
+              {
+                "Ref": "HttpApiF5A9A8A7",
+              },
+              "/*/*/config",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "HttpApiGETconfigB3922331": {
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7",
+        },
+        "AuthorizationType": "NONE",
+        "RouteKey": "GET /config",
+        "Target": {
+          "Fn::Join": [
+            "",
+            [
+              "integrations/",
+              {
+                "Ref": "HttpApiGEThealthApiIntegration8B197B8C",
+              },
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::ApiGatewayV2::Route",
+    },
+    "HttpApiGEThealthAB1F4856": {
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7",
+        },
+        "AuthorizationType": "NONE",
+        "RouteKey": "GET /health",
+        "Target": {
+          "Fn::Join": [
+            "",
+            [
+              "integrations/",
+              {
+                "Ref": "HttpApiGEThealthApiIntegration8B197B8C",
+              },
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::ApiGatewayV2::Route",
+    },
+    "HttpApiGEThealthApiIntegration8B197B8C": {
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApiF5A9A8A7",
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "ApiFunctionCE271BD4",
+            "Arn",
+          ],
+        },
+        "PayloadFormatVersion": "2.0",
+      },
+      "Type": "AWS::ApiGatewayV2::Integration",
+    },
+    "HttpApiGEThealthApiIntegrationPermissionBE15BCAA": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiFunctionCE271BD4",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:us-east-1:123456789012:",
+              {
+                "Ref": "HttpApiF5A9A8A7",
+              },
+              "/*/*/health",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
+      "DependsOn": [
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "<content-hash>.zip",
+        },
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:PutRetentionPolicy",
+                "logs:DeleteRetentionPolicy",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "Roles": [
+          {
+            "Ref": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MonarchFunction26415D8C": {
+      "DependsOn": [
+        "MonarchFunctionServiceRoleDefaultPolicyE69A6999",
+        "MonarchFunctionServiceRole7BA8017F",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "<content-hash>.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "ANTHROPIC_AUTH_SECRET_ARN": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition",
+                  },
+                  ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/anthropic-auth-token",
+                ],
+              ],
+            },
+            "ECS_CLUSTER_NAME": "cawnex-dev",
+            "ECS_SERVICE_NAME": "cawnex-worker-dev",
+            "EVENTS_TABLE_NAME": {
+              "Ref": "EventsTableD24865E5",
+            },
+            "STAGE": "dev",
+            "TABLE_NAME": {
+              "Fn::ImportValue": "CawnexAuthStack-dev-TableName",
+            },
+          },
+        },
+        "FunctionName": "cawnex-monarch-dev",
+        "Handler": "monarch.handler.lambda_handler",
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "MonarchFunctionServiceRole7BA8017F",
+            "Arn",
+          ],
+        },
+        "Runtime": "python3.12",
+        "Timeout": 300,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "MonarchFunctionDynamoDBEventSourceCawnexdevMainTable9121D45627C66E57": {
+      "Properties": {
+        "BatchSize": 5,
+        "BisectBatchOnFunctionError": true,
+        "EventSourceArn": {
+          "Fn::ImportValue": "CawnexAuthStack-dev-TableStreamArn",
+        },
+        "FilterCriteria": {
+          "Filters": [
+            {
+              "Pattern": "{"eventName":["INSERT"],"dynamodb":{"NewImage":{"SK":{"S":[{"prefix":"MONARCH#"}]}}}}",
+            },
+          ],
+        },
+        "FunctionName": {
+          "Ref": "MonarchFunction26415D8C",
+        },
+        "MaximumRetryAttempts": 2,
+        "StartingPosition": "TRIM_HORIZON",
+      },
+      "Type": "AWS::Lambda::EventSourceMapping",
+    },
+    "MonarchFunctionErrorsAlarmCA5AD366": {
+      "Properties": {
+        "AlarmName": "cawnex-monarch-dev-errors",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "MonarchFunction26415D8C",
+            },
+          },
+        ],
+        "EvaluationPeriods": 1,
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Period": 300,
+        "Statistic": "Sum",
+        "Threshold": 0,
+      },
+      "Type": "AWS::CloudWatch::Alarm",
+    },
+    "MonarchFunctionLogRetention982AE9BC": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "MonarchFunction26415D8C",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "MonarchFunctionServiceRole7BA8017F": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MonarchFunctionServiceRoleDefaultPolicyE69A6999": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/anthropic-auth-token-??????",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": "dynamodb:ListStreams",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": [
+                "dynamodb:DescribeStream",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableStreamArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "ecs:UpdateService",
+                "ecs:DescribeServices",
+              ],
+              "Effect": "Allow",
+              "Resource": "arn:aws:ecs:us-east-1:123456789012:service/cawnex-dev/cawnex-worker-dev",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MonarchFunctionServiceRoleDefaultPolicyE69A6999",
+        "Roles": [
+          {
+            "Ref": "MonarchFunctionServiceRole7BA8017F",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MurderFunctionD215096F": {
+      "DependsOn": [
+        "MurderFunctionServiceRoleDefaultPolicy00522E6C",
+        "MurderFunctionServiceRole124B7B8F",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "<content-hash>.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "ANTHROPIC_MODEL": "claude-sonnet-4-20250514",
+            "COUNCIL_SERVICE_NAME": "cawnex-council-dev",
+            "ECS_CLUSTER_NAME": "cawnex-dev",
+            "EVENTS_TABLE_NAME": {
+              "Ref": "EventsTableD24865E5",
+            },
+            "STAGE": "dev",
+            "TABLE_NAME": {
+              "Fn::ImportValue": "CawnexAuthStack-dev-TableName",
+            },
+          },
+        },
+        "FunctionName": "cawnex-murder-dev",
+        "Handler": "murder.handler.lambda_handler",
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "MurderFunctionServiceRole124B7B8F",
+            "Arn",
+          ],
+        },
+        "Runtime": "python3.12",
+        "Timeout": 60,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "MurderFunctionDynamoDBEventSourceCawnexdevMainTable9121D456212AFA28": {
+      "Properties": {
+        "BatchSize": 10,
+        "BisectBatchOnFunctionError": true,
+        "EventSourceArn": {
+          "Fn::ImportValue": "CawnexAuthStack-dev-TableStreamArn",
+        },
+        "FunctionName": {
+          "Ref": "MurderFunctionD215096F",
+        },
+        "MaximumRetryAttempts": 3,
+        "StartingPosition": "TRIM_HORIZON",
+      },
+      "Type": "AWS::Lambda::EventSourceMapping",
+    },
+    "MurderFunctionErrorsAlarm1E7067A6": {
+      "Properties": {
+        "AlarmName": "cawnex-murder-dev-errors",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": {
+              "Ref": "MurderFunctionD215096F",
+            },
+          },
+        ],
+        "EvaluationPeriods": 1,
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Period": 300,
+        "Statistic": "Sum",
+        "Threshold": 0,
+      },
+      "Type": "AWS::CloudWatch::Alarm",
+    },
+    "MurderFunctionLogRetentionBB03221C": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "MurderFunctionD215096F",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "MurderFunctionServiceRole124B7B8F": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MurderFunctionServiceRoleDefaultPolicy00522E6C": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": "dynamodb:ListStreams",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": [
+                "dynamodb:DescribeStream",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableStreamArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "ecs:UpdateService",
+              "Effect": "Allow",
+              "Resource": "arn:aws:ecs:us-east-1:123456789012:service/cawnex-dev/cawnex-council-dev",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MurderFunctionServiceRoleDefaultPolicy00522E6C",
+        "Roles": [
+          {
+            "Ref": "MurderFunctionServiceRole124B7B8F",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "RepoFileSystemCouncilTenantAP47B6F53E": {
+      "Properties": {
+        "AccessPointTags": [
+          {
+            "Key": "Name",
+            "Value": "Cawnex-dev/RepoFileSystem/CouncilTenantAP",
+          },
+        ],
+        "FileSystemId": {
+          "Ref": "RepoFileSystemF033F757",
+        },
+        "PosixUser": {
+          "Gid": "1000",
+          "Uid": "1000",
+        },
+        "RootDirectory": {
+          "CreationInfo": {
+            "OwnerGid": "1000",
+            "OwnerUid": "1000",
+            "Permissions": "750",
+          },
+          "Path": "/T/dev-tenant",
+        },
+      },
+      "Type": "AWS::EFS::AccessPoint",
+    },
+    "RepoFileSystemDevTenantAP9ABA66A3": {
+      "Properties": {
+        "AccessPointTags": [
+          {
+            "Key": "Name",
+            "Value": "Cawnex-dev/RepoFileSystem/DevTenantAP",
+          },
+        ],
+        "FileSystemId": {
+          "Ref": "RepoFileSystemF033F757",
+        },
+        "PosixUser": {
+          "Gid": "1000",
+          "Uid": "1000",
+        },
+        "RootDirectory": {
+          "CreationInfo": {
+            "OwnerGid": "1000",
+            "OwnerUid": "1000",
+            "Permissions": "750",
+          },
+          "Path": "/T/dev-tenant",
+        },
+      },
+      "Type": "AWS::EFS::AccessPoint",
+    },
+    "RepoFileSystemEfsMountTarget1EDB8E273": {
+      "Properties": {
+        "FileSystemId": {
+          "Ref": "RepoFileSystemF033F757",
+        },
+        "SecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "RepoFileSystemEfsSecurityGroup35C6AFA5",
+              "GroupId",
+            ],
+          },
+        ],
+        "SubnetId": {
+          "Ref": "VpcpublicSubnet1Subnet2BB74ED7",
+        },
+      },
+      "Type": "AWS::EFS::MountTarget",
+    },
+    "RepoFileSystemEfsMountTarget2FCBCDBD6": {
+      "Properties": {
+        "FileSystemId": {
+          "Ref": "RepoFileSystemF033F757",
+        },
+        "SecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "RepoFileSystemEfsSecurityGroup35C6AFA5",
+              "GroupId",
+            ],
+          },
+        ],
+        "SubnetId": {
+          "Ref": "VpcpublicSubnet2SubnetE34B022A",
+        },
+      },
+      "Type": "AWS::EFS::MountTarget",
+    },
+    "RepoFileSystemEfsSecurityGroup35C6AFA5": {
+      "Properties": {
+        "GroupDescription": "Cawnex-dev/RepoFileSystem/EfsSecurityGroup",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "cawnex-repos-dev",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "RepoFileSystemEfsSecurityGroupfromCawnexdevCouncilServiceSGFB3E936B204962EF719B": {
+      "Properties": {
+        "Description": "Council EFS read",
+        "FromPort": 2049,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "RepoFileSystemEfsSecurityGroup35C6AFA5",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "CouncilServiceSGA334E1BC",
+            "GroupId",
+          ],
+        },
+        "ToPort": 2049,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
+    "RepoFileSystemEfsSecurityGroupfromCawnexdevWorkerSGB40D43122049AF1D6172": {
+      "Properties": {
+        "Description": "ECS worker NFS access",
+        "FromPort": 2049,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "RepoFileSystemEfsSecurityGroup35C6AFA5",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "WorkerSGCDDEB9A5",
+            "GroupId",
+          ],
+        },
+        "ToPort": 2049,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
+    "RepoFileSystemF033F757": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "Encrypted": true,
+        "FileSystemPolicy": {
+          "Statement": [
+            {
+              "Action": [
+                "elasticfilesystem:ClientWrite",
+                "elasticfilesystem:ClientRootAccess",
+              ],
+              "Condition": {
+                "Bool": {
+                  "elasticfilesystem:AccessedViaMountTarget": "true",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "FileSystemTags": [
+          {
+            "Key": "Name",
+            "Value": "cawnex-repos-dev",
+          },
+        ],
+        "LifecyclePolicies": [
+          {
+            "TransitionToIA": "AFTER_30_DAYS",
+          },
+        ],
+        "PerformanceMode": "generalPurpose",
+        "ThroughputMode": "bursting",
+      },
+      "Type": "AWS::EFS::FileSystem",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "StreamALB2D1F74F4": {
+      "DependsOn": [
+        "VpcpublicSubnet1DefaultRouteB88F9E93",
+        "VpcpublicSubnet1RouteTableAssociation4E83B6E4",
+        "VpcpublicSubnet2DefaultRoute732F0BEB",
+        "VpcpublicSubnet2RouteTableAssociationCCE257FF",
+      ],
+      "Properties": {
+        "LoadBalancerAttributes": [
+          {
+            "Key": "deletion_protection.enabled",
+            "Value": "false",
+          },
+          {
+            "Key": "idle_timeout.timeout_seconds",
+            "Value": "120",
+          },
+        ],
+        "Name": "cawnex-stream-dev",
+        "Scheme": "internet-facing",
+        "SecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "StreamALBSecurityGroupEABF9D0E",
+              "GroupId",
+            ],
+          },
+        ],
+        "Subnets": [
+          {
+            "Ref": "VpcpublicSubnet1Subnet2BB74ED7",
+          },
+          {
+            "Ref": "VpcpublicSubnet2SubnetE34B022A",
+          },
+        ],
+        "Type": "application",
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    },
+    "StreamALBSecurityGroupEABF9D0E": {
+      "Properties": {
+        "GroupDescription": "Automatically created Security Group for ELB CawnexdevStreamALB69121E9D",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow from anyone on port 80",
+            "FromPort": 80,
+            "IpProtocol": "tcp",
+            "ToPort": 80,
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "StreamALBSecurityGrouptoCawnexdevStreamServiceSGE01484F680805B8E80B3": {
+      "Properties": {
+        "Description": "Load balancer to target",
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "StreamServiceSGCC8A08F5",
+            "GroupId",
+          ],
+        },
+        "FromPort": 8080,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "StreamALBSecurityGroupEABF9D0E",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "ToPort": 8080,
+      },
+      "Type": "AWS::EC2::SecurityGroupEgress",
+    },
+    "StreamALBStreamListenerCA10C01C": {
+      "Properties": {
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "StreamTargetsBB8AE1AD",
+            },
+            "Type": "forward",
+          },
+        ],
+        "LoadBalancerArn": {
+          "Ref": "StreamALB2D1F74F4",
+        },
+        "Port": 80,
+        "Protocol": "HTTP",
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+    },
+    "StreamEventsDLQCDA27379": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "MessageRetentionPeriod": 1209600,
+        "QueueName": "cawnex-stream-events-dlq-dev",
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "StreamEventsPipe": {
+      "Properties": {
+        "LogConfiguration": {
+          "CloudwatchLogsLogDestination": {
+            "LogGroupArn": {
+              "Fn::GetAtt": [
+                "StreamEventsPipeLogs6EDC722F",
+                "Arn",
+              ],
+            },
+          },
+          "IncludeExecutionData": [
+            "ALL",
+          ],
+          "Level": "TRACE",
+        },
+        "Name": "cawnex-stream-events-dev-v2",
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "StreamPipeRole9C92D9E8",
+            "Arn",
+          ],
+        },
+        "Source": {
+          "Fn::GetAtt": [
+            "EventsTableD24865E5",
+            "StreamArn",
+          ],
+        },
+        "SourceParameters": {
+          "DynamoDBStreamParameters": {
+            "BatchSize": 10,
+            "MaximumBatchingWindowInSeconds": 1,
+            "StartingPosition": "TRIM_HORIZON",
+          },
+        },
+        "Target": {
+          "Fn::GetAtt": [
+            "StreamEventsQueue114AC04A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Pipes::Pipe",
+    },
+    "StreamEventsPipeLogs6EDC722F": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "LogGroupName": "/aws/vendedlogs/pipes/cawnex-stream-events-dev",
+        "RetentionInDays": 7,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "StreamEventsQueue114AC04A": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "MessageRetentionPeriod": 86400,
+        "QueueName": "cawnex-stream-events-dev",
+        "RedrivePolicy": {
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "StreamEventsDLQCDA27379",
+              "Arn",
+            ],
+          },
+          "maxReceiveCount": 5,
+        },
+        "VisibilityTimeout": 60,
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "StreamPipeRole9C92D9E8": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "pipes.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "RoleName": "cawnex-stream-pipe-dev",
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "StreamPipeRoleDefaultPolicy9FE4B210": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:DescribeStream",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:ListStreams",
+                "dynamodb:ListShards",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "EventsTableD24865E5",
+                  "StreamArn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "StreamEventsQueue114AC04A",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "StreamEventsPipeLogs6EDC722F",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "StreamPipeRoleDefaultPolicy9FE4B210",
+        "Roles": [
+          {
+            "Ref": "StreamPipeRole9C92D9E8",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "StreamPipeSecret54DA1F4A": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "GenerateSecretString": {
+          "ExcludePunctuation": true,
+          "PasswordLength": 48,
+        },
+        "Name": "cawnex/dev/stream-pipe-secret",
+      },
+      "Type": "AWS::SecretsManager::Secret",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "StreamServiceD880BAB2": {
+      "DependsOn": [
+        "StreamALBStreamListenerCA10C01C",
+        "StreamTaskTaskRoleDefaultPolicy665B6CDD",
+        "StreamTaskTaskRole1216A105",
+      ],
+      "Properties": {
+        "CapacityProviderStrategy": [
+          {
+            "CapacityProvider": "FARGATE_SPOT",
+            "Weight": 1,
+          },
+          {
+            "CapacityProvider": "FARGATE",
+            "Weight": 0,
+          },
+        ],
+        "Cluster": {
+          "Ref": "ClusterEB0386A7",
+        },
+        "DeploymentConfiguration": {
+          "Alarms": {
+            "AlarmNames": [],
+            "Enable": false,
+            "Rollback": false,
+          },
+          "MaximumPercent": 200,
+          "MinimumHealthyPercent": 50,
+        },
+        "DesiredCount": 1,
+        "EnableECSManagedTags": false,
+        "HealthCheckGracePeriodSeconds": 60,
+        "LoadBalancers": [
+          {
+            "ContainerName": "stream",
+            "ContainerPort": 8080,
+            "TargetGroupArn": {
+              "Ref": "StreamTargetsBB8AE1AD",
+            },
+          },
+        ],
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [
+              {
+                "Fn::GetAtt": [
+                  "StreamServiceSGCC8A08F5",
+                  "GroupId",
+                ],
+              },
+            ],
+            "Subnets": [
+              {
+                "Ref": "VpcpublicSubnet1Subnet2BB74ED7",
+              },
+              {
+                "Ref": "VpcpublicSubnet2SubnetE34B022A",
+              },
+            ],
+          },
+        },
+        "PlatformVersion": "LATEST",
+        "ServiceName": "cawnex-stream-dev",
+        "TaskDefinition": {
+          "Ref": "StreamTaskB0CB4BBE",
+        },
+      },
+      "Type": "AWS::ECS::Service",
+    },
+    "StreamServiceSGCC8A08F5": {
+      "Properties": {
+        "GroupDescription": "Stream service ECS task",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "StreamServiceSGfromCawnexdevStreamALBSecurityGroup665BBA8F80801C75AE87": {
+      "Properties": {
+        "Description": "Load balancer to target",
+        "FromPort": 8080,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "StreamServiceSGCC8A08F5",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "StreamALBSecurityGroupEABF9D0E",
+            "GroupId",
+          ],
+        },
+        "ToPort": 8080,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
+    "StreamTargetsBB8AE1AD": {
+      "Properties": {
+        "HealthCheckIntervalSeconds": 30,
+        "HealthCheckPath": "/_health",
+        "Matcher": {
+          "HttpCode": "200",
+        },
+        "Port": 8080,
+        "Protocol": "HTTP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "15",
+          },
+          {
+            "Key": "stickiness.enabled",
+            "Value": "false",
+          },
+        ],
+        "TargetType": "ip",
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+    },
+    "StreamTaskB0CB4BBE": {
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Environment": [
+              {
+                "Name": "STAGE",
+                "Value": "dev",
+              },
+              {
+                "Name": "TABLE_NAME",
+                "Value": {
+                  "Fn::ImportValue": "CawnexAuthStack-dev-TableName",
+                },
+              },
+              {
+                "Name": "EVENTS_TABLE_NAME",
+                "Value": {
+                  "Ref": "EventsTableD24865E5",
+                },
+              },
+              {
+                "Name": "USER_POOL_ID",
+                "Value": {
+                  "Fn::ImportValue": "CawnexAuthStack-dev-UserPoolId",
+                },
+              },
+              {
+                "Name": "AWS_REGION",
+                "Value": "us-east-1",
+              },
+              {
+                "Name": "ALLOWED_AUDIENCES",
+                "Value": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::ImportValue": "CawnexAuthStack-dev-iOSClientId",
+                      },
+                      ",",
+                      {
+                        "Fn::ImportValue": "CawnexAuthStack-dev-WebClientId",
+                      },
+                    ],
+                  ],
+                },
+              },
+              {
+                "Name": "EVENTS_QUEUE_URL",
+                "Value": {
+                  "Ref": "StreamEventsQueue114AC04A",
+                },
+              },
+            ],
+            "Essential": true,
+            "HealthCheck": {
+              "Command": [
+                "CMD-SHELL",
+                "curl -fsS http://localhost:8080/_health || exit 1",
+              ],
+              "Interval": 30,
+              "Retries": 3,
+              "StartPeriod": 30,
+              "Timeout": 5,
+            },
+            "Image": {
+              "Fn::Sub": "123456789012.dkr.ecr.us-east-1.\${AWS::URLSuffix}/cdk-hnb659fds-container-assets-123456789012-us-east-1:<content-hash>",
+            },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "StreamTaskstreamLogGroup52D7992B",
+                },
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "stream",
+              },
+            },
+            "Name": "stream",
+            "PortMappings": [
+              {
+                "ContainerPort": 8080,
+                "Protocol": "tcp",
+              },
+            ],
+            "Secrets": [
+              {
+                "Name": "PIPE_SECRET",
+                "ValueFrom": {
+                  "Ref": "StreamPipeSecret54DA1F4A",
+                },
+              },
+            ],
+          },
+        ],
+        "Cpu": "256",
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "StreamTaskExecutionRoleCC8402C9",
+            "Arn",
+          ],
+        },
+        "Family": "cawnex-stream-dev",
+        "Memory": "512",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE",
+        ],
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "StreamTaskTaskRole1216A105",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::ECS::TaskDefinition",
+    },
+    "StreamTaskExecutionRoleCC8402C9": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "StreamTaskExecutionRoleDefaultPolicy3A8FFA92": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":ecr:us-east-1:123456789012:repository/cdk-hnb659fds-container-assets-123456789012-us-east-1",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "ecr:GetAuthorizationToken",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "StreamTaskstreamLogGroup52D7992B",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "StreamPipeSecret54DA1F4A",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "StreamTaskExecutionRoleDefaultPolicy3A8FFA92",
+        "Roles": [
+          {
+            "Ref": "StreamTaskExecutionRoleCC8402C9",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "StreamTaskTaskRole1216A105": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "StreamTaskTaskRoleDefaultPolicy665B6CDD": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "sqs:ReceiveMessage",
+                "sqs:ChangeMessageVisibility",
+                "sqs:GetQueueUrl",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "StreamEventsQueue114AC04A",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "StreamTaskTaskRoleDefaultPolicy665B6CDD",
+        "Roles": [
+          {
+            "Ref": "StreamTaskTaskRole1216A105",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "StreamTaskstreamLogGroup52D7992B": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "TaskDLQ42A398D8": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "MessageRetentionPeriod": 1209600,
+        "QueueName": "cawnex-tasks-dlq-dev",
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TaskDLQAlarmD64DF4F0": {
+      "Properties": {
+        "AlarmName": "cawnex-tasks-dlq-dev-not-empty",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "TaskDLQ42A398D8",
+                "QueueName",
+              ],
+            },
+          },
+        ],
+        "EvaluationPeriods": 1,
+        "MetricName": "ApproximateNumberOfMessagesVisible",
+        "Namespace": "AWS/SQS",
+        "Period": 300,
+        "Statistic": "Maximum",
+        "Threshold": 0,
+      },
+      "Type": "AWS::CloudWatch::Alarm",
+    },
+    "TaskQueueF51BE51C": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "QueueName": "cawnex-tasks-dev",
+        "RedrivePolicy": {
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "TaskDLQ42A398D8",
+              "Arn",
+            ],
+          },
+          "maxReceiveCount": 3,
+        },
+        "VisibilityTimeout": 1800,
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "VaultKey6B75F33E": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "Description": "Encrypts secrets in the Cawnex vault",
+        "EnableKeyRotation": true,
+        "KeyPolicy": {
+          "Statement": [
+            {
+              "Action": "kms:*",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::123456789012:root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::KMS::Key",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "VaultKeyAlias6C40A5EE": {
+      "Properties": {
+        "AliasName": "alias/cawnex-vault-dev",
+        "TargetKeyId": {
+          "Fn::GetAtt": [
+            "VaultKey6B75F33E",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::KMS::Alias",
+    },
+    "Vpc8378EB38": {
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "cawnex-dev",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::VPC",
+    },
+    "VpcIGWD7BA715C": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "cawnex-dev",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::InternetGateway",
+    },
+    "VpcVPCGWBF912B6E": {
+      "Properties": {
+        "InternetGatewayId": {
+          "Ref": "VpcIGWD7BA715C",
+        },
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+    },
+    "VpcpublicSubnet1DefaultRouteB88F9E93": {
+      "DependsOn": [
+        "VpcVPCGWBF912B6E",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "VpcIGWD7BA715C",
+        },
+        "RouteTableId": {
+          "Ref": "VpcpublicSubnet1RouteTable15C15F8E",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "VpcpublicSubnet1RouteTable15C15F8E": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Cawnex-dev/Vpc/publicSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "VpcpublicSubnet1RouteTableAssociation4E83B6E4": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "VpcpublicSubnet1RouteTable15C15F8E",
+        },
+        "SubnetId": {
+          "Ref": "VpcpublicSubnet1Subnet2BB74ED7",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "VpcpublicSubnet1Subnet2BB74ED7": {
+      "Properties": {
+        "AvailabilityZone": "dummy1a",
+        "CidrBlock": "10.0.0.0/24",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "public",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public",
+          },
+          {
+            "Key": "Name",
+            "Value": "Cawnex-dev/Vpc/publicSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "VpcpublicSubnet2DefaultRoute732F0BEB": {
+      "DependsOn": [
+        "VpcVPCGWBF912B6E",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "VpcIGWD7BA715C",
+        },
+        "RouteTableId": {
+          "Ref": "VpcpublicSubnet2RouteTableC5A6DF77",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "VpcpublicSubnet2RouteTableAssociationCCE257FF": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "VpcpublicSubnet2RouteTableC5A6DF77",
+        },
+        "SubnetId": {
+          "Ref": "VpcpublicSubnet2SubnetE34B022A",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "VpcpublicSubnet2RouteTableC5A6DF77": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Cawnex-dev/Vpc/publicSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "VpcpublicSubnet2SubnetE34B022A": {
+      "Properties": {
+        "AvailabilityZone": "dummy1b",
+        "CidrBlock": "10.0.1.0/24",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "public",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public",
+          },
+          {
+            "Key": "Name",
+            "Value": "Cawnex-dev/Vpc/publicSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "WorkerSGCDDEB9A5": {
+      "Properties": {
+        "GroupDescription": "Worker ECS tasks",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "WorkerScalerFunction826F763D": {
+      "DependsOn": [
+        "WorkerScalerFunctionServiceRoleDefaultPolicy2758DD0F",
+        "WorkerScalerFunctionServiceRoleF8C39CB0",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "<content-hash>.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "COUNCIL_SERVICE_NAME": "cawnex-council-dev",
+            "ECS_CLUSTER_NAME": "cawnex-dev",
+            "ECS_SERVICE_NAME": "cawnex-worker-dev",
+            "STAGE": "dev",
+            "TABLE_NAME": {
+              "Fn::ImportValue": "CawnexAuthStack-dev-TableName",
+            },
+          },
+        },
+        "FunctionName": "cawnex-worker-scaler-dev",
+        "Handler": "handler.lambda_handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "WorkerScalerFunctionServiceRoleF8C39CB0",
+            "Arn",
+          ],
+        },
+        "Runtime": "python3.12",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "WorkerScalerFunctionLogRetention82A5007B": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "WorkerScalerFunction826F763D",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "WorkerScalerFunctionServiceRoleDefaultPolicy2758DD0F": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "ecs:UpdateService",
+                "ecs:DescribeServices",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                "arn:aws:ecs:us-east-1:123456789012:service/cawnex-dev/cawnex-worker-dev",
+                "arn:aws:ecs:us-east-1:123456789012:service/cawnex-dev/cawnex-council-dev",
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "WorkerScalerFunctionServiceRoleDefaultPolicy2758DD0F",
+        "Roles": [
+          {
+            "Ref": "WorkerScalerFunctionServiceRoleF8C39CB0",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "WorkerScalerFunctionServiceRoleF8C39CB0": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "WorkerScalerSchedule92F929BD": {
+      "Properties": {
+        "Name": "cawnex-worker-scaler-dev",
+        "ScheduleExpression": "rate(15 minutes)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "WorkerScalerFunction826F763D",
+                "Arn",
+              ],
+            },
+            "Id": "Target0",
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "WorkerScalerScheduleAllowEventRuleCawnexdevWorkerScalerFunction4E3BB20CBD90B2C8": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "WorkerScalerFunction826F763D",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "WorkerScalerSchedule92F929BD",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "WorkerService99815FA9": {
+      "DependsOn": [
+        "WorkerTaskTaskRoleDefaultPolicy242C79D9",
+        "WorkerTaskTaskRoleC4141168",
+      ],
+      "Properties": {
+        "CapacityProviderStrategy": [
+          {
+            "CapacityProvider": "FARGATE_SPOT",
+            "Weight": 1,
+          },
+          {
+            "CapacityProvider": "FARGATE",
+            "Weight": 0,
+          },
+        ],
+        "Cluster": {
+          "Ref": "ClusterEB0386A7",
+        },
+        "DeploymentConfiguration": {
+          "Alarms": {
+            "AlarmNames": [],
+            "Enable": false,
+            "Rollback": false,
+          },
+          "MaximumPercent": 200,
+          "MinimumHealthyPercent": 50,
+        },
+        "DesiredCount": 0,
+        "EnableECSManagedTags": false,
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [
+              {
+                "Fn::GetAtt": [
+                  "WorkerSGCDDEB9A5",
+                  "GroupId",
+                ],
+              },
+            ],
+            "Subnets": [
+              {
+                "Ref": "VpcpublicSubnet1Subnet2BB74ED7",
+              },
+              {
+                "Ref": "VpcpublicSubnet2SubnetE34B022A",
+              },
+            ],
+          },
+        },
+        "PlatformVersion": "1.4.0",
+        "ServiceName": "cawnex-worker-dev",
+        "TaskDefinition": {
+          "Ref": "WorkerTaskCBB1FEE3",
+        },
+      },
+      "Type": "AWS::ECS::Service",
+    },
+    "WorkerTaskCBB1FEE3": {
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Environment": [
+              {
+                "Name": "STAGE",
+                "Value": "dev",
+              },
+              {
+                "Name": "TABLE_NAME",
+                "Value": {
+                  "Fn::ImportValue": "CawnexAuthStack-dev-TableName",
+                },
+              },
+              {
+                "Name": "EVENTS_TABLE_NAME",
+                "Value": {
+                  "Ref": "EventsTableD24865E5",
+                },
+              },
+              {
+                "Name": "BUCKET_NAME",
+                "Value": {
+                  "Ref": "ArtifactsBucket2AAC5544",
+                },
+              },
+              {
+                "Name": "QUEUE_URL",
+                "Value": {
+                  "Ref": "TaskQueueF51BE51C",
+                },
+              },
+              {
+                "Name": "ANTHROPIC_MODEL",
+                "Value": "claude-haiku-4-5-20251001",
+              },
+              {
+                "Name": "EFS_MOUNT",
+                "Value": "/mnt/repos",
+              },
+              {
+                "Name": "MEMORY_INJECTION_ENABLED",
+                "Value": "true",
+              },
+              {
+                "Name": "VAULT_KMS_KEY_ID",
+                "Value": {
+                  "Ref": "VaultKey6B75F33E",
+                },
+              },
+              {
+                "Name": "ASSETS_BUCKET_NAME",
+                "Value": {
+                  "Ref": "AssetsBucket5CB76180",
+                },
+              },
+            ],
+            "Essential": true,
+            "Image": {
+              "Fn::Sub": "123456789012.dkr.ecr.us-east-1.\${AWS::URLSuffix}/cdk-hnb659fds-container-assets-123456789012-us-east-1:<content-hash>",
+            },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "WorkerTaskworkerLogGroupBDCBB9F4",
+                },
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "murder",
+              },
+            },
+            "MountPoints": [
+              {
+                "ContainerPath": "/mnt/repos",
+                "ReadOnly": false,
+                "SourceVolume": "repos",
+              },
+            ],
+            "Name": "murder",
+            "Secrets": [
+              {
+                "Name": "GITHUB_TOKEN",
+                "ValueFrom": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/github-token",
+                    ],
+                  ],
+                },
+              },
+              {
+                "Name": "ANTHROPIC_AUTH_TOKEN",
+                "ValueFrom": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/anthropic-auth-token",
+                    ],
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        "Cpu": "1024",
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "WorkerTaskExecutionRole9C03D68C",
+            "Arn",
+          ],
+        },
+        "Family": "cawnex-worker-dev",
+        "Memory": "2048",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE",
+        ],
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "WorkerTaskTaskRoleC4141168",
+            "Arn",
+          ],
+        },
+        "Volumes": [
+          {
+            "EFSVolumeConfiguration": {
+              "AuthorizationConfig": {
+                "AccessPointId": {
+                  "Ref": "RepoFileSystemDevTenantAP9ABA66A3",
+                },
+                "IAM": "ENABLED",
+              },
+              "FilesystemId": {
+                "Ref": "RepoFileSystemF033F757",
+              },
+              "TransitEncryption": "ENABLED",
+            },
+            "Name": "repos",
+          },
+        ],
+      },
+      "Type": "AWS::ECS::TaskDefinition",
+    },
+    "WorkerTaskExecutionRole9C03D68C": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "WorkerTaskExecutionRoleDefaultPolicyAF6178D4": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":ecr:us-east-1:123456789012:repository/cdk-hnb659fds-container-assets-123456789012-us-east-1",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "ecr:GetAuthorizationToken",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "WorkerTaskworkerLogGroupBDCBB9F4",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/github-token-??????",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":secretsmanager:us-east-1:123456789012:secret:cawnex/dev/anthropic-auth-token-??????",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "WorkerTaskExecutionRoleDefaultPolicyAF6178D4",
+        "Roles": [
+          {
+            "Ref": "WorkerTaskExecutionRole9C03D68C",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "WorkerTaskTaskRoleC4141168": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "WorkerTaskTaskRoleDefaultPolicy242C79D9": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+              },
+            },
+            {
+              "Action": "dynamodb:Query",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "CawnexAuthStack-dev-TableArn",
+                    },
+                    "/index/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "EventsTableD24865E5",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EventsTableD24865E5",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging",
+                "s3:Abort*",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "ArtifactsBucket2AAC5544",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "ArtifactsBucket2AAC5544",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "AssetsBucket5CB76180",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "AssetsBucket5CB76180",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "kms:Decrypt",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "VaultKey6B75F33E",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "sqs:ReceiveMessage",
+                "sqs:ChangeMessageVisibility",
+                "sqs:GetQueueUrl",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "TaskQueueF51BE51C",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "TaskQueueF51BE51C",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "elasticfilesystem:ClientMount",
+                "elasticfilesystem:ClientWrite",
+              ],
+              "Condition": {
+                "Bool": {
+                  "elasticfilesystem:AccessedViaMountTarget": "true",
+                },
+              },
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "RepoFileSystemF033F757",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "WorkerTaskTaskRoleDefaultPolicy242C79D9",
+        "Roles": [
+          {
+            "Ref": "WorkerTaskTaskRoleC4141168",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "WorkerTaskworkerLogGroupBDCBB9F4": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`CDK template snapshots matches the CawnexAuthStack (dev) snapshot 1`] = `
+{
+  "Description": "Cawnex Authentication Stack (dev)",
+  "Outputs": {
+    "CognitoDomain": {
+      "Description": "Cognito hosted UI domain",
+      "Export": {
+        "Name": "CawnexAuthStack-dev-CognitoDomain",
+      },
+      "Value": {
+        "Ref": "UserPoolDomainD0EA232A",
+      },
+    },
+    "Region": {
+      "Description": "AWS region for SDK configuration",
+      "Export": {
+        "Name": "CawnexAuthStack-dev-Region",
+      },
+      "Value": "us-east-1",
+    },
+    "TableArn": {
+      "Description": "DynamoDB table ARN",
+      "Export": {
+        "Name": "CawnexAuthStack-dev-TableArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "MainTable74195DAB",
+          "Arn",
+        ],
+      },
+    },
+    "TableName": {
+      "Description": "DynamoDB table name",
+      "Export": {
+        "Name": "CawnexAuthStack-dev-TableName",
+      },
+      "Value": {
+        "Ref": "MainTable74195DAB",
+      },
+    },
+    "TableStreamArn": {
+      "Description": "DynamoDB table stream ARN",
+      "Export": {
+        "Name": "CawnexAuthStack-dev-TableStreamArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "MainTable74195DAB",
+          "StreamArn",
+        ],
+      },
+    },
+    "UserPoolArn": {
+      "Description": "Cognito User Pool ARN",
+      "Export": {
+        "Name": "CawnexAuthStack-dev-UserPoolArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "UserPool6BA7E5F2",
+          "Arn",
+        ],
+      },
+    },
+    "UserPoolId": {
+      "Description": "Cognito User Pool ID",
+      "Export": {
+        "Name": "CawnexAuthStack-dev-UserPoolId",
+      },
+      "Value": {
+        "Ref": "UserPool6BA7E5F2",
+      },
+    },
+    "WebClientId": {
+      "Description": "Cognito Web app client ID",
+      "Export": {
+        "Name": "CawnexAuthStack-dev-WebClientId",
+      },
+      "Value": {
+        "Ref": "UserPoolWebClient4C9370B0",
+      },
+    },
+    "iOSClientId": {
+      "Description": "Cognito iOS app client ID",
+      "Export": {
+        "Name": "CawnexAuthStack-dev-iOSClientId",
+      },
+      "Value": {
+        "Ref": "UserPooliOSClient7240CA4D",
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
+      "DependsOn": [
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "<content-hash>.zip",
+        },
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:PutRetentionPolicy",
+                "logs:DeleteRetentionPolicy",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "Roles": [
+          {
+            "Ref": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MainTable74195DAB": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "GSI1PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "GSI1SK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "GSI2PK",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "GSI2SK",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "GSI1",
+            "KeySchema": [
+              {
+                "AttributeName": "GSI1PK",
+                "KeyType": "HASH",
+              },
+              {
+                "AttributeName": "GSI1SK",
+                "KeyType": "RANGE",
+              },
+            ],
+            "Projection": {
+              "ProjectionType": "ALL",
+            },
+          },
+          {
+            "IndexName": "GSI2",
+            "KeySchema": [
+              {
+                "AttributeName": "GSI2PK",
+                "KeyType": "HASH",
+              },
+              {
+                "AttributeName": "GSI2SK",
+                "KeyType": "RANGE",
+              },
+            ],
+            "Projection": {
+              "ProjectionType": "ALL",
+            },
+          },
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "StreamSpecification": {
+          "StreamViewType": "NEW_AND_OLD_IMAGES",
+        },
+        "TableName": "cawnex-dev",
+        "TimeToLiveSpecification": {
+          "AttributeName": "ttl",
+          "Enabled": true,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "PostConfirmationFnE0D8EF4F": {
+      "DependsOn": [
+        "PostConfirmationFnServiceRoleDefaultPolicy7B6816CA",
+        "PostConfirmationFnServiceRole5E4DC5AE",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "<content-hash>.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "STAGE": "dev",
+            "TABLE_NAME": {
+              "Ref": "MainTable74195DAB",
+            },
+          },
+        },
+        "FunctionName": "cawnex-post-confirmation-dev",
+        "Handler": "handler.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "PostConfirmationFnServiceRole5E4DC5AE",
+            "Arn",
+          ],
+        },
+        "Runtime": "python3.12",
+        "Timeout": 10,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "PostConfirmationFnLogRetentionEF3E11DF": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "PostConfirmationFnE0D8EF4F",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "PostConfirmationFnServiceRole5E4DC5AE": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "PostConfirmationFnServiceRoleDefaultPolicy7B6816CA": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "MainTable74195DAB",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "MainTable74195DAB",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "cognito-idp:AdminUpdateUserAttributes",
+              "Effect": "Allow",
+              "Resource": "arn:aws:cognito-idp:us-east-1:123456789012:userpool/*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "PostConfirmationFnServiceRoleDefaultPolicy7B6816CA",
+        "Roles": [
+          {
+            "Ref": "PostConfirmationFnServiceRole5E4DC5AE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "UserPool6BA7E5F2": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccountRecoverySetting": {
+          "RecoveryMechanisms": [
+            {
+              "Name": "verified_email",
+              "Priority": 1,
+            },
+          ],
+        },
+        "AdminCreateUserConfig": {
+          "AllowAdminCreateUserOnly": false,
+        },
+        "AutoVerifiedAttributes": [
+          "email",
+        ],
+        "EmailConfiguration": {
+          "EmailSendingAccount": "COGNITO_DEFAULT",
+        },
+        "EmailVerificationMessage": "Thanks for signing up! Your verification code is {####}. This code expires in 24 hours.",
+        "EmailVerificationSubject": "Verify your Cawnex account",
+        "LambdaConfig": {
+          "PostConfirmation": {
+            "Fn::GetAtt": [
+              "PostConfirmationFnE0D8EF4F",
+              "Arn",
+            ],
+          },
+        },
+        "Policies": {
+          "PasswordPolicy": {
+            "MinimumLength": 8,
+            "RequireLowercase": true,
+            "RequireNumbers": true,
+            "RequireSymbols": false,
+            "RequireUppercase": false,
+          },
+        },
+        "Schema": [
+          {
+            "Mutable": true,
+            "Name": "name",
+            "Required": false,
+          },
+          {
+            "AttributeDataType": "String",
+            "Mutable": true,
+            "Name": "tenant_id",
+          },
+        ],
+        "SmsVerificationMessage": "The verification code to your new account is {####}",
+        "UserPoolName": "cawnex-dev",
+        "UsernameAttributes": [
+          "email",
+        ],
+        "VerificationMessageTemplate": {
+          "DefaultEmailOption": "CONFIRM_WITH_CODE",
+          "EmailMessage": "Thanks for signing up! Your verification code is {####}. This code expires in 24 hours.",
+          "EmailSubject": "Verify your Cawnex account",
+          "SmsMessage": "The verification code to your new account is {####}",
+        },
+      },
+      "Type": "AWS::Cognito::UserPool",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "UserPoolDomainD0EA232A": {
+      "Properties": {
+        "Domain": "cawnex-dev",
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolDomain",
+    },
+    "UserPoolPostConfirmationCognito0E6001F8": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "PostConfirmationFnE0D8EF4F",
+            "Arn",
+          ],
+        },
+        "Principal": "cognito-idp.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "UserPool6BA7E5F2",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "UserPoolWebClient4C9370B0": {
+      "Properties": {
+        "AllowedOAuthFlows": [
+          "code",
+        ],
+        "AllowedOAuthFlowsUserPoolClient": true,
+        "AllowedOAuthScopes": [
+          "openid",
+          "email",
+          "profile",
+        ],
+        "CallbackURLs": [
+          "http://localhost:5173/auth/callback",
+        ],
+        "ClientName": "cawnex-web-dev",
+        "ExplicitAuthFlows": [
+          "ALLOW_USER_SRP_AUTH",
+          "ALLOW_REFRESH_TOKEN_AUTH",
+        ],
+        "LogoutURLs": [
+          "http://localhost:5173/auth/logout",
+        ],
+        "SupportedIdentityProviders": [
+          "COGNITO",
+        ],
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolClient",
+    },
+    "UserPooliOSClient7240CA4D": {
+      "Properties": {
+        "AllowedOAuthFlows": [
+          "code",
+        ],
+        "AllowedOAuthFlowsUserPoolClient": true,
+        "AllowedOAuthScopes": [
+          "openid",
+          "email",
+          "profile",
+        ],
+        "CallbackURLs": [
+          "cawnex://auth/callback",
+        ],
+        "ClientName": "cawnex-ios-dev",
+        "ExplicitAuthFlows": [
+          "ALLOW_USER_PASSWORD_AUTH",
+          "ALLOW_USER_SRP_AUTH",
+          "ALLOW_REFRESH_TOKEN_AUTH",
+        ],
+        "LogoutURLs": [
+          "cawnex://auth/logout",
+        ],
+        "SupportedIdentityProviders": [
+          "COGNITO",
+        ],
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolClient",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;

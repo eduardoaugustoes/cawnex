@@ -247,6 +247,8 @@ jobs:
       - run: npm run type-check:all
       - run: npm run quality:typescript
       - run: npm run format:check
+      - name: 🧪 Infra Template Tests
+        run: cd infra && npx jest
 
   # ================================
   # SMART DEPLOYMENT
