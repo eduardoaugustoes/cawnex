@@ -237,3 +237,31 @@ def test_update_project_not_found(mock_boto3: Mock) -> None:
     response = client.patch("/projects/nonexistent", json={"auto_mode": "auto"})
 
     assert response.status_code == 404
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_create_project_rejects_injection_in_repo(mock_boto3: Mock) -> None:
+    """POST /projects rejects a repo slug carrying shell metacharacters."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    client = _make_client(_make_tenant())
+    response = client.post(
+        "/projects",
+        json={"name": "x", "one_liner": "y", "repo": "owner/repo$(id)"},
+    )
+    assert response.status_code == 422
+
+
+@patch("src.db.client.boto3")
+@patch.dict("os.environ", {"TABLE_NAME": "test-table"})
+def test_create_project_accepts_valid_repo(mock_boto3: Mock) -> None:
+    """POST /projects accepts a plain owner/repo slug."""
+    mock_table = Mock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    client = _make_client(_make_tenant())
+    response = client.post(
+        "/projects",
+        json={"name": "x", "one_liner": "y", "repo": "owner/repo"},
+    )
+    assert response.status_code < 400

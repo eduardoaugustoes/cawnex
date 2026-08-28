@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 
 from worker.git_ops import (
+    _normalize_repo,
+    _validate_branch,
     apply_changes,
     cleanup_worktree,
     commit_and_push,
@@ -20,7 +23,7 @@ from worker.git_ops import (
 @patch("worker.git_ops.subprocess.run")
 def test_run_git_returns_stdout(mock_run: MagicMock) -> None:
     mock_run.return_value = MagicMock(returncode=0, stdout="  output  ", stderr="")
-    result = run_git("git status", cwd="/repo")
+    result = run_git(["git", "status"], cwd="/repo")
     assert result == "output"
     mock_run.assert_called_once()
     _, kwargs = mock_run.call_args
@@ -31,20 +34,20 @@ def test_run_git_returns_stdout(mock_run: MagicMock) -> None:
 def test_run_git_raises_on_failure(mock_run: MagicMock) -> None:
     mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="error msg")
     with pytest.raises(RuntimeError, match="Command failed"):
-        run_git("git bad", cwd="/repo")
+        run_git(["git", "bad"], cwd="/repo")
 
 
 @patch("worker.git_ops.subprocess.run")
 def test_run_git_check_false_no_raise(mock_run: MagicMock) -> None:
     mock_run.return_value = MagicMock(returncode=1, stdout="warning", stderr="")
-    result = run_git("git status", check=False)
+    result = run_git(["git", "status"], check=False)
     assert result == "warning"
 
 
 @patch("worker.git_ops.subprocess.run")
 def test_run_git_respects_timeout(mock_run: MagicMock) -> None:
     mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
-    run_git("git status", timeout=30)
+    run_git(["git", "status"], timeout=30)
     _, kwargs = mock_run.call_args
     assert kwargs["timeout"] == 30
 
@@ -57,8 +60,8 @@ def test_ensure_repo_clones_fresh(mock_exists: MagicMock, mock_git: MagicMock) -
     result = ensure_repo("owner/repo", efs_mount="/efs", github_token="tok123")
     assert result == "/efs/owner_repo"
     calls = [c[0][0] for c in mock_git.call_args_list]
-    assert any("git clone" in c for c in calls)
-    assert any("git config user.email" in c for c in calls)
+    assert any(c[:2] == ["git", "clone"] for c in calls)
+    assert any(c[:3] == ["git", "config", "user.email"] for c in calls)
 
 
 @patch("worker.git_ops.run_git")
@@ -77,8 +80,8 @@ def test_ensure_repo_fetches_existing(mock_exists: MagicMock, mock_git: MagicMoc
     result = ensure_repo("owner/repo", efs_mount="/efs", github_token="tok")
     assert result == "/efs/owner_repo"
     calls = [c[0][0] for c in mock_git.call_args_list]
-    assert any("git fetch origin" in c for c in calls)
-    assert not any("git clone" in c for c in calls)
+    assert any(c[:2] == ["git", "fetch"] and "origin" in c for c in calls)
+    assert not any(c[:2] == ["git", "clone"] for c in calls)
 
 
 @patch("worker.git_ops.shutil.rmtree")
@@ -99,15 +102,15 @@ def test_ensure_repo_reclones_shallow(
     ensure_repo("owner/repo", efs_mount="/efs", github_token="tok")
     mock_rmtree.assert_called_once()
     calls = [c[0][0] for c in mock_git.call_args_list]
-    assert any("git clone" in c for c in calls)
+    assert any(c[:2] == ["git", "clone"] for c in calls)
 
 
 @patch("worker.git_ops.run_git")
 @patch("os.path.exists", return_value=False)
 def test_create_worktree_from_main(mock_exists: MagicMock, mock_git: MagicMock) -> None:
     # Remote branch doesn't exist → start from origin/main
-    def git_side_effect(cmd: str, **kwargs: object) -> str:
-        if "rev-parse --verify" in cmd:
+    def git_side_effect(cmd: list[str], **kwargs: object) -> str:
+        if cmd[:3] == ["git", "rev-parse", "--verify"]:
             return "fatal: not found"
         return ""
 
@@ -115,7 +118,7 @@ def test_create_worktree_from_main(mock_exists: MagicMock, mock_git: MagicMock) 
     result = create_worktree("/repo", "cr_impl_01", "feat/auth", efs_mount="/efs")
     assert result == "/efs/worktrees/cr_impl_01"
     calls = [c[0][0] for c in mock_git.call_args_list]
-    wt_add = [c for c in calls if "worktree add" in c]
+    wt_add = [c for c in calls if c[:2] == ["git", "worktree"] and "add" in c]
     assert len(wt_add) == 1
     assert "origin/main" in wt_add[0]
 
@@ -126,15 +129,15 @@ def test_create_worktree_from_remote_branch(
     mock_exists: MagicMock, mock_git: MagicMock
 ) -> None:
     # Remote branch exists → start from it
-    def git_side_effect(cmd: str, **kwargs: object) -> str:
-        if "rev-parse --verify" in cmd:
+    def git_side_effect(cmd: list[str], **kwargs: object) -> str:
+        if cmd[:3] == ["git", "rev-parse", "--verify"]:
             return "abc123"
         return ""
 
     mock_git.side_effect = git_side_effect
     result = create_worktree("/repo", "cr_fix_01", "feat/auth", efs_mount="/efs")
     calls = [c[0][0] for c in mock_git.call_args_list]
-    wt_add = [c for c in calls if "worktree add" in c]
+    wt_add = [c for c in calls if c[:2] == ["git", "worktree"] and "add" in c]
     assert "origin/feat/auth" in wt_add[0]
 
 
@@ -170,10 +173,10 @@ def test_apply_changes_create_and_delete(tmp_path: object) -> None:
 def test_commit_and_push_returns_sha(mock_git: MagicMock) -> None:
     call_count = 0
 
-    def git_side_effect(cmd: str, **kwargs: object) -> str:
-        if "diff --cached" in cmd:
+    def git_side_effect(cmd: list[str], **kwargs: object) -> str:
+        if cmd[:3] == ["git", "diff", "--cached"]:
             return "file.py"
-        if "rev-parse HEAD" in cmd:
+        if cmd[:3] == ["git", "rev-parse", "HEAD"]:
             return "abc123def456"
         return ""
 
@@ -188,8 +191,8 @@ def test_commit_and_push_returns_sha(mock_git: MagicMock) -> None:
 
 @patch("worker.git_ops.run_git")
 def test_commit_and_push_empty_diff(mock_git: MagicMock) -> None:
-    def git_side_effect(cmd: str, **kwargs: object) -> str:
-        if "diff --cached" in cmd:
+    def git_side_effect(cmd: list[str], **kwargs: object) -> str:
+        if cmd[:3] == ["git", "diff", "--cached"]:
             return ""
         return ""
 
@@ -208,10 +211,10 @@ def test_commit_message_with_newlines_and_quotes_uses_stdin(
     Verifies commit goes through ['git', 'commit', '-F', '-'] with the
     full multi-line message passed on stdin — no shell interpolation.
     """
-    def git_side_effect(cmd: str, **kwargs: object) -> str:
-        if "diff --cached" in cmd:
+    def git_side_effect(cmd: list[str], **kwargs: object) -> str:
+        if cmd[:3] == ["git", "diff", "--cached"]:
             return "file.py"
-        if "rev-parse HEAD" in cmd:
+        if cmd[:3] == ["git", "rev-parse", "HEAD"]:
             return "deadbeef"
         return ""
 
@@ -230,3 +233,164 @@ def test_commit_message_with_newlines_and_quotes_uses_stdin(
     assert call_args[0] == ["git", "commit", "-F", "-"]
     assert call_kwargs["input"] == nasty_message
     assert call_kwargs["cwd"] == "/wt"
+
+
+def test_apply_changes_rejects_parent_traversal(tmp_path: Path) -> None:
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    with pytest.raises(ValueError, match="escapes worktree"):
+        apply_changes(
+            root, [{"path": "../pwned.txt", "action": "create", "content": "x"}]
+        )
+    assert not os.path.exists(os.path.join(str(tmp_path), "pwned.txt"))
+
+
+def test_apply_changes_rejects_absolute_path(tmp_path: Path) -> None:
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    target = os.path.join(str(tmp_path), "abs.txt")
+    with pytest.raises(ValueError, match="escapes worktree"):
+        apply_changes(root, [{"path": target, "action": "create", "content": "x"}])
+    assert not os.path.exists(target)
+
+
+def test_apply_changes_rejects_git_hooks_write(tmp_path: Path) -> None:
+    """Defense in depth: a hook inside the worktree still executes on commit."""
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    with pytest.raises(ValueError, match="git internals"):
+        apply_changes(
+            root,
+            [
+                {
+                    "path": ".git/hooks/pre-commit",
+                    "action": "create",
+                    "content": "#!/bin/sh\nid\n",
+                }
+            ],
+        )
+
+
+def test_apply_changes_rejects_uppercase_git_write(tmp_path: Path) -> None:
+    """macOS/APFS is case-insensitive by default — .GIT must be caught too."""
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    with pytest.raises(ValueError, match="git internals"):
+        apply_changes(
+            root,
+            [
+                {
+                    "path": ".GIT/hooks/pre-commit",
+                    "action": "create",
+                    "content": "#!/bin/sh\nid\n",
+                }
+            ],
+        )
+
+
+def test_apply_changes_rejects_nested_git_write(tmp_path: Path) -> None:
+    """A .git directory nested under a subdirectory is also git internals."""
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    with pytest.raises(ValueError, match="git internals"):
+        apply_changes(
+            root,
+            [{"path": "sub/.git/hooks/pre-commit", "action": "create", "content": "x"}],
+        )
+
+
+def test_apply_changes_is_atomic_on_escape(tmp_path: Path) -> None:
+    """A single bad path rejects the whole changeset — nothing is written."""
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    with pytest.raises(ValueError):
+        apply_changes(
+            root,
+            [
+                {"path": "good.py", "action": "create", "content": "ok"},
+                {"path": "../bad.py", "action": "create", "content": "evil"},
+            ],
+        )
+    assert not os.path.exists(os.path.join(root, "good.py"))
+
+
+def test_apply_changes_writes_valid_paths(tmp_path: Path) -> None:
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    paths = apply_changes(
+        root, [{"path": "pkg/mod.py", "action": "create", "content": "print(1)"}]
+    )
+    assert paths == ["pkg/mod.py"]
+    with open(os.path.join(root, "pkg/mod.py")) as f:
+        assert f.read() == "print(1)"
+
+
+def test_apply_changes_delete_still_works(tmp_path: Path) -> None:
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    victim = os.path.join(root, "gone.py")
+    with open(victim, "w") as f:
+        f.write("x")
+    apply_changes(root, [{"path": "gone.py", "action": "delete"}])
+    assert not os.path.exists(victim)
+
+
+@pytest.mark.parametrize(
+    "evil",
+    [
+        "owner/repo$(id)",
+        "owner/repo`id`",
+        "owner/repo;rm -rf /",
+        "owner/repo|nc attacker 1",
+        "owner/repo&&curl evil.sh",
+        "owner/repo with space",
+        "owner/repo\nsecond-line",
+        "../../etc/passwd",
+        "only-one-segment",
+        "a/b/c",
+    ],
+)
+def test_normalize_repo_rejects_injection(evil: str) -> None:
+    with pytest.raises(ValueError, match="invalid repo"):
+        _normalize_repo(evil)
+
+
+def test_normalize_repo_accepts_valid() -> None:
+    assert _normalize_repo("https://github.com/eduardoaugustoes/cawnex.git") == (
+        "eduardoaugustoes/cawnex"
+    )
+    assert _normalize_repo("owner/repo_name.v2") == "owner/repo_name.v2"
+
+
+@pytest.mark.parametrize(
+    "evil",
+    ["feat/x;id", "--upload-pack=evil", "a..b", "br anch", "br\nanch", ""],
+)
+def test_validate_branch_rejects(evil: str) -> None:
+    with pytest.raises(ValueError, match="invalid branch"):
+        _validate_branch(evil)
+
+
+def test_validate_branch_accepts_wave_format() -> None:
+    assert _validate_branch("cawnex/w01-m01") == "cawnex/w01-m01"
+
+
+@patch("worker.git_ops.subprocess.run")
+def test_run_git_uses_list_form_not_shell(mock_run: MagicMock) -> None:
+    mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
+    run_git(["git", "status"], cwd="/repo")
+    kwargs = mock_run.call_args.kwargs
+    assert kwargs.get("shell") is not True
+    assert mock_run.call_args.args[0] == ["git", "status"]
+
+
+@patch("worker.git_ops.subprocess.run")
+def test_run_git_disables_hooks(mock_run: MagicMock) -> None:
+    """D3: a hook written inside the worktree must not execute on commit."""
+    mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+    run_git(["git", "status"], cwd="/repo")
+    env = mock_run.call_args.kwargs["env"]
+    assert env["GIT_CONFIG_COUNT"] == "2"
+    assert "core.hooksPath" in (env["GIT_CONFIG_KEY_0"], env["GIT_CONFIG_KEY_1"])
+    idx = "0" if env["GIT_CONFIG_KEY_0"] == "core.hooksPath" else "1"
+    assert env[f"GIT_CONFIG_VALUE_{idx}"] == "/dev/null"

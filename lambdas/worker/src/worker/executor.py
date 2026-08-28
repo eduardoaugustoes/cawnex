@@ -133,10 +133,12 @@ def _build_git_diff(
     when the wave branch has no commits of its own.
     """
     diff_content = run_git(
-        f"git diff {base_branch}..HEAD", cwd=worktree_dir, check=False
+        ["git", "diff", f"{base_branch}..HEAD"], cwd=worktree_dir, check=False
     )
     changed_names = run_git(
-        f"git diff --name-only {base_branch}..HEAD", cwd=worktree_dir, check=False
+        ["git", "diff", "--name-only", f"{base_branch}..HEAD"],
+        cwd=worktree_dir,
+        check=False,
     )
     changed_files = [f.strip() for f in changed_names.split("\n") if f.strip()]
     return diff_content, changed_files
