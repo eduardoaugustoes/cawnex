@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 from typing import Any
@@ -40,10 +41,30 @@ def run_git(
     return result.stdout.strip()
 
 
+_REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+_BRANCH_RE = re.compile(r"^[A-Za-z0-9_./-]+$")
+
+
 def _normalize_repo(repo: str) -> str:
-    """Normalize repo to owner/repo format, stripping full URLs."""
+    """Normalize repo to owner/repo format, stripping full URLs.
+
+    Raises ValueError on anything that is not a plain owner/repo slug — this
+    value reaches subprocess argv, so shell metacharacters are rejected
+    outright rather than escaped.
+    """
     repo = repo.removeprefix("https://github.com/").removesuffix(".git")
+    if not _REPO_RE.match(repo):
+        raise ValueError(f"invalid repo slug: {repo!r}")
     return repo
+
+
+def _validate_branch(branch: str) -> str:
+    """Validate a git branch name. Raises ValueError if unsafe."""
+    if not branch or not _BRANCH_RE.match(branch):
+        raise ValueError(f"invalid branch name: {branch!r}")
+    if ".." in branch or branch.startswith("-") or branch.endswith("/"):
+        raise ValueError(f"invalid branch name: {branch!r}")
+    return branch
 
 
 def ensure_repo(

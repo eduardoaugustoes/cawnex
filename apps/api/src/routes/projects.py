@@ -23,7 +23,7 @@ class CreateProjectRequest(BaseModel):
 
     name: str
     one_liner: str = ""
-    repo: str = ""
+    repo: str = Field(default="", pattern=r"^$|^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
     murders: List[str] = Field(default=["dev"])
 
 
