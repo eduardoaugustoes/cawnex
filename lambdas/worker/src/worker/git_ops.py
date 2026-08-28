@@ -13,23 +13,30 @@ from worker.paths import resolve_within
 
 
 def run_git(
-    cmd: str,
+    cmd: list[str],
     cwd: str | None = None,
     check: bool = True,
     timeout: int = 120,
 ) -> str:
-    """Run a shell command with git-safe env vars. Returns stdout."""
+    """Run a git command with git-safe env vars. Returns stdout.
+
+    Takes argv as a list — never a shell string. Repo and branch names are
+    caller-supplied and reach this function, so no shell is involved at all.
+    Hooks are disabled: a crow can write files into the worktree, and
+    `.git/hooks/pre-commit` would otherwise execute on the next commit.
+    """
     env = os.environ.copy()
     env["GIT_TERMINAL_PROMPT"] = "0"
-    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_COUNT"] = "2"
     env["GIT_CONFIG_KEY_0"] = "safe.directory"
     env["GIT_CONFIG_VALUE_0"] = "*"
+    env["GIT_CONFIG_KEY_1"] = "core.hooksPath"
+    env["GIT_CONFIG_VALUE_1"] = "/dev/null"
     if GITHUB_TOKEN:
         env["GH_TOKEN"] = GITHUB_TOKEN
 
     result = subprocess.run(
         cmd,
-        shell=True,
         capture_output=True,
         text=True,
         cwd=cwd,
@@ -37,7 +44,7 @@ def run_git(
         timeout=timeout,
     )
     if check and result.returncode != 0:
-        raise RuntimeError(f"Command failed: {cmd}\nstderr: {result.stderr}")
+        raise RuntimeError(f"Command failed: {' '.join(cmd)}\nstderr: {result.stderr}")
     return result.stdout.strip()
 
 
@@ -78,18 +85,18 @@ def ensure_repo(
     clone_url = f"https://x-access-token:{github_token}@github.com/{repo}.git"
 
     if os.path.exists(os.path.join(repo_dir, ".git")):
-        health = run_git("git status --porcelain", cwd=repo_dir, check=False)
+        health = run_git(["git", "status", "--porcelain"], cwd=repo_dir, check=False)
         is_shallow = os.path.exists(os.path.join(repo_dir, ".git", "shallow"))
 
         if "fatal" in health or is_shallow:
             shutil.rmtree(repo_dir)
         else:
-            run_git("git fetch origin", cwd=repo_dir)
+            run_git(["git", "fetch", "origin"], cwd=repo_dir)
             return repo_dir
 
-    run_git(f"git clone {clone_url} {repo_dir}")
-    run_git('git config user.email "cawnex-worker@cawnex.ai"', cwd=repo_dir)
-    run_git('git config user.name "Cawnex Worker"', cwd=repo_dir)
+    run_git(["git", "clone", clone_url, repo_dir])
+    run_git(["git", "config", "user.email", "cawnex-worker@cawnex.ai"], cwd=repo_dir)
+    run_git(["git", "config", "user.name", "Cawnex Worker"], cwd=repo_dir)
     return repo_dir
 
 
@@ -105,24 +112,24 @@ def create_worktree(
     # Clean up leftover from a previous failed run
     if os.path.exists(worktree_dir):
         run_git(
-            f"git worktree remove {worktree_dir} --force",
+            ["git", "worktree", "remove", worktree_dir, "--force"],
             cwd=repo_dir,
             check=False,
         )
         if os.path.exists(worktree_dir):
             shutil.rmtree(worktree_dir)
 
-    run_git("git worktree prune", cwd=repo_dir)
-    run_git("git fetch --prune origin", cwd=repo_dir)
+    run_git(["git", "worktree", "prune"], cwd=repo_dir)
+    run_git(["git", "fetch", "--prune", "origin"], cwd=repo_dir)
 
     # If branch is main/master, use a crow-scoped branch to avoid collision
     worktree_branch = branch if branch not in ("main", "master") else f"cawnex/{crow_id}"
 
-    run_git(f"git branch -D {worktree_branch}", cwd=repo_dir, check=False)
+    run_git(["git", "branch", "-D", worktree_branch], cwd=repo_dir, check=False)
 
     # Detect remote branch (sequential crow building on previous push)
     remote_ref = run_git(
-        f"git rev-parse --verify origin/{branch}",
+        ["git", "rev-parse", "--verify", f"origin/{branch}"],
         cwd=repo_dir,
         check=False,
     )
@@ -133,11 +140,13 @@ def create_worktree(
     )
 
     run_git(
-        f"git worktree add {worktree_dir} -b {worktree_branch} {start_ref}",
+        ["git", "worktree", "add", worktree_dir, "-b", worktree_branch, start_ref],
         cwd=repo_dir,
     )
-    run_git('git config user.email "cawnex-worker@cawnex.ai"', cwd=worktree_dir)
-    run_git('git config user.name "Cawnex Worker"', cwd=worktree_dir)
+    run_git(
+        ["git", "config", "user.email", "cawnex-worker@cawnex.ai"], cwd=worktree_dir
+    )
+    run_git(["git", "config", "user.name", "Cawnex Worker"], cwd=worktree_dir)
     return worktree_dir
 
 
@@ -145,13 +154,13 @@ def cleanup_worktree(repo_dir: str, worktree_dir: str) -> None:
     """Remove worktree after execution. Swallows errors."""
     try:
         run_git(
-            f"git worktree remove {worktree_dir} --force",
+            ["git", "worktree", "remove", worktree_dir, "--force"],
             cwd=repo_dir,
             check=False,
         )
         if os.path.exists(worktree_dir):
             shutil.rmtree(worktree_dir)
-        run_git("git worktree prune", cwd=repo_dir)
+        run_git(["git", "worktree", "prune"], cwd=repo_dir)
     except Exception:
         pass
 
@@ -199,8 +208,10 @@ def commit_and_push(
 ) -> str:
     """Git add, commit, push. Returns commit SHA or empty if nothing to commit."""
     repo = _normalize_repo(repo)
-    run_git("git add -A", cwd=worktree_dir)
-    diff = run_git("git diff --cached --name-only", cwd=worktree_dir, check=False)
+    run_git(["git", "add", "-A"], cwd=worktree_dir)
+    diff = run_git(
+        ["git", "diff", "--cached", "--name-only"], cwd=worktree_dir, check=False
+    )
     if not diff:
         return ""
     # Pass commit message via stdin (-F -) so multi-line messages, embedded
@@ -209,8 +220,8 @@ def commit_and_push(
     # multi-line commit message with embedded newlines or quotes.
     _git_commit_with_stdin_message(worktree_dir, message)
     push_url = f"https://x-access-token:{github_token}@github.com/{repo}.git"
-    run_git(f"git push --force {push_url} {branch}", cwd=worktree_dir)
-    sha = run_git("git rev-parse HEAD", cwd=worktree_dir)
+    run_git(["git", "push", "--force", push_url, branch], cwd=worktree_dir)
+    sha = run_git(["git", "rev-parse", "HEAD"], cwd=worktree_dir)
     return sha
 
 
@@ -218,9 +229,11 @@ def _git_commit_with_stdin_message(worktree_dir: str, message: str) -> None:
     """Commit with the message read from stdin — no shell quoting needed."""
     env = os.environ.copy()
     env["GIT_TERMINAL_PROMPT"] = "0"
-    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_COUNT"] = "2"
     env["GIT_CONFIG_KEY_0"] = "safe.directory"
     env["GIT_CONFIG_VALUE_0"] = "*"
+    env["GIT_CONFIG_KEY_1"] = "core.hooksPath"
+    env["GIT_CONFIG_VALUE_1"] = "/dev/null"
     result = subprocess.run(
         ["git", "commit", "-F", "-"],
         input=message,
