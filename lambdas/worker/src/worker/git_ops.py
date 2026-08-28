@@ -8,6 +8,7 @@ import subprocess
 from typing import Any
 
 from worker.config import EFS_MOUNT, GITHUB_TOKEN
+from worker.paths import resolve_within
 
 
 def run_git(
@@ -135,18 +136,36 @@ def cleanup_worktree(repo_dir: str, worktree_dir: str) -> None:
 
 
 def apply_changes(worktree_dir: str, changes: list[dict[str, Any]]) -> list[str]:
-    """Create/modify/delete files in worktree. Returns changed paths."""
-    paths: list[str] = []
+    """Create/modify/delete files in worktree. Returns changed paths.
+
+    Every path is model-authored, so each is validated against worktree_dir
+    before any write happens. A single escaping path rejects the whole
+    changeset — a partial apply would leave a tree neither the model nor the
+    reviewer reasoned about, and `git add -A` would commit the surviving half.
+    """
+    resolved: list[tuple[str, str, dict[str, Any]]] = []
     for change in changes:
-        filepath = os.path.join(worktree_dir, change["path"])
+        rel = change.get("path")
+        if not isinstance(rel, str):
+            raise ValueError("change is missing a string 'path'")
+        full = resolve_within(worktree_dir, rel)
+        if full is None:
+            raise ValueError(f"path escapes worktree: {rel}")
+        rel_to_root = os.path.relpath(full, os.path.realpath(worktree_dir))
+        if ".git" in rel_to_root.lower().split(os.sep):
+            raise ValueError(f"path writes git internals: {rel}")
+        resolved.append((rel, full, change))
+
+    paths: list[str] = []
+    for rel, full, change in resolved:
         if change.get("action") == "delete":
-            if os.path.exists(filepath):
-                os.remove(filepath)
+            if os.path.exists(full):
+                os.remove(full)
         else:
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            with open(filepath, "w") as f:
-                f.write(change["content"])
-        paths.append(change["path"])
+            os.makedirs(os.path.dirname(full), exist_ok=True)
+            with open(full, "w") as f:
+                f.write(change.get("content", ""))
+        paths.append(rel)
     return paths
 
 

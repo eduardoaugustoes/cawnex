@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -230,3 +231,103 @@ def test_commit_message_with_newlines_and_quotes_uses_stdin(
     assert call_args[0] == ["git", "commit", "-F", "-"]
     assert call_kwargs["input"] == nasty_message
     assert call_kwargs["cwd"] == "/wt"
+
+
+def test_apply_changes_rejects_parent_traversal(tmp_path: Path) -> None:
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    with pytest.raises(ValueError, match="escapes worktree"):
+        apply_changes(
+            root, [{"path": "../pwned.txt", "action": "create", "content": "x"}]
+        )
+    assert not os.path.exists(os.path.join(str(tmp_path), "pwned.txt"))
+
+
+def test_apply_changes_rejects_absolute_path(tmp_path: Path) -> None:
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    target = os.path.join(str(tmp_path), "abs.txt")
+    with pytest.raises(ValueError, match="escapes worktree"):
+        apply_changes(root, [{"path": target, "action": "create", "content": "x"}])
+    assert not os.path.exists(target)
+
+
+def test_apply_changes_rejects_git_hooks_write(tmp_path: Path) -> None:
+    """Defense in depth: a hook inside the worktree still executes on commit."""
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    with pytest.raises(ValueError, match="git internals"):
+        apply_changes(
+            root,
+            [
+                {
+                    "path": ".git/hooks/pre-commit",
+                    "action": "create",
+                    "content": "#!/bin/sh\nid\n",
+                }
+            ],
+        )
+
+
+def test_apply_changes_rejects_uppercase_git_write(tmp_path: Path) -> None:
+    """macOS/APFS is case-insensitive by default — .GIT must be caught too."""
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    with pytest.raises(ValueError, match="git internals"):
+        apply_changes(
+            root,
+            [
+                {
+                    "path": ".GIT/hooks/pre-commit",
+                    "action": "create",
+                    "content": "#!/bin/sh\nid\n",
+                }
+            ],
+        )
+
+
+def test_apply_changes_rejects_nested_git_write(tmp_path: Path) -> None:
+    """A .git directory nested under a subdirectory is also git internals."""
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    with pytest.raises(ValueError, match="git internals"):
+        apply_changes(
+            root,
+            [{"path": "sub/.git/hooks/pre-commit", "action": "create", "content": "x"}],
+        )
+
+
+def test_apply_changes_is_atomic_on_escape(tmp_path: Path) -> None:
+    """A single bad path rejects the whole changeset — nothing is written."""
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    with pytest.raises(ValueError):
+        apply_changes(
+            root,
+            [
+                {"path": "good.py", "action": "create", "content": "ok"},
+                {"path": "../bad.py", "action": "create", "content": "evil"},
+            ],
+        )
+    assert not os.path.exists(os.path.join(root, "good.py"))
+
+
+def test_apply_changes_writes_valid_paths(tmp_path: Path) -> None:
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    paths = apply_changes(
+        root, [{"path": "pkg/mod.py", "action": "create", "content": "print(1)"}]
+    )
+    assert paths == ["pkg/mod.py"]
+    with open(os.path.join(root, "pkg/mod.py")) as f:
+        assert f.read() == "print(1)"
+
+
+def test_apply_changes_delete_still_works(tmp_path: Path) -> None:
+    root = os.path.join(str(tmp_path), "wt")
+    os.makedirs(root)
+    victim = os.path.join(root, "gone.py")
+    with open(victim, "w") as f:
+        f.write("x")
+    apply_changes(root, [{"path": "gone.py", "action": "delete"}])
+    assert not os.path.exists(victim)
